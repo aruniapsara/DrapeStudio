@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Results — DrapeStudio{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <h2>Step 5: Your Generated Images</h2>
+
+    <div id="results-container" class="results-container">
+        <p>Loading results...</p>
+    </div>
+
+    <div class="form-actions">
+        <a href="/upload" class="btn btn-primary">Create New Generation</a>
+    </div>
+</section>
+
+<script>
+    async function loadResults() {
+        const genId = '{{ gen_id }}';
+        try {
+            const resp = await fetch(`/v1/generations/${genId}/outputs`);
+            const data = await resp.json();
+            const container = document.getElementById('results-container');
+
+            if (data.status === 'succeeded' && data.outputs && data.outputs.length > 0) {
+                container.innerHTML = '<div class="image-grid">' +
+                    data.outputs.map((output, i) => `
+                        <div class="image-card">
+                            <img src="${output.image_url}" alt="Generated image ${i + 1}"
+                                 loading="lazy">
+                            <div class="image-card-footer">
+                                <span>Variation ${i + 1}</span>
+                                <span>${output.width || '—'} × ${output.height || '—'}</span>
+                                <a href="${output.image_url}" download="drapestudio_${genId}_${i + 1}.jpg"
+                                   class="btn btn-small">Download</a>
+                            </div>
+                        </div>
+                    `).join('') +
+                    '</div>';
+            } else if (data.status === 'failed') {
+                container.innerHTML = `
+                    <div class="status-card status-error">
+                        <p>Generation failed: ${data.error_message || 'Unknown error'}</p>
+                        <a href="/upload" class="btn btn-primary">Try Again</a>
+                    </div>`;
+            } else {
+                container.innerHTML = `
+                    <div class="status-card">
+                        <p>Status: ${data.status}. Images may still be processing.</p>
+                        <a href="/generating/${genId}" class="btn btn-secondary">Check Progress</a>
+                    </div>`;
+            }
+        } catch (err) {
+            document.getElementById('results-container').innerHTML =
+                `<p class="error">Failed to load results: ${err.message}</p>`;
+        }
+    }
+
+    loadResults();
+</script>
+{% endblock %}

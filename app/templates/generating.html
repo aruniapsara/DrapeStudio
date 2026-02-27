@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Generating — DrapeStudio{% endblock %}
+
+{% block content %}
+<section class="page-section generating-page">
+    <h2>Step 4: Generating Your Images</h2>
+
+    <div id="status-container"
+         hx-get="/v1/generations/{{ gen_id }}/status-partial"
+         hx-trigger="every 4s"
+         hx-swap="outerHTML">
+        <div class="status-card status-queued">
+            <div class="spinner"></div>
+            <p class="status-text">Queued — preparing your generation...</p>
+            <p class="status-hint">This typically takes 30–60 seconds.</p>
+        </div>
+    </div>
+
+    <div class="generation-info">
+        <p><strong>Generation ID:</strong> <code>{{ gen_id }}</code></p>
+    </div>
+</section>
+
+<script>
+    // Client-side timeout warnings
+    const startTime = Date.now();
+    const WARNING_MS = 150000;  // 150 seconds
+    const ERROR_MS = 300000;    // 300 seconds
+
+    setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const container = document.getElementById('status-container');
+        if (!container) return;  // Polling replaced it
+
+        if (elapsed > ERROR_MS) {
+            container.innerHTML = `
+                <div class="status-card status-error">
+                    <p class="status-text">Generation is taking too long.</p>
+                    <p>Something may have gone wrong. Please try again.</p>
+                    <a href="/upload" class="btn btn-primary">Start Over</a>
+                </div>
+            `;
+            container.removeAttribute('hx-trigger');
+            container.removeAttribute('hx-get');
+        } else if (elapsed > WARNING_MS) {
+            const hint = container.querySelector('.status-hint');
+            if (hint) {
+                hint.textContent = 'This is taking longer than usual. Please wait...';
+                hint.classList.add('status-warning');
+            }
+        }
+    }, 5000);
+</script>
+{% endblock %}

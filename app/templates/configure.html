@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Configure Model — DrapeStudio{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <h2>Step 2: Configure Virtual Model &amp; Scene</h2>
+
+    <form id="configure-form" action="/review" method="get">
+        <div class="form-grid">
+            <!-- Model Appearance -->
+            <fieldset class="form-group">
+                <legend>Model Appearance</legend>
+
+                <label for="age_range">Age Range</label>
+                <select id="age_range" name="age_range" required>
+                    <option value="">Select...</option>
+                    <option value="18-24">18–24</option>
+                    <option value="25-34">25–34</option>
+                    <option value="35-44">35–44</option>
+                    <option value="45+">45+</option>
+                </select>
+
+                <label for="gender_presentation">Gender Presentation</label>
+                <select id="gender_presentation" name="gender_presentation" required>
+                    <option value="">Select...</option>
+                    <option value="feminine">Feminine</option>
+                    <option value="masculine">Masculine</option>
+                    <option value="neutral">Neutral</option>
+                </select>
+
+                <label for="skin_tone">Skin Tone (Fitzpatrick Scale)</label>
+                <select id="skin_tone" name="skin_tone" required>
+                    <option value="">Select...</option>
+                    <option value="1">1 — Very Light</option>
+                    <option value="2">2 — Light</option>
+                    <option value="3">3 — Medium Light</option>
+                    <option value="4">4 — Medium Dark</option>
+                    <option value="5">5 — Dark</option>
+                    <option value="6">6 — Very Dark</option>
+                </select>
+
+                <label>Body Type</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="body_type" value="petite" required> Petite</label>
+                    <label><input type="radio" name="body_type" value="average"> Average</label>
+                    <label><input type="radio" name="body_type" value="athletic"> Athletic</label>
+                    <label><input type="radio" name="body_type" value="curvy"> Curvy</label>
+                    <label><input type="radio" name="body_type" value="plus"> Plus</label>
+                </div>
+            </fieldset>
+
+            <!-- Scene Settings -->
+            <fieldset class="form-group">
+                <legend>Scene Settings</legend>
+
+                <label for="environment">Environment</label>
+                <select id="environment" name="environment" required>
+                    <option value="">Select...</option>
+                    <option value="studio_white">Studio — White</option>
+                    <option value="studio_beige">Studio — Beige</option>
+                    <option value="outdoor_street">Outdoor — Street</option>
+                    <option value="outdoor_park">Outdoor — Park</option>
+                    <option value="outdoor_beach">Outdoor — Beach</option>
+                    <option value="indoor_cafe">Indoor — Cafe</option>
+                    <option value="indoor_home">Indoor — Home</option>
+                </select>
+
+                <label for="pose_preset">Pose</label>
+                <select id="pose_preset" name="pose_preset" required>
+                    <option value="">Select...</option>
+                    <option value="front_standing">Front Standing</option>
+                    <option value="walking">Walking</option>
+                    <option value="three_quarter">Three-Quarter Turn</option>
+                    <option value="seated">Seated</option>
+                </select>
+
+                <label for="framing">Framing</label>
+                <select id="framing" name="framing" required>
+                    <option value="">Select...</option>
+                    <option value="full_body">Full Body</option>
+                    <option value="three_quarter">Three-Quarter</option>
+                    <option value="waist_up">Waist Up</option>
+                </select>
+            </fieldset>
+        </div>
+
+        <div class="form-actions">
+            <a href="/upload" class="btn btn-secondary">Back</a>
+            <button type="submit" class="btn btn-primary">Next: Review</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

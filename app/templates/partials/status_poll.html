@@ -1,0 +1,41 @@
+{% if status == "queued" %}
+<div id="status-container"
+     hx-get="/v1/generations/{{ gen_id }}/status-partial"
+     hx-trigger="every 4s"
+     hx-swap="outerHTML">
+    <div class="status-card status-queued">
+        <div class="spinner"></div>
+        <p class="status-text">Queued — preparing your generation...</p>
+        <p class="status-hint">This typically takes 30–60 seconds.</p>
+    </div>
+</div>
+
+{% elif status == "running" %}
+<div id="status-container"
+     hx-get="/v1/generations/{{ gen_id }}/status-partial"
+     hx-trigger="every 4s"
+     hx-swap="outerHTML">
+    <div class="status-card status-running">
+        <div class="spinner"></div>
+        <p class="status-text">Running — generating your images...</p>
+        <p class="status-hint">Almost there!</p>
+    </div>
+</div>
+
+{% elif status == "succeeded" %}
+<div id="status-container">
+    <div class="status-card status-succeeded">
+        <p class="status-text">Images generated successfully!</p>
+        <a href="/results/{{ gen_id }}" class="btn btn-primary">View Results</a>
+    </div>
+</div>
+
+{% elif status == "failed" %}
+<div id="status-container">
+    <div class="status-card status-error">
+        <p class="status-text">Generation failed</p>
+        <p>{{ error_message or "An unexpected error occurred." }}</p>
+        <a href="/upload" class="btn btn-primary">Try Again</a>
+    </div>
+</div>
+{% endif %}

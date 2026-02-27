@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Admin — Usage Report{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <h2>Usage &amp; Cost Report</h2>
+
+    <form id="filter-form" class="filter-form">
+        <label for="from_date">From</label>
+        <input type="date" id="from_date" name="from_date">
+
+        <label for="to_date">To</label>
+        <input type="date" id="to_date" name="to_date">
+
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="">All</option>
+            <option value="queued">Queued</option>
+            <option value="running">Running</option>
+            <option value="succeeded">Succeeded</option>
+            <option value="failed">Failed</option>
+        </select>
+
+        <button type="button" class="btn btn-primary" onclick="loadReport()">Filter</button>
+        <button type="button" class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+    </form>
+
+    <div id="report-container">
+        <table class="data-table" id="usage-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Status</th>
+                    <th>Model</th>
+                    <th>Tokens (in/out)</th>
+                    <th>Cost (USD)</th>
+                    <th>Duration (ms)</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody id="usage-tbody">
+                <tr><td colspan="7">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+    async function loadReport() {
+        const params = new URLSearchParams();
+        const fromDate = document.getElementById('from_date').value;
+        const toDate = document.getElementById('to_date').value;
+        const status = document.getElementById('status').value;
+        if (fromDate) params.set('from_date', fromDate);
+        if (toDate) params.set('to_date', toDate);
+        if (status) params.set('status', status);
+        params.set('format', 'json');
+
+        try {
+            const resp = await fetch(`/v1/admin/reports/usage?${params}`);
+            const data = await resp.json();
+            const tbody = document.getElementById('usage-tbody');
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No records found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(row => `
+                <tr>
+                    <td><code>${row.id}</code></td>
+                    <td><span class="status-badge status-${row.status}">${row.status}</span></td>
+                    <td>${row.model_name || '—'}</td>
+                    <td>${row.input_tokens || '—'} / ${row.output_tokens || '—'}</td>
+                    <td>${row.estimated_cost_usd != null ? '$' + parseFloat(row.estimated_cost_usd).toFixed(4) : '—'}</td>
+                    <td>${row.duration_ms || '—'}</td>
+                    <td>${new Date(row.created_at).toLocaleString()}</td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            document.getElementById('usage-tbody').innerHTML =
+                `<tr><td colspan="7" class="error">Error: ${err.message}</td></tr>`;
+        }
+    }
+
+    function exportCSV() {
+        const params = new URLSearchParams();
+        const fromDate = document.getElementById('from_date').value;
+        const toDate = document.getElementById('to_date').value;
+        const status = document.getElementById('status').value;
+        if (fromDate) params.set('from_date', fromDate);
+        if (toDate) params.set('to_date', toDate);
+        if (status) params.set('status', status);
+        params.set('format', 'csv');
+        window.location.href = `/v1/admin/reports/usage?${params}`;
+    }
+
+    // Load on page load
+    loadReport();
+</script>
+{% endblock %}

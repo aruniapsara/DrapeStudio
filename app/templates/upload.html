@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Garment — DrapeStudio{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <h2>Step 1: Upload Garment Photos</h2>
+    <p>Upload 1–5 photos of your garment (JPG, PNG, or WEBP). Include front, back, and detail shots for best results.</p>
+
+    <div id="drop-zone" class="drop-zone" ondrop="handleDrop(event)" ondragover="event.preventDefault()" ondragleave="this.classList.remove('drag-over')" ondragenter="this.classList.add('drag-over')">
+        <input type="file" id="garment-files" accept="image/jpeg,image/png,image/webp"
+               multiple onchange="handleFiles(this.files)" class="file-input">
+        <div class="drop-zone-content">
+            <p class="drop-zone-icon">📸</p>
+            <p>Drag and drop up to 5 garment photos, or click to select</p>
+            <p class="drop-zone-hint">Accepted: JPG, PNG, WEBP — minimum 400px per dimension</p>
+        </div>
+    </div>
+
+    <div id="preview-grid" class="preview-grid"></div>
+
+    <div class="form-actions">
+        <a href="/" class="btn btn-secondary">Back</a>
+        <button id="btn-next" class="btn btn-primary" disabled onclick="proceedToConfigure()">
+            Next: Configure Model
+        </button>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/upload.js"></script>
+{% endblock %}

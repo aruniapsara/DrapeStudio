@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}DrapeStudio — AI Garment Model Generator{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>DrapeStudio</h1>
+    <p class="hero-subtitle">AI-powered garment model image generator for clothing sellers</p>
+    <p class="hero-description">
+        Upload your garment photos, configure a virtual model and scene,
+        and receive three photorealistic catalogue-quality images — no photoshoot required.
+    </p>
+    <a href="/upload" class="btn btn-primary btn-large">Get Started</a>
+</section>
+
+<section class="features">
+    <div class="feature-card">
+        <h3>1. Upload</h3>
+        <p>Upload 1–5 photos of your garment from different angles.</p>
+    </div>
+    <div class="feature-card">
+        <h3>2. Configure</h3>
+        <p>Choose model appearance, pose, environment, and framing.</p>
+    </div>
+    <div class="feature-card">
+        <h3>3. Generate</h3>
+        <p>Receive 3 photorealistic catalogue-quality images in seconds.</p>
+    </div>
+</section>
+{% endblock %}

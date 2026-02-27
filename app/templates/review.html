@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Review — DrapeStudio{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <h2>Step 3: Review &amp; Generate</h2>
+
+    <div class="review-summary">
+        <h3>Your Configuration</h3>
+        <div class="review-grid">
+            <div class="review-section">
+                <h4>Garment Images</h4>
+                <div id="review-images" class="review-images">
+                    <!-- Populated by JS from sessionStorage -->
+                </div>
+            </div>
+
+            <div class="review-section">
+                <h4>Model Settings</h4>
+                <dl class="review-details" id="review-model">
+                    <!-- Populated by JS from query params -->
+                </dl>
+            </div>
+
+            <div class="review-section">
+                <h4>Scene Settings</h4>
+                <dl class="review-details" id="review-scene">
+                    <!-- Populated by JS from query params -->
+                </dl>
+            </div>
+        </div>
+
+        <div class="cost-indicator">
+            <p><strong>Cost:</strong> 1 credit per generation (3 output images)</p>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <a href="/configure" class="btn btn-secondary">Back: Edit Settings</a>
+        <button id="btn-generate" class="btn btn-primary btn-large" onclick="submitGeneration()">
+            Generate Images
+        </button>
+    </div>
+</section>
+
+<script>
+    // Populate review from URL params
+    const params = new URLSearchParams(window.location.search);
+    const modelFields = ['age_range', 'gender_presentation', 'skin_tone', 'body_type'];
+    const sceneFields = ['environment', 'pose_preset', 'framing'];
+
+    const modelDl = document.getElementById('review-model');
+    modelFields.forEach(f => {
+        const val = params.get(f);
+        if (val) {
+            modelDl.innerHTML += `<dt>${f.replace(/_/g, ' ')}</dt><dd>${val}</dd>`;
+        }
+    });
+
+    const sceneDl = document.getElementById('review-scene');
+    sceneFields.forEach(f => {
+        const val = params.get(f);
+        if (val) {
+            sceneDl.innerHTML += `<dt>${f.replace(/_/g, ' ')}</dt><dd>${val}</dd>`;
+        }
+    });
+
+    async function submitGeneration() {
+        const btn = document.getElementById('btn-generate');
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+
+        // Collect uploaded file URLs from sessionStorage
+        const uploadedFiles = JSON.parse(sessionStorage.getItem('uploadedFiles') || '[]');
+
+        const body = {
+            idempotency_key: crypto.randomUUID(),
+            garment_images: uploadedFiles,
+            model_params: {
+                age_range: params.get('age_range'),
+                gender_presentation: params.get('gender_presentation'),
+                skin_tone: params.get('skin_tone'),
+                body_mode: 'simple',
+                body_type: params.get('body_type'),
+            },
+            scene: {
+                environment: params.get('environment'),
+                pose_preset: params.get('pose_preset'),
+                framing: params.get('framing'),
+            },
+            output: { count: 3, resolution: 'high' },
+        };
+
+        try {
+            const resp = await fetch('/v1/generations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                window.location.href = `/generating/${data.id}`;
+            } else {
+                alert('Error: ' + (data.detail || 'Failed to create generation'));
+                btn.disabled = false;
+                btn.textContent = 'Generate Images';
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Generate Images';
+        }
+    }
+</script>
+{% endblock %}
