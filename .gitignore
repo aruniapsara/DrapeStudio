@@ -1,28 +1,33 @@
-# Claude AI assistant files
-.claude/
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnp/
-.pnp.js
-
-# Build outputs
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
 dist/
 build/
-.next/
-out/
+.eggs/
+
+# Virtual environment
+.venv/
+venv/
+ENV/
 
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# OS files
-.DS_Store
-Thumbs.db
+# Database
+*.db
+*.sqlite3
+
+# Storage (local dev uploads/outputs)
+storage/
+
+# Alembic
+*.db-journal
 
 # IDE
 .vscode/
@@ -31,3 +36,18 @@ Thumbs.db
 *.ntvs*
 *.njsproj
 *.sln
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude AI assistant files
+.claude/
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+
+# mypy
+.mypy_cache/
