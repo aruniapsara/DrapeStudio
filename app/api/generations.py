@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.main import get_or_create_session_id, templates
+from app.dependencies import get_or_create_session_id
 from app.models.db import GenerationRequest, GenerationOutput, generate_gen_id
 from app.schemas.generation import (
     CreateGenerationRequest,
@@ -21,6 +21,12 @@ from app.schemas.generation import (
 from app.services.storage import storage
 
 router = APIRouter(tags=["generations"])
+
+
+def _get_templates():
+    """Lazy import to avoid circular dependency with app.main."""
+    from app.main import templates
+    return templates
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +199,7 @@ def get_generation_status_partial(
             status_code=404,
         )
 
-    return templates.TemplateResponse(
+    return _get_templates().TemplateResponse(
         "partials/status_poll.html",
         {
             "request": request,

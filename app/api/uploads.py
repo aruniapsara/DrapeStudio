@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, UploadFile, Fil
 from pydantic import BaseModel
 
 from app.config import settings
-from app.main import get_or_create_session_id
+from app.dependencies import get_or_create_session_id
 from app.services.storage import storage
 
 router = APIRouter(tags=["uploads"])

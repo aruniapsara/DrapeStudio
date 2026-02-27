@@ -3,11 +3,9 @@
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
-from app.config import settings
 
 # Base directories
 BASE_DIR = Path(__file__).resolve().parent
@@ -44,21 +42,6 @@ async def session_middleware(request: Request, call_next):
             max_age=86400 * 30,  # 30 days
         )
     return response
-
-
-def get_or_create_session_id(request: Request, response: Response) -> str:
-    """Utility to get or create session_id from cookie."""
-    session_id = request.cookies.get("session_id")
-    if not session_id:
-        session_id = str(uuid.uuid4())
-        response.set_cookie(
-            "session_id",
-            session_id,
-            httponly=True,
-            samesite="lax",
-            max_age=86400 * 30,
-        )
-    return session_id
 
 
 # ---------------------------------------------------------------------------
