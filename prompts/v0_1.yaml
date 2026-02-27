@@ -1,0 +1,45 @@
+version: "v0.1"
+
+quality: |
+  photorealistic, ecommerce/catalogue quality
+  accurate garment drape and fit; preserve garment patterns and colours exactly
+  natural anatomy; realistic hands with correct finger count; sharp focus on garment
+  commercial catalogue lighting; clean professional result
+
+output: |
+  generate 3 distinct images with small natural pose variation between them
+  high resolution output; no text overlays; no watermarks; no borders
+
+negative: |
+  extra limbs, extra fingers, fused fingers, distorted hands, distorted face
+  background text, watermarks, logos, lens flare, motion blur
+  NSFW content, revealing clothing added, garment colour changes
+
+environments:
+  studio_white: "clean white infinity backdrop, soft diffused studio lighting, slight shadow under feet"
+  studio_beige: "warm beige luxury studio backdrop, soft fill lighting, elegant shadow"
+  outdoor_street: "urban street setting, natural daylight, editorial fashion feel, blurred background"
+  outdoor_park: "green park background, soft bokeh, golden hour lifestyle feel"
+  outdoor_beach: "sandy beach, ocean horizon, bright natural light, casual lifestyle"
+  indoor_cafe: "warm cafe interior, wooden tones, soft window light, lifestyle setting"
+  indoor_home: "neutral minimal home interior, white walls, natural light"
+
+poses:
+  front_standing: "standing facing camera, arms relaxed at sides, weight evenly balanced"
+  walking: "mid-stride walking pose, natural movement, slight body angle to camera"
+  three_quarter: "45-degree body turn toward camera, one shoulder forward, natural stance"
+  seated: "seated naturally on a stool or bench, upright posture, feet flat"
+
+framing:
+  full_body: "full body shot from head to toe, model fully visible, slight space above head and below feet"
+  three_quarter: "three-quarter shot from mid-thigh to just above head"
+  waist_up: "waist-up shot, hands visible if arms at sides"
+
+lighting:
+  studio_white: "soft box lighting, even fill, minimal shadow"
+  studio_beige: "warm key light from 45 degrees, subtle fill"
+  outdoor_street: "natural daylight, slight overcast, even skin tones"
+  outdoor_park: "golden hour side light, warm tones"
+  outdoor_beach: "bright overhead sun, high key, vivid colours"
+  indoor_cafe: "warm tungsten mixed with window daylight"
+  indoor_home: "soft natural window light, airy and clean"
