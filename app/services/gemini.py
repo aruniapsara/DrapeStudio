@@ -1,25 +1,26 @@
-"""Gemini API wrapper — call and parse response for image generation."""
+"""Image generation service via OpenRouter API (Gemini model)."""
 
+import base64
 import logging
+import re
 import time
 
-import google.generativeai as genai
+import httpx
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Configure the Gemini API key
-genai.configure(api_key=settings.GOOGLE_API_KEY)
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
 class GeminiError(Exception):
-    """Custom exception for Gemini API errors."""
+    """Custom exception for image-generation API errors."""
     pass
 
 
 class GeminiResult:
-    """Result from a Gemini image generation call."""
+    """Result from an image generation call."""
 
     def __init__(
         self,
@@ -36,19 +37,125 @@ class GeminiResult:
         self.duration_ms = duration_ms
 
 
+def _encode_image_to_data_url(img_bytes: bytes, mime_type: str = "image/jpeg") -> str:
+    """Encode raw image bytes to a base64 data URL."""
+    b64 = base64.b64encode(img_bytes).decode("utf-8")
+    return f"data:{mime_type};base64,{b64}"
+
+
+def _decode_data_url(data_url: str) -> bytes:
+    """Decode a base64 data URL back to raw bytes."""
+    # Pattern: data:image/<type>;base64,<data>
+    match = re.match(r"data:image/[^;]+;base64,(.+)", data_url, re.DOTALL)
+    if not match:
+        raise GeminiError(f"Invalid image data URL format: {data_url[:80]}...")
+    return base64.b64decode(match.group(1))
+
+
+def _call_openrouter(
+    prompt_text: str,
+    garment_image_bytes: list[bytes],
+    model_name: str,
+    variation_index: int = 0,
+) -> tuple[bytes, dict]:
+    """Make a single OpenRouter chat completion call that returns one image.
+
+    Returns:
+        Tuple of (image_bytes, usage_dict).
+    """
+    # Build the multimodal content: text prompt first, then images
+    content_parts: list[dict] = [
+        {"type": "text", "text": prompt_text + f"\n\n(Variation {variation_index + 1} of 3: apply a subtle, natural pose shift.)"},
+    ]
+
+    for img_bytes in garment_image_bytes:
+        data_url = _encode_image_to_data_url(img_bytes)
+        content_parts.append({
+            "type": "image_url",
+            "image_url": {"url": data_url},
+        })
+
+    payload = {
+        "model": model_name,
+        "messages": [
+            {
+                "role": "user",
+                "content": content_parts,
+            }
+        ],
+        "modalities": ["image", "text"],
+    }
+
+    headers = {
+        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://drapestudio.app",
+        "X-Title": "DrapeStudio",
+    }
+
+    # Use a generous timeout for image generation (120s)
+    with httpx.Client(timeout=120.0) as client:
+        resp = client.post(OPENROUTER_API_URL, json=payload, headers=headers)
+
+    # Handle HTTP errors
+    if resp.status_code != 200:
+        error_detail = resp.text[:500]
+        logger.error(
+            "OpenRouter API returned %d: %s", resp.status_code, error_detail
+        )
+        raise GeminiError(
+            f"OpenRouter API error (HTTP {resp.status_code}): {error_detail}"
+        )
+
+    data = resp.json()
+
+    # Check for API-level errors
+    if "error" in data:
+        raise GeminiError(f"OpenRouter API error: {data['error']}")
+
+    # Extract images from response
+    choices = data.get("choices", [])
+    if not choices:
+        raise GeminiError("OpenRouter returned no choices in response.")
+
+    message = choices[0].get("message", {})
+    images_list = message.get("images", [])
+
+    if not images_list:
+        logger.warning(
+            "No images in OpenRouter response. Message content: %s",
+            str(message.get("content", ""))[:200],
+        )
+        raise GeminiError("OpenRouter returned no images in the response.")
+
+    # Decode the first image from base64 data URL
+    image_url = images_list[0].get("image_url", {}).get("url", "")
+    if not image_url:
+        raise GeminiError("Image data URL is empty in response.")
+
+    image_bytes = _decode_data_url(image_url)
+
+    # Extract usage metadata
+    usage = data.get("usage", {})
+
+    return image_bytes, usage
+
+
 def generate_garment_images(
     garment_image_bytes: list[bytes],
     prompt_text: str,
-    model_name: str = "gemini-2.0-flash-exp-image-generation",
+    model_name: str | None = None,
     max_retries: int = 2,
 ) -> GeminiResult:
-    """Send garment images + text prompt to Gemini and return generated images.
+    """Send garment images + text prompt to OpenRouter and return generated images.
+
+    Makes 3 separate API calls to generate 3 distinct image variations.
 
     Args:
         garment_image_bytes: List of garment image bytes (1-5 images).
         prompt_text: Assembled prompt string.
-        model_name: Gemini model to use.
-        max_retries: Number of retries on transient errors.
+        model_name: OpenRouter model slug. Defaults to settings.OPENROUTER_MODEL.
+        max_retries: Number of retries per call on transient errors.
 
     Returns:
         GeminiResult with generated images and usage metadata.
@@ -56,92 +163,81 @@ def generate_garment_images(
     Raises:
         GeminiError: On persistent API failure.
     """
-    model = genai.GenerativeModel(model_name)
+    if model_name is None:
+        model_name = settings.OPENROUTER_MODEL
 
-    # Build parts: all garment images first, then the text prompt
-    parts = []
-    for img_bytes in garment_image_bytes:
-        parts.append({"mime_type": "image/jpeg", "data": img_bytes})
-    parts.append(prompt_text)
+    if not settings.OPENROUTER_API_KEY:
+        raise GeminiError("OPENROUTER_API_KEY is not configured.")
 
-    last_error = None
+    all_images: list[bytes] = []
+    total_input_tokens = 0
+    total_output_tokens = 0
     start_time = time.time()
 
-    for attempt in range(max_retries + 1):
-        try:
-            response = model.generate_content(
-                contents=parts,
-                generation_config=genai.types.GenerationConfig(
-                    response_mime_type="image/jpeg",
-                    candidate_count=3,
-                ),
-            )
+    # Generate 3 image variations via 3 separate calls
+    for variation_idx in range(3):
+        last_error = None
 
-            elapsed_ms = int((time.time() - start_time) * 1000)
-
-            # Extract image bytes from response
-            images = []
-            for candidate in response.candidates:
-                if hasattr(candidate, "content") and candidate.content:
-                    for part in candidate.content.parts:
-                        if hasattr(part, "inline_data") and part.inline_data:
-                            images.append(part.inline_data.data)
-
-            # If we got fewer than expected, also check top-level parts
-            if not images and hasattr(response, "parts"):
-                for part in response.parts:
-                    if hasattr(part, "inline_data") and part.inline_data:
-                        images.append(part.inline_data.data)
-
-            if not images:
-                logger.warning(
-                    "Gemini response contained no images. "
-                    "Response structure: %s",
-                    type(response).__name__,
+        for attempt in range(max_retries + 1):
+            try:
+                image_bytes, usage = _call_openrouter(
+                    prompt_text=prompt_text,
+                    garment_image_bytes=garment_image_bytes,
+                    model_name=model_name,
+                    variation_index=variation_idx,
                 )
-                raise GeminiError("Gemini returned no images in the response.")
 
-            # Extract token usage if available
-            input_tokens = None
-            output_tokens = None
-            if hasattr(response, "usage_metadata") and response.usage_metadata:
-                usage = response.usage_metadata
-                input_tokens = getattr(usage, "prompt_token_count", None)
-                output_tokens = getattr(usage, "candidates_token_count", None)
+                all_images.append(image_bytes)
 
-            logger.info(
-                "Gemini generated %d images in %dms (tokens: %s/%s)",
-                len(images),
-                elapsed_ms,
-                input_tokens,
-                output_tokens,
+                # Accumulate token usage
+                total_input_tokens += usage.get("prompt_tokens", 0) or 0
+                total_output_tokens += usage.get("completion_tokens", 0) or 0
+
+                logger.info(
+                    "OpenRouter variation %d/%d generated (%d bytes)",
+                    variation_idx + 1,
+                    3,
+                    len(image_bytes),
+                )
+                break  # Success — move to next variation
+
+            except GeminiError:
+                raise  # Don't retry our own validation errors
+
+            except Exception as e:
+                last_error = e
+                logger.warning(
+                    "OpenRouter call %d (attempt %d/%d) failed: %s",
+                    variation_idx + 1,
+                    attempt + 1,
+                    max_retries + 1,
+                    str(e),
+                )
+                if attempt < max_retries:
+                    wait_time = 2 ** (attempt + 1)
+                    logger.info("Retrying in %ds...", wait_time)
+                    time.sleep(wait_time)
+        else:
+            # All retries exhausted for this variation
+            raise GeminiError(
+                f"OpenRouter failed for variation {variation_idx + 1} "
+                f"after {max_retries + 1} attempts: {last_error}"
             )
 
-            return GeminiResult(
-                images=images,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-                model_name=model_name,
-                duration_ms=elapsed_ms,
-            )
+    elapsed_ms = int((time.time() - start_time) * 1000)
 
-        except GeminiError:
-            raise  # Don't retry our own errors
+    logger.info(
+        "OpenRouter generated %d images in %dms (tokens: %d/%d)",
+        len(all_images),
+        elapsed_ms,
+        total_input_tokens,
+        total_output_tokens,
+    )
 
-        except Exception as e:
-            last_error = e
-            logger.warning(
-                "Gemini API attempt %d/%d failed: %s",
-                attempt + 1,
-                max_retries + 1,
-                str(e),
-            )
-            if attempt < max_retries:
-                # Exponential back-off: 2s, 4s
-                wait_time = 2 ** (attempt + 1)
-                logger.info("Retrying in %ds...", wait_time)
-                time.sleep(wait_time)
-
-    raise GeminiError(
-        f"Gemini API failed after {max_retries + 1} attempts: {last_error}"
+    return GeminiResult(
+        images=all_images,
+        input_tokens=total_input_tokens if total_input_tokens else None,
+        output_tokens=total_output_tokens if total_output_tokens else None,
+        model_name=model_name,
+        duration_ms=elapsed_ms,
     )

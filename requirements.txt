@@ -8,7 +8,7 @@ sqlalchemy==2.0.36
 alembic==1.13.3
 redis==5.1.1
 rq==1.16.2
-google-generativeai==0.8.3
+# google-generativeai==0.8.3  # Replaced by OpenRouter API via httpx
 python-ulid==3.0.0
 python-dotenv==1.0.1
 pillow==10.4.0

@@ -16,8 +16,12 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
 
-    # Google Gemini
+    # Google Gemini (legacy — kept for backward compatibility)
     GOOGLE_API_KEY: str = ""
+
+    # OpenRouter (primary LLM provider)
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "google/gemini-3.1-flash-image-preview"
 
     # Google Cloud Storage (production only)
     GCS_BUCKET_UPLOADS: str = ""
