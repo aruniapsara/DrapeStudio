@@ -29,6 +29,16 @@
                     <option value="neutral">Neutral</option>
                 </select>
 
+                <label for="ethnicity">Ethnicity</label>
+                <select id="ethnicity" name="ethnicity" required>
+                    <option value="">Select...</option>
+                    <option value="sri_lankan">Sri Lankan</option>
+                    <option value="indian">Indian</option>
+                    <option value="middle_eastern">Middle Eastern</option>
+                    <option value="african">African</option>
+                    <option value="european">European</option>
+                </select>
+
                 <label for="skin_tone">Skin Tone (Fitzpatrick Scale)</label>
                 <select id="skin_tone" name="skin_tone" required>
                     <option value="">Select...</option>
@@ -38,6 +48,23 @@
                     <option value="4">4 — Medium Dark</option>
                     <option value="5">5 — Dark</option>
                     <option value="6">6 — Very Dark</option>
+                </select>
+
+                <label for="hair_style">Hair Style</label>
+                <select id="hair_style" name="hair_style" required>
+                    <option value="">Select gender first...</option>
+                </select>
+
+                <label for="hair_color">Hair Color</label>
+                <select id="hair_color" name="hair_color" required>
+                    <option value="">Select...</option>
+                    <option value="black">Black</option>
+                    <option value="dark_brown">Dark Brown</option>
+                    <option value="medium_brown">Medium Brown</option>
+                    <option value="light_brown">Light Brown / Caramel</option>
+                    <option value="blonde">Blonde</option>
+                    <option value="auburn">Red / Auburn</option>
+                    <option value="grey">Grey / Silver</option>
                 </select>
 
                 <label>Body Type</label>
@@ -91,4 +118,56 @@
         </div>
     </form>
 </section>
+
+<script>
+    const HAIR_STYLES = {
+        feminine: [
+            { value: 'long_straight',  label: 'Long Straight' },
+            { value: 'long_wavy',      label: 'Long Wavy' },
+            { value: 'long_curly',     label: 'Long Curly' },
+            { value: 'short_bob',      label: 'Short Bob' },
+            { value: 'medium_layered', label: 'Medium Layered' },
+            { value: 'braided',        label: 'Braided / Updo' },
+        ],
+        masculine: [
+            { value: 'short_tapered',   label: 'Short Tapered' },
+            { value: 'medium_textured', label: 'Medium Textured' },
+            { value: 'buzz_cut',        label: 'Buzz Cut' },
+            { value: 'slicked_back',    label: 'Slicked Back' },
+            { value: 'afro_curly',      label: 'Afro / Curly' },
+            { value: 'dreadlocks',      label: 'Dreadlocks' },
+        ],
+        neutral: [
+            { value: 'short_straight', label: 'Short Straight' },
+            { value: 'medium_length',  label: 'Medium Length' },
+            { value: 'long_straight',  label: 'Long Straight' },
+            { value: 'shaved',         label: 'Shaved' },
+            { value: 'natural_curly',  label: 'Natural Curly' },
+        ],
+    };
+
+    function updateHairStyles() {
+        const gender = document.getElementById('gender_presentation').value;
+        const sel = document.getElementById('hair_style');
+        const prev = sel.value;
+
+        sel.innerHTML = '<option value="">Select...</option>';
+
+        const styles = HAIR_STYLES[gender];
+        if (!styles) return;
+
+        styles.forEach(({ value, label }) => {
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = label;
+            if (value === prev) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+
+    document.getElementById('gender_presentation').addEventListener('change', updateHairStyles);
+
+    // Populate on load if gender is already set (e.g. browser back-fill)
+    updateHairStyles();
+</script>
 {% endblock %}

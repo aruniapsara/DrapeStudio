@@ -71,11 +71,26 @@ def assemble_prompt(
     gender = model_params.get("gender_presentation", "feminine")
     skin_tone = model_params.get("skin_tone", "4")
     body_type = model_params.get("body_type", "average")
+    ethnicity = model_params.get("ethnicity", "")
+    hair_style = model_params.get("hair_style", "")
+    hair_color = model_params.get("hair_color", "")
+
+    ethnicity_desc = template.get("ethnicities", {}).get(ethnicity, "") if ethnicity else ""
+    hair_style_desc = template.get("hair_styles", {}).get(hair_style, "") if hair_style else ""
+    hair_color_desc = template.get("hair_colors", {}).get(hair_color, "") if hair_color else ""
 
     model_desc = (
         f"A {gender} model, age {age_range}, "
         f"Fitzpatrick skin tone {skin_tone}, {body_type} body type"
     )
+    if ethnicity_desc:
+        model_desc += f", {ethnicity_desc}"
+    if hair_color_desc and hair_style_desc:
+        model_desc += f", {hair_color_desc}, {hair_style_desc}"
+    elif hair_style_desc:
+        model_desc += f", {hair_style_desc}"
+    elif hair_color_desc:
+        model_desc += f", {hair_color_desc}"
 
     # Assemble full prompt
     quality = template.get("quality", "").strip()

@@ -12,9 +12,12 @@ from pydantic import BaseModel, Field
 class ModelParams(BaseModel):
     age_range: str = Field(..., description="e.g. 18-24, 25-34, 35-44, 45+")
     gender_presentation: str = Field(..., description="feminine | masculine | neutral")
+    ethnicity: str = Field(default="", description="sri_lankan | indian | middle_eastern | african | european")
     skin_tone: str = Field(..., description="Fitzpatrick 1-6")
     body_mode: str = Field(default="simple", description="simple (Phase 1)")
     body_type: str = Field(..., description="petite | average | athletic | curvy | plus")
+    hair_style: str = Field(default="", description="Hair style preset key")
+    hair_color: str = Field(default="", description="Hair color preset key")
 
 
 class SceneParams(BaseModel):

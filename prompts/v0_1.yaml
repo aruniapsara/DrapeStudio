@@ -17,6 +17,40 @@ negative: |
   NSFW content, revealing clothing added, garment colour changes
   price tags, swing tags, care labels, brand tags, garment labels, hang tags
 
+ethnicities:
+  sri_lankan: "Sri Lankan ethnicity, South Asian features, warm medium-to-dark complexion"
+  indian: "Indian ethnicity, South Asian features, warm varied complexion"
+  middle_eastern: "Middle Eastern ethnicity, warm olive to medium-brown complexion, dark features"
+  african: "African ethnicity, rich dark complexion, strong defined features"
+  european: "European ethnicity, light to medium complexion, varied features"
+
+hair_styles:
+  long_straight: "long straight hair falling past the shoulders"
+  long_wavy: "long wavy hair with natural flowing movement"
+  long_curly: "long curly hair with defined curls"
+  short_bob: "short bob haircut at jaw length"
+  medium_layered: "medium-length layered hair"
+  braided: "elegantly braided hair or neat updo"
+  short_tapered: "short tapered haircut with clean fade on the sides"
+  medium_textured: "medium-length textured hair"
+  buzz_cut: "close buzz cut"
+  slicked_back: "hair neatly slicked back"
+  afro_curly: "natural afro or tight natural curls"
+  dreadlocks: "neat dreadlocks"
+  short_straight: "short straight hair"
+  medium_length: "medium-length straight hair"
+  shaved: "closely shaved head"
+  natural_curly: "natural curly hair"
+
+hair_colors:
+  black: "jet black hair"
+  dark_brown: "dark brown hair"
+  medium_brown: "medium brown hair"
+  light_brown: "light brown / caramel hair"
+  blonde: "blonde hair"
+  auburn: "red / auburn hair"
+  grey: "grey / silver hair"
+
 environments:
   studio_white: "clean white infinity backdrop, soft diffused studio lighting, slight shadow under feet"
   studio_beige: "warm beige luxury studio backdrop, soft fill lighting, elegant shadow"
