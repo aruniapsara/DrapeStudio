@@ -1,0 +1,33 @@
+# Secrets — never bake into image
+.env
+
+# Local storage (mounted as volume at runtime)
+storage/
+
+# SQLite databases
+*.db
+*.db-journal
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Git and Claude
+.git/
+.claude/

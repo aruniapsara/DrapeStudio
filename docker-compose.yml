@@ -1,28 +1,49 @@
 version: "3.9"
 services:
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
+  # ── API server ─────────────────────────────────────────────────────────────
   api:
     build: .
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    command: >
+      sh -c "mkdir -p /app/storage/uploads /app/storage/outputs &&
+             alembic upgrade head &&
+             uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     volumes:
       - .:/app
       - ./storage:/app/storage
     env_file: .env
+    environment:
+      # Override localhost URL from .env with the Docker service hostname
+      REDIS_URL: redis://redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
+  # ── RQ Worker ──────────────────────────────────────────────────────────────
   worker:
     build: .
-    command: rq worker drapestudio --url redis://redis:6379
+    command: >
+      sh -c "mkdir -p /app/storage/uploads /app/storage/outputs &&
+             rq worker drapestudio --url redis://redis:6379"
     volumes:
       - .:/app
       - ./storage:/app/storage
     env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy

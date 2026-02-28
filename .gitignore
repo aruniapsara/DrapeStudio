@@ -23,8 +23,11 @@ ENV/
 *.db
 *.sqlite3
 
-# Storage (local dev uploads/outputs)
-storage/
+# Storage (local dev uploads/outputs — ignore contents, track structure)
+storage/uploads/*
+storage/outputs/*
+!storage/uploads/.gitkeep
+!storage/outputs/.gitkeep
 
 # Alembic
 *.db-journal
