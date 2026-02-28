@@ -30,6 +30,7 @@ class Settings(BaseSettings):
 
     # Storage mode
     STORAGE_BACKEND: str = "local"  # local | gcs
+    STORAGE_ROOT: str = "./storage"  # local filesystem root for uploads/outputs
 
     # Cost controls
     DAILY_COST_LIMIT_USD: float = 10.00

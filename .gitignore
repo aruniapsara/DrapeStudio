@@ -29,6 +29,14 @@ storage/outputs/*
 !storage/uploads/.gitkeep
 !storage/outputs/.gitkeep
 
+# Persistent data directory (Docker bind mounts — ignore contents, track structure)
+data/db/*
+data/storage/uploads/*
+data/storage/outputs/*
+!data/db/.gitkeep
+!data/storage/uploads/.gitkeep
+!data/storage/outputs/.gitkeep
+
 # Alembic
 *.db-journal
 

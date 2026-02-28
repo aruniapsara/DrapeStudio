@@ -6,8 +6,8 @@ from pathlib import Path
 
 from app.config import settings
 
-# Base storage directory for local backend
-STORAGE_ROOT = Path("./storage")
+# Base storage directory for local backend — driven by STORAGE_ROOT env var
+STORAGE_ROOT = Path(settings.STORAGE_ROOT)
 
 
 class StorageBackend(ABC):

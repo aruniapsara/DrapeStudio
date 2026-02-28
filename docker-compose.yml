@@ -16,18 +16,21 @@ services:
   api:
     build: .
     command: >
-      sh -c "mkdir -p /app/storage/uploads /app/storage/outputs &&
+      sh -c "mkdir -p /app/data/storage/uploads /app/data/storage/outputs /app/data/db &&
              alembic upgrade head &&
              uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
-      - ./storage:/app/storage
+      - .:/app                                  # source code (enables --reload)
+      - ./data/storage:/app/data/storage        # uploaded garment images + generated outputs
+      - ./data/db:/app/data/db                  # SQLite database file
     env_file: .env
     environment:
-      # Override localhost URL from .env with the Docker service hostname
+      # Override localhost values from .env with Docker-internal paths
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: "sqlite:////app/data/db/drapestudio.db"
+      STORAGE_ROOT: "/app/data/storage"
     depends_on:
       redis:
         condition: service_healthy
@@ -36,14 +39,17 @@ services:
   worker:
     build: .
     command: >
-      sh -c "mkdir -p /app/storage/uploads /app/storage/outputs &&
+      sh -c "mkdir -p /app/data/storage/uploads /app/data/storage/outputs /app/data/db &&
              rq worker drapestudio --url redis://redis:6379"
     volumes:
-      - .:/app
-      - ./storage:/app/storage
+      - .:/app                                  # source code
+      - ./data/storage:/app/data/storage        # shared storage with api
+      - ./data/db:/app/data/db                  # shared DB with api
     env_file: .env
     environment:
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: "sqlite:////app/data/db/drapestudio.db"
+      STORAGE_ROOT: "/app/data/storage"
     depends_on:
       redis:
         condition: service_healthy
