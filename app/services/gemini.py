@@ -16,7 +16,9 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 class GeminiError(Exception):
     """Custom exception for image-generation API errors."""
-    pass
+    def __init__(self, message: str, retryable: bool = False):
+        super().__init__(message)
+        self.retryable = retryable
 
 
 class GeminiResult:
@@ -103,8 +105,11 @@ def _call_openrouter(
         logger.error(
             "OpenRouter API returned %d: %s", resp.status_code, error_detail
         )
+        # 429 and 5xx are transient — mark as retryable
+        retryable = resp.status_code in (429, 500, 502, 503, 504)
         raise GeminiError(
-            f"OpenRouter API error (HTTP {resp.status_code}): {error_detail}"
+            f"OpenRouter API error (HTTP {resp.status_code}): {error_detail}",
+            retryable=retryable,
         )
 
     data = resp.json()
@@ -201,8 +206,22 @@ def generate_garment_images(
                 )
                 break  # Success — move to next variation
 
-            except GeminiError:
-                raise  # Don't retry our own validation errors
+            except GeminiError as e:
+                if not e.retryable:
+                    raise  # auth errors, bad requests, etc. — fail immediately
+                last_error = e
+                logger.warning(
+                    "OpenRouter call %d (attempt %d/%d) failed: %s",
+                    variation_idx + 1,
+                    attempt + 1,
+                    max_retries + 1,
+                    str(e),
+                )
+                if attempt < max_retries:
+                    # Use a longer backoff for rate limits (429)
+                    wait_time = 15 * (2 ** attempt)  # 15s, 30s
+                    logger.info("Retrying in %ds...", wait_time)
+                    time.sleep(wait_time)
 
             except Exception as e:
                 last_error = e
