@@ -4,11 +4,12 @@ import csv
 import io
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import require_admin
 from app.models.db import GenerationRequest, UsageCost
 
 router = APIRouter(tags=["admin"])
@@ -16,10 +17,12 @@ router = APIRouter(tags=["admin"])
 
 @router.get("/admin/reports/usage")
 def usage_report(
+    request: Request,
     from_date: str | None = Query(None, description="Start date (YYYY-MM-DD)"),
     to_date: str | None = Query(None, description="End date (YYYY-MM-DD)"),
     status: str | None = Query(None, description="Filter by status"),
     format: str = Query("json", description="Output format: json or csv"),
+    _admin: dict = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     """Return usage/cost report with optional filters. Supports JSON and CSV."""

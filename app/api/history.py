@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.dependencies import get_or_create_session_id
+from app.dependencies import get_current_user, get_or_create_session_id
 from app.models.db import GenerationOutput, GenerationRequest, UsageCost
 from app.schemas.generation import HistoryItem, HistoryListResponse, HistoryOutputImage
 from app.services.storage import storage
@@ -25,22 +25,26 @@ def get_history(
     per_page: int = 12,
     db: Session = Depends(get_db),
 ):
-    """Return paginated generation history for the current session (newest first)."""
+    """Return paginated generation history (admin sees all, others see own)."""
     session_id = get_or_create_session_id(request, response)
+    user = get_current_user(request)
+    is_admin = user and user["role"] == "admin"
+
     per_page = max(1, min(per_page, 50))
     page = max(page, 1)
     offset = (page - 1) * per_page
 
-    total: int = (
-        db.query(func.count(GenerationRequest.id))
-        .filter(GenerationRequest.session_id == session_id)
-        .scalar()
-        or 0
-    )
+    count_query = db.query(func.count(GenerationRequest.id))
+    list_query = db.query(GenerationRequest)
+
+    if not is_admin:
+        count_query = count_query.filter(GenerationRequest.session_id == session_id)
+        list_query = list_query.filter(GenerationRequest.session_id == session_id)
+
+    total: int = count_query.scalar() or 0
 
     gens = (
-        db.query(GenerationRequest)
-        .filter(GenerationRequest.session_id == session_id)
+        list_query
         .order_by(GenerationRequest.created_at.desc())
         .offset(offset)
         .limit(per_page)
@@ -116,15 +120,14 @@ def delete_history_item(
 ):
     """Delete a generation and all its associated files (ownership enforced)."""
     session_id = get_or_create_session_id(request, response)
+    user = get_current_user(request)
+    is_admin = user and user["role"] == "admin"
 
-    gen = (
-        db.query(GenerationRequest)
-        .filter(
-            GenerationRequest.id == gen_id,
-            GenerationRequest.session_id == session_id,  # ownership check
-        )
-        .first()
-    )
+    query = db.query(GenerationRequest).filter(GenerationRequest.id == gen_id)
+    if not is_admin:
+        query = query.filter(GenerationRequest.session_id == session_id)  # ownership check
+
+    gen = query.first()
 
     if not gen:
         raise HTTPException(status_code=404, detail="Generation not found.")

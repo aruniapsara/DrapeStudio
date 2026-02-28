@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — DrapeStudio</title>
+    <link rel="icon" type="image/png" href="/static/icon.png">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="login-page">
+        <div class="login-card">
+            <div class="login-logo"><img src="/static/logo.png" alt="DrapeStudio" class="login-logo-img"></div>
+            <p class="login-subtitle">Sign in to continue</p>
+
+            {% if error %}
+            <div class="login-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="/login" class="login-form">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autofocus
+                       placeholder="Enter your username">
+
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required
+                       placeholder="Enter your password">
+
+                <button type="submit" class="btn btn-primary btn-large login-btn">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </main>
+</body>
+</html>
