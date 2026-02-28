@@ -48,7 +48,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 56px;
+    height: auto;
+    padding: 0.5rem 0;
     flex-wrap: wrap;
 }
 
@@ -60,7 +61,7 @@ body {
 }
 
 .logo-img {
-    height: 40px;
+    height: 120px;
     width: auto;
     display: block;
 }
@@ -1045,7 +1046,7 @@ body {
 
     /* ── Mobile Logo ── */
     .logo-img {
-        height: 34px;
+        height: 80px;
     }
 
     .login-logo-img {
