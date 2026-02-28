@@ -18,6 +18,7 @@ class ModelParams(BaseModel):
     body_type: str = Field(..., description="petite | average | athletic | curvy | plus")
     hair_style: str = Field(default="", description="Hair style preset key")
     hair_color: str = Field(default="", description="Hair color preset key")
+    additional_description: str = Field(default="", description="Free-text extra model details")
 
 
 class SceneParams(BaseModel):

@@ -74,6 +74,7 @@ def assemble_prompt(
     ethnicity = model_params.get("ethnicity", "")
     hair_style = model_params.get("hair_style", "")
     hair_color = model_params.get("hair_color", "")
+    additional_description = model_params.get("additional_description", "").strip()
 
     ethnicity_desc = template.get("ethnicities", {}).get(ethnicity, "") if ethnicity else ""
     hair_style_desc = template.get("hair_styles", {}).get(hair_style, "") if hair_style else ""
@@ -91,6 +92,8 @@ def assemble_prompt(
         model_desc += f", {hair_style_desc}"
     elif hair_color_desc:
         model_desc += f", {hair_color_desc}"
+    if additional_description:
+        model_desc += f". Additional details: {additional_description}"
 
     # Assemble full prompt
     quality = template.get("quality", "").strip()

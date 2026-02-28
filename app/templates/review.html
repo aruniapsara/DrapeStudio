@@ -52,9 +52,10 @@
         ethnicity:            'Ethnicity',
         skin_tone:            'Skin Tone',
         body_type:            'Body Type',
-        hair_style:           'Hair Style',
-        hair_color:           'Hair Color',
-        environment:          'Environment',
+        hair_style:               'Hair Style',
+        hair_color:               'Hair Color',
+        additional_description:   'Additional Details',
+        environment:              'Environment',
         pose_preset:          'Pose',
         framing:              'Framing',
     };
@@ -111,7 +112,7 @@
     }
 
     const params = new URLSearchParams(window.location.search);
-    const modelFields = ['age_range', 'gender_presentation', 'ethnicity', 'skin_tone', 'body_type', 'hair_style', 'hair_color'];
+    const modelFields = ['age_range', 'gender_presentation', 'ethnicity', 'skin_tone', 'body_type', 'hair_style', 'hair_color', 'additional_description'];
     const sceneFields = ['environment', 'pose_preset', 'framing'];
 
     const modelDl = document.getElementById('review-model');
@@ -157,8 +158,9 @@
                 skin_tone:            params.get('skin_tone'),
                 body_mode:            'simple',
                 body_type:            params.get('body_type'),
-                hair_style:           params.get('hair_style') || '',
-                hair_color:           params.get('hair_color') || '',
+                hair_style:               params.get('hair_style') || '',
+                hair_color:               params.get('hair_color') || '',
+                additional_description:   params.get('additional_description') || '',
             },
             scene: {
                 environment:  params.get('environment'),
