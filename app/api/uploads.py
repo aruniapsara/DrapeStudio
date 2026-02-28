@@ -1,5 +1,7 @@
 """Upload endpoints — POST /v1/uploads/sign and direct upload for local dev."""
 
+import re
+
 from fastapi import APIRouter, HTTPException, Request, Response, UploadFile, File
 from pydantic import BaseModel
 
@@ -8,6 +10,12 @@ from app.dependencies import get_or_create_session_id
 from app.services.storage import storage
 
 router = APIRouter(tags=["uploads"])
+
+
+def _sanitize_filename(filename: str) -> str:
+    """Replace spaces and URL-unsafe characters with underscores."""
+    name = re.sub(r"[^\w\-.]", "_", filename)
+    return re.sub(r"_+", "_", name)
 
 # ---------------------------------------------------------------------------
 # Pydantic schemas
@@ -61,7 +69,8 @@ async def sign_upload_urls(body: SignRequest, request: Request, response: Respon
                 detail=f"Unsupported file type: {f.content_type}. Use JPG, PNG, or WEBP.",
             )
 
-        path = f"uploads/{session_id}/{f.filename}"
+        safe_filename = _sanitize_filename(f.filename)
+        path = f"uploads/{session_id}/{safe_filename}"
         upload_url = storage.signed_upload_url(
             path, f.content_type, settings.UPLOAD_URL_EXPIRY_SECONDS
         )
@@ -69,7 +78,7 @@ async def sign_upload_urls(body: SignRequest, request: Request, response: Respon
 
         uploads.append(
             UploadInfo(
-                filename=f.filename,
+                filename=safe_filename,
                 upload_url=upload_url,
                 file_url=file_url,
             )

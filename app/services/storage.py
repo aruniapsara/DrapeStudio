@@ -68,7 +68,10 @@ class LocalStorageBackend(StorageBackend):
         self, path: str, content_type: str, expiry_seconds: int
     ) -> str:
         """Return the local direct upload endpoint URL."""
-        return f"/v1/uploads/direct/{path}"
+        # path is "uploads/{session_id}/{filename}"; strip the "uploads/" prefix
+        # because the endpoint is /v1/uploads/direct/{session_id}/{filename}
+        clean_path = path.removeprefix("uploads/")
+        return f"/v1/uploads/direct/{clean_path}"
 
 
 class GCSStorageBackend(StorageBackend):
