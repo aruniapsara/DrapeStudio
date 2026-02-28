@@ -4,17 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}DrapeStudio{% endblock %}</title>
+    <link rel="icon" type="image/png" href="/static/icon.png">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <header class="site-header">
         <nav class="nav-container">
-            <a href="/" class="logo">DrapeStudio</a>
-            <div class="nav-links">
-                <a href="/upload">New Generation</a>
-                <a href="/history">History</a>
-                <a href="/admin/usage">Admin</a>
+            <a href="/" class="logo"><img src="/static/logo.png" alt="DrapeStudio" class="logo-img"></a>
+
+            <!-- Hamburger toggle (mobile only) -->
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+                <span class="nav-toggle-bar"></span>
+                <span class="nav-toggle-bar"></span>
+                <span class="nav-toggle-bar"></span>
+            </button>
+
+            <div class="nav-menu" id="nav-menu">
+                <div class="nav-links">
+                    <a href="/upload">New Generation</a>
+                    <a href="/history">History</a>
+                    {% if user and user.role == "admin" %}
+                    <a href="/admin/usage">Admin</a>
+                    {% endif %}
+                </div>
+                {% if user %}
+                <div class="nav-user">
+                    <span class="nav-username">{{ user.username }}</span>
+                    <a href="/logout">Sign Out</a>
+                </div>
+                {% endif %}
             </div>
         </nav>
     </header>
@@ -26,6 +45,27 @@
     <footer class="site-footer">
         <p>&copy; 2026 DrapeStudio. All rights reserved.</p>
     </footer>
+
+    <script>
+    (function() {
+        var toggle = document.getElementById('nav-toggle');
+        var menu = document.getElementById('nav-menu');
+        if (!toggle || !menu) return;
+        toggle.addEventListener('click', function() {
+            var open = menu.classList.toggle('nav-menu--open');
+            toggle.classList.toggle('nav-toggle--open', open);
+            toggle.setAttribute('aria-expanded', open);
+        });
+        // Close on link click (mobile)
+        menu.querySelectorAll('a').forEach(function(link) {
+            link.addEventListener('click', function() {
+                menu.classList.remove('nav-menu--open');
+                toggle.classList.remove('nav-toggle--open');
+                toggle.setAttribute('aria-expanded', 'false');
+            });
+        });
+    })();
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

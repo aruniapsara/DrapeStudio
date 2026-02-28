@@ -36,7 +36,10 @@ body {
 .site-header {
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
-    padding: 0 1.5rem;
+    padding: 0 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .nav-container {
@@ -45,14 +48,58 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 60px;
+    height: 56px;
+    flex-wrap: wrap;
 }
 
 .logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--color-primary);
     text-decoration: none;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.logo-img {
+    height: 40px;
+    width: auto;
+    display: block;
+}
+
+/* Hamburger toggle — hidden on desktop */
+.nav-toggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.nav-toggle-bar {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--color-text);
+    border-radius: 2px;
+    transition: transform 0.25s, opacity 0.25s;
+}
+
+.nav-toggle--open .nav-toggle-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+.nav-toggle--open .nav-toggle-bar:nth-child(2) {
+    opacity: 0;
+}
+.nav-toggle--open .nav-toggle-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Nav menu — horizontal on desktop */
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .nav-links {
@@ -75,7 +122,7 @@ body {
 .main-content {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1rem;
     flex: 1;
     width: 100%;
 }
@@ -296,6 +343,7 @@ body {
     font-size: 0.9rem;
 }
 
+/* font-size ≥ 16px prevents auto-zoom on iOS */
 .form-group select,
 .form-group input[type="text"],
 .form-group input[type="number"],
@@ -304,7 +352,7 @@ body {
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    font-size: 0.9rem;
+    font-size: 1rem;
     background: white;
     font-family: inherit;
     resize: vertical;
@@ -369,12 +417,19 @@ body {
     padding: 0.4rem 0.6rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
 /* ===== Data Table ===== */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .data-table {
     width: 100%;
+    min-width: 640px;
     border-collapse: collapse;
     background: var(--color-surface);
     border-radius: var(--radius);
@@ -481,6 +536,20 @@ body {
 .review-section h4 {
     margin-bottom: 0.75rem;
     color: var(--color-primary);
+}
+
+.review-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.review-images img {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
 }
 
 .review-details dt {
@@ -865,14 +934,349 @@ body {
     flex-shrink: 0;
 }
 
-/* ===== Responsive ===== */
+/* ===== Login Page ===== */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--color-bg);
+}
+
+.login-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 380px;
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.login-logo-img {
+    height: 100px;
+    width: auto;
+    display: inline-block;
+}
+
+.login-subtitle {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.login-error {
+    background: #fee2e2;
+    color: var(--color-error);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.login-form label {
+    display: block;
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    margin-top: 1rem;
+}
+
+.login-form label:first-of-type {
+    margin-top: 0;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.login-btn {
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+/* ===== User Nav ===== */
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.nav-username {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.nav-user a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.nav-user a:hover {
+    color: var(--color-error);
+}
+
+/* ===========================================================================
+   Responsive — Tablet (≤ 768px)
+   =========================================================================== */
 @media (max-width: 768px) {
-    .hero h1 { font-size: 2rem; }
-    .form-grid { grid-template-columns: 1fr; }
-    .nav-links { gap: 1rem; }
-    .filter-form { flex-direction: column; align-items: stretch; }
-    .history-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-    .modal-images { flex-direction: column; align-items: center; }
-    .modal-image-item { max-width: 100%; }
-    .modal-footer { flex-direction: column; align-items: flex-start; }
+
+    /* ── Mobile Logo ── */
+    .logo-img {
+        height: 34px;
+    }
+
+    .login-logo-img {
+        height: 80px;
+    }
+
+    /* ── Mobile Navigation ── */
+    .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .nav-container {
+        flex-wrap: nowrap;
+        position: relative;
+    }
+
+    .nav-toggle {
+        display: flex;
+    }
+
+    .nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--color-surface);
+        border-bottom: 1px solid var(--color-border);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        flex-direction: column;
+        gap: 0;
+        padding: 0.5rem 1rem 0.75rem;
+        z-index: 200;
+    }
+
+    .nav-menu--open {
+        display: flex;
+    }
+
+    .nav-links {
+        flex-direction: column;
+        gap: 0;
+        width: 100%;
+    }
+
+    .nav-links a {
+        display: block;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--color-border);
+        font-size: 1rem;
+    }
+
+    .nav-user {
+        padding-top: 0.75rem;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* ── Main Content ── */
+    .main-content {
+        padding: 1rem 0.75rem;
+    }
+
+    /* ── Hero ── */
+    .hero {
+        padding: 2.5rem 0.5rem;
+    }
+    .hero h1 {
+        font-size: 2rem;
+    }
+    .hero-subtitle {
+        font-size: 1.05rem;
+    }
+
+    /* ── Page Sections ── */
+    .page-section h2 {
+        font-size: 1.35rem;
+    }
+
+    /* ── Forms ── */
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .form-group {
+        padding: 1rem;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* ── Drop Zone ── */
+    .drop-zone {
+        padding: 2rem 1rem;
+    }
+
+    /* ── Preview Grid ── */
+    .preview-grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 0.5rem;
+    }
+
+    /* ── Review ── */
+    .review-summary {
+        padding: 1.25rem;
+    }
+    .review-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .review-images img {
+        width: 60px;
+        height: 60px;
+    }
+
+    /* ── Results ── */
+    .image-grid {
+        grid-template-columns: 1fr;
+    }
+    .image-card-footer {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        font-size: 0.8rem;
+    }
+    .generation-cost {
+        text-align: center;
+    }
+
+    /* ── History ── */
+    .history-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+
+    /* ── Modal ── */
+    .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+    .modal-content {
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .modal-body {
+        padding: 1rem;
+    }
+    .modal-images {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .modal-image-item {
+        max-width: 100%;
+    }
+    .modal-garments img {
+        width: 72px;
+        height: 72px;
+    }
+    .modal-settings {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
+    .modal-settings dt {
+        margin-top: 0.4rem;
+    }
+    .modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.75rem 1rem;
+    }
+
+    /* ── Admin ── */
+    .filter-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-form input,
+    .filter-form select {
+        width: 100%;
+    }
+    .filter-form .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* ── Status Card ── */
+    .status-card {
+        padding: 2rem 1rem;
+    }
+
+    /* ── Login ── */
+    .login-card {
+        padding: 1.75rem 1.25rem;
+    }
+}
+
+/* ===========================================================================
+   Responsive — Small phone (≤ 480px)
+   =========================================================================== */
+@media (max-width: 480px) {
+    .hero h1 {
+        font-size: 1.65rem;
+    }
+    .hero-subtitle {
+        font-size: 0.95rem;
+    }
+    .btn-large {
+        padding: 0.7rem 1.5rem;
+        font-size: 0.95rem;
+    }
+    .features {
+        grid-template-columns: 1fr;
+    }
+    .history-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+    .history-card-garment {
+        width: 40px;
+        height: 40px;
+    }
+    .page-section h2 {
+        font-size: 1.2rem;
+    }
 }
