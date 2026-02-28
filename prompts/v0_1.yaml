@@ -5,6 +5,7 @@ quality: |
   accurate garment drape and fit; preserve garment patterns and colours exactly
   natural anatomy; realistic hands with correct finger count; sharp focus on garment
   commercial catalogue lighting; clean professional result
+  remove all visible price tags, swing tags, care labels, and brand labels from the garment
 
 output: |
   generate 3 distinct images with small natural pose variation between them
@@ -14,6 +15,7 @@ negative: |
   extra limbs, extra fingers, fused fingers, distorted hands, distorted face
   background text, watermarks, logos, lens flare, motion blur
   NSFW content, revealing clothing added, garment colour changes
+  price tags, swing tags, care labels, brand tags, garment labels, hang tags
 
 environments:
   studio_white: "clean white infinity backdrop, soft diffused studio lighting, slight shadow under feet"
