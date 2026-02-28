@@ -6,6 +6,7 @@ quality: |
   natural anatomy; realistic hands with correct finger count; sharp focus on garment
   commercial catalogue lighting; clean professional result
   remove all visible price tags, swing tags, care labels, and brand labels from the garment
+  exactly one person in the image — single model only
 
 output: |
   generate one image per call at the camera angle specified at the end of this prompt
@@ -17,6 +18,7 @@ negative: |
   background text, watermarks, logos, lens flare, motion blur
   NSFW content, revealing clothing added, garment colour changes
   price tags, swing tags, care labels, brand tags, garment labels, hang tags
+  multiple people, two people, group of people, crowd, extra person
 
 ethnicities:
   sri_lankan: "Sri Lankan ethnicity, South Asian features, warm medium-to-dark complexion"
