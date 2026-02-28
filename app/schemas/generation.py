@@ -29,6 +29,8 @@ class OutputParams(BaseModel):
 
 
 class CreateGenerationRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
     idempotency_key: str | None = None
     garment_images: list[str] = Field(..., min_length=1, max_length=5)
     model_params: ModelParams
