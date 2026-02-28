@@ -8,7 +8,8 @@ quality: |
   remove all visible price tags, swing tags, care labels, and brand labels from the garment
 
 output: |
-  generate 3 distinct images with small natural pose variation between them
+  generate one image per call at the camera angle specified at the end of this prompt
+  model face must always be visible regardless of camera angle
   high resolution output; no text overlays; no watermarks; no borders
 
 negative: |

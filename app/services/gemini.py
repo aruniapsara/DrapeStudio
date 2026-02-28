@@ -13,6 +13,23 @@ logger = logging.getLogger(__name__)
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# Fixed camera angles for the three output variations.
+# Each description also requires the face to remain visible.
+VARIATION_VIEWS = [
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Front view — model facing directly toward the camera. "
+        "Full face clearly visible, eyes looking at camera."
+    ),
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Three-quarter side view — model turned 45 degrees to the side. "
+        "Head angled back toward the camera so the face is clearly visible."
+    ),
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Back view — model facing away from camera to show the back of the garment. "
+        "Model's head turned over the shoulder looking back toward the camera so the face is clearly visible."
+    ),
+]
+
 
 class GeminiError(Exception):
     """Custom exception for image-generation API errors."""
@@ -65,9 +82,11 @@ def _call_openrouter(
     Returns:
         Tuple of (image_bytes, usage_dict).
     """
+    view_instruction = VARIATION_VIEWS[variation_index % len(VARIATION_VIEWS)]
+
     # Build the multimodal content: text prompt first, then images
     content_parts: list[dict] = [
-        {"type": "text", "text": prompt_text + f"\n\n(Variation {variation_index + 1} of 3: apply a subtle, natural pose shift.)"},
+        {"type": "text", "text": prompt_text + f"\n\n{view_instruction}"},
     ]
 
     for img_bytes in garment_image_bytes:
