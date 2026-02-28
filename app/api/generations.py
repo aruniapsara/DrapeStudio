@@ -171,11 +171,16 @@ def get_generation_outputs(gen_id: str, db: Session = Depends(get_db)):
                 )
             )
 
+    cost_usd = None
+    if gen.usage and gen.usage.estimated_cost_usd is not None:
+        cost_usd = float(gen.usage.estimated_cost_usd)
+
     return GenerationOutputsResponse(
         id=gen.id,
         status=gen.status,
         outputs=outputs,
         error_message=gen.error_message,
+        cost_usd=cost_usd,
     )
 
 

@@ -24,6 +24,9 @@
             const container = document.getElementById('results-container');
 
             if (data.status === 'succeeded' && data.outputs && data.outputs.length > 0) {
+                const costHtml = data.cost_usd != null
+                    ? `<p class="generation-cost">Generation cost: $${data.cost_usd.toFixed(4)} USD</p>`
+                    : '';
                 container.innerHTML = '<div class="image-grid">' +
                     data.outputs.map((output, i) => `
                         <div class="image-card">
@@ -37,7 +40,7 @@
                             </div>
                         </div>
                     `).join('') +
-                    '</div>';
+                    '</div>' + costHtml;
             } else if (data.status === 'failed') {
                 container.innerHTML = `
                     <div class="status-card status-error">

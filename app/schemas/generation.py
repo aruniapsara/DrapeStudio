@@ -71,3 +71,4 @@ class GenerationOutputsResponse(BaseModel):
     status: str
     outputs: list[OutputImage] = []
     error_message: str | None = None
+    cost_usd: float | None = None
