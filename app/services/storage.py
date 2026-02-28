@@ -35,6 +35,11 @@ class StorageBackend(ABC):
         """Return a URL where the client can upload a file."""
         ...
 
+    @abstractmethod
+    def delete(self, path: str) -> None:
+        """Delete a file from storage. Silently succeeds if file does not exist."""
+        ...
+
 
 class LocalStorageBackend(StorageBackend):
     """Local filesystem storage for development."""
@@ -72,6 +77,13 @@ class LocalStorageBackend(StorageBackend):
         # because the endpoint is /v1/uploads/direct/{session_id}/{filename}
         clean_path = path.removeprefix("uploads/")
         return f"/v1/uploads/direct/{clean_path}"
+
+    def delete(self, path: str) -> None:
+        """Delete a file from local storage. Silently succeeds if not found."""
+        clean_path = path.replace("local://", "")
+        full_path = self.root / clean_path
+        if full_path.exists():
+            full_path.unlink()
 
 
 class GCSStorageBackend(StorageBackend):
@@ -138,6 +150,17 @@ class GCSStorageBackend(StorageBackend):
             method="PUT",
             content_type=content_type,
         )
+
+    def delete(self, path: str) -> None:
+        """Delete a file from GCS. Silently succeeds if not found."""
+        clean_path = path
+        for prefix in ("gcs://", f"gcs://{settings.GCS_BUCKET_UPLOADS}/", f"gcs://{settings.GCS_BUCKET_OUTPUTS}/"):
+            if clean_path.startswith(prefix):
+                clean_path = clean_path[len(prefix):]
+                break
+        bucket = self._get_bucket(clean_path)
+        blob = bucket.blob(clean_path)
+        blob.delete()
 
 
 def get_storage_backend() -> StorageBackend:

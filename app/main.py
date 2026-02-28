@@ -49,10 +49,12 @@ async def session_middleware(request: Request, call_next):
 # ---------------------------------------------------------------------------
 from app.api.uploads import router as uploads_router  # noqa: E402
 from app.api.generations import router as generations_router  # noqa: E402
+from app.api.history import router as history_router  # noqa: E402
 from app.api.admin import router as admin_router  # noqa: E402
 
 app.include_router(uploads_router, prefix="/v1")
 app.include_router(generations_router, prefix="/v1")
+app.include_router(history_router, prefix="/v1")
 app.include_router(admin_router, prefix="/v1")
 
 
@@ -93,6 +95,11 @@ async def results_page(request: Request, gen_id: str):
         "results.html",
         {"request": request, "gen_id": gen_id},
     )
+
+
+@app.get("/history")
+async def history_page(request: Request):
+    return templates.TemplateResponse("history.html", {"request": request})
 
 
 @app.get("/admin/usage")

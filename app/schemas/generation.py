@@ -76,3 +76,34 @@ class GenerationOutputsResponse(BaseModel):
     outputs: list[OutputImage] = []
     error_message: str | None = None
     cost_usd: float | None = None
+
+
+# ---------------------------------------------------------------------------
+# History schemas
+# ---------------------------------------------------------------------------
+
+class HistoryOutputImage(BaseModel):
+    image_url: str
+    variation_index: int
+    width: int | None = None
+    height: int | None = None
+
+
+class HistoryItem(BaseModel):
+    id: str
+    status: str
+    created_at: datetime
+    garment_image_urls: list[str] = []
+    output_images: list[HistoryOutputImage] = []
+    model_params: dict = {}
+    scene_params: dict = {}
+    cost_usd: float | None = None
+    duration_ms: int | None = None
+
+
+class HistoryListResponse(BaseModel):
+    items: list[HistoryItem]
+    total: int
+    page: int
+    per_page: int
+    has_more: bool

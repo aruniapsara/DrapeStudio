@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}History — DrapeStudio{% endblock %}
+
+{% block content %}
+<section class="page-section">
+
+    <div class="history-header">
+        <h2>Generation History</h2>
+        <a href="/upload" class="btn btn-primary">+ New Generation</a>
+    </div>
+
+    <!-- Loading state -->
+    <div id="history-loading" class="history-loading">
+        <p>Loading your history…</p>
+    </div>
+
+    <!-- Empty state -->
+    <div id="history-empty" class="history-empty" style="display:none">
+        <p>No generations yet.</p>
+        <a href="/upload" class="btn btn-primary">Create Your First Generation</a>
+    </div>
+
+    <!-- Error state -->
+    <div id="history-error" class="history-error" style="display:none">
+        <p id="history-error-msg">Failed to load history.</p>
+    </div>
+
+    <!-- Grid -->
+    <div id="history-grid" class="history-grid" style="display:none"></div>
+
+    <!-- Load More -->
+    <div id="history-more" class="history-pagination" style="display:none">
+        <button class="btn btn-secondary" onclick="loadMore()">Load More</button>
+    </div>
+
+</section>
+
+<!-- ── Detail Modal ───────────────────────────────────────────────────── -->
+<div id="detail-modal" class="modal-overlay" style="display:none" onclick="closeModalIfOverlay(event)">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal()" title="Close">&times;</button>
+        <div class="modal-body" id="modal-body"></div>
+    </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let currentPage = 1;
+const PER_PAGE   = 12;
+let   hasMore    = false;
+const itemStore  = {};   // gen_id → full item object
+
+// ── Label helpers ──────────────────────────────────────────────────────────
+const VALUE_LABELS = {
+    sri_lankan:'Sri Lankan', indian:'Indian', middle_eastern:'Middle Eastern',
+    african:'African', european:'European',
+    feminine:'Feminine', masculine:'Masculine', neutral:'Neutral',
+    long_straight:'Long Straight', long_wavy:'Long Wavy', long_curly:'Long Curly',
+    short_bob:'Short Bob', medium_layered:'Medium Layered', braided:'Braided / Updo',
+    short_tapered:'Short Tapered', medium_textured:'Medium Textured', buzz_cut:'Buzz Cut',
+    slicked_back:'Slicked Back', afro_curly:'Afro / Curly', dreadlocks:'Dreadlocks',
+    short_straight:'Short Straight', medium_length:'Medium Length', shaved:'Shaved',
+    natural_curly:'Natural Curly',
+    black:'Black', dark_brown:'Dark Brown', medium_brown:'Medium Brown',
+    light_brown:'Light Brown / Caramel', blonde:'Blonde', auburn:'Red / Auburn', grey:'Grey / Silver',
+    studio_white:'Studio — White', studio_beige:'Studio — Beige',
+    outdoor_street:'Outdoor — Street', outdoor_park:'Outdoor — Park',
+    outdoor_beach:'Outdoor — Beach', indoor_cafe:'Indoor — Cafe', indoor_home:'Indoor — Home',
+    front_standing:'Front Standing', walking:'Walking', three_quarter:'Three-Quarter Turn', seated:'Seated',
+    full_body:'Full Body', three_quarter_frame:'Three-Quarter', waist_up:'Waist Up',
+    petite:'Petite', average:'Average', athletic:'Athletic', curvy:'Curvy', plus:'Plus',
+};
+const MODEL_LABELS = {
+    age_range:'Age Range', gender_presentation:'Gender', ethnicity:'Ethnicity',
+    skin_tone:'Skin Tone', body_type:'Body Type', hair_style:'Hair Style',
+    hair_color:'Hair Color', additional_description:'Additional Details',
+};
+const SCENE_LABELS = { environment:'Environment', pose_preset:'Pose', framing:'Framing' };
+const VIEW_LABELS  = ['Front View', 'Side View', 'Back View'];
+
+function fmtVal(key, val) {
+    if (!val) return '—';
+    if (key === 'skin_tone') return `Fitzpatrick ${val}`;
+    return VALUE_LABELS[val] || val.replace(/_/g, ' ');
+}
+
+function fmtDate(iso) {
+    return new Date(iso + 'Z').toLocaleString(undefined, {
+        month:'short', day:'numeric', year:'numeric',
+        hour:'2-digit', minute:'2-digit',
+    });
+}
+
+function fmtDuration(ms) {
+    if (!ms) return null;
+    return ms >= 60000 ? `${(ms/60000).toFixed(1)}m` : `${(ms/1000).toFixed(1)}s`;
+}
+
+// ── Fetch ──────────────────────────────────────────────────────────────────
+async function loadHistory(page = 1) {
+    try {
+        const resp = await fetch(`/v1/history?page=${page}&per_page=${PER_PAGE}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        document.getElementById('history-loading').style.display = 'none';
+
+        if (data.total === 0 && page === 1) {
+            document.getElementById('history-empty').style.display = 'block';
+            return;
+        }
+
+        const grid = document.getElementById('history-grid');
+        grid.style.display = 'grid';
+
+        data.items.forEach(item => {
+            itemStore[item.id] = item;
+            grid.insertAdjacentHTML('beforeend', renderCard(item));
+        });
+
+        hasMore = data.has_more;
+        document.getElementById('history-more').style.display = hasMore ? 'block' : 'none';
+        currentPage = page;
+
+    } catch (err) {
+        document.getElementById('history-loading').style.display = 'none';
+        document.getElementById('history-error').style.display  = 'block';
+        document.getElementById('history-error-msg').textContent = `Failed to load history: ${err.message}`;
+    }
+}
+
+async function loadMore() {
+    await loadHistory(currentPage + 1);
+}
+
+// ── Card ───────────────────────────────────────────────────────────────────
+function renderCard(item) {
+    const mainImg   = item.output_images[0];
+    const garment   = item.garment_image_urls[0];
+    const statusCls = item.status;
+    const thumb     = mainImg
+        ? `<img class="history-card-thumb" src="${esc(mainImg.image_url)}" alt="Generated image" loading="lazy">`
+        : `<div class="history-card-placeholder">No image</div>`;
+    const garmentThumb = garment
+        ? `<img class="history-card-garment" src="${esc(garment)}" alt="Garment" loading="lazy">`
+        : '';
+
+    return `
+        <div class="history-card" data-gen-id="${esc(item.id)}" onclick="openDetail('${esc(item.id)}')">
+            <div class="history-card-img-wrap">
+                ${thumb}
+                ${garmentThumb}
+            </div>
+            <div class="history-card-footer">
+                <span class="history-card-date">${fmtDate(item.created_at)}</span>
+                <span class="status-badge ${statusCls}">${item.status}</span>
+                <button class="history-card-delete" title="Delete"
+                    onclick="deleteItem(event,'${esc(item.id)}')">&#128465;</button>
+            </div>
+        </div>`;
+}
+
+function esc(str) {
+    return String(str)
+        .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+        .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────
+function openDetail(genId) {
+    const item = itemStore[genId];
+    if (!item) return;
+
+    // Generated images row
+    const outputHtml = item.output_images.length
+        ? item.output_images.map((o, i) => `
+            <div class="modal-image-item">
+                <img src="${esc(o.image_url)}" alt="${VIEW_LABELS[i] || 'View ' + (i+1)}" loading="lazy">
+                <div class="modal-image-label">${VIEW_LABELS[i] || 'View ' + (i+1)}</div>
+                <a href="${esc(o.image_url)}"
+                   download="drapestudio_${esc(item.id)}_${i+1}.jpg"
+                   class="btn btn-small" style="margin-top:0.4rem;display:block;text-align:center">
+                   ⬇ Download
+                </a>
+            </div>`).join('')
+        : '<p style="color:var(--color-text-muted)">No images generated.</p>';
+
+    // Garment thumbnails
+    const garmentHtml = item.garment_image_urls.length
+        ? item.garment_image_urls.map(url =>
+            `<img src="${esc(url)}" alt="Garment" loading="lazy">`).join('')
+        : '<p style="color:var(--color-text-muted)">—</p>';
+
+    // Model settings
+    const modelRows = Object.entries(MODEL_LABELS)
+        .filter(([k]) => item.model_params[k])
+        .map(([k, label]) =>
+            `<dt>${label}</dt><dd>${esc(fmtVal(k, item.model_params[k]))}</dd>`)
+        .join('');
+
+    // Scene settings
+    const sceneRows = Object.entries(SCENE_LABELS)
+        .filter(([k]) => item.scene_params[k])
+        .map(([k, label]) =>
+            `<dt>${label}</dt><dd>${esc(fmtVal(k, item.scene_params[k]))}</dd>`)
+        .join('');
+
+    // Footer meta
+    const cost    = item.cost_usd != null ? `$${item.cost_usd.toFixed(4)}` : null;
+    const dur     = fmtDuration(item.duration_ms);
+    const metaParts = [fmtDate(item.created_at), cost, dur ? `⏱ ${dur}` : null].filter(Boolean);
+
+    document.getElementById('modal-body').innerHTML = `
+        <div class="modal-section">
+            <h4>Generated Images</h4>
+            <div class="modal-images">${outputHtml}</div>
+        </div>
+
+        <div class="modal-section">
+            <h4>Original Garment</h4>
+            <div class="modal-garments">${garmentHtml}</div>
+        </div>
+
+        <div class="modal-section">
+            <h4>Model Settings</h4>
+            <dl class="modal-settings">${modelRows || '<dd>—</dd>'}</dl>
+        </div>
+
+        <div class="modal-section">
+            <h4>Scene Settings</h4>
+            <dl class="modal-settings">${sceneRows || '<dd>—</dd>'}</dl>
+        </div>
+
+        <div class="modal-footer">
+            <div class="modal-meta">${metaParts.map(p => `<span>${esc(p)}</span>`).join('')}</div>
+            <div class="modal-actions">
+                <button class="btn btn-danger btn-small"
+                    onclick="deleteItem(event,'${esc(item.id)}',true)">
+                    🗑 Delete
+                </button>
+            </div>
+        </div>`;
+
+    document.getElementById('detail-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    document.getElementById('detail-modal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+function closeModalIfOverlay(e) {
+    if (e.target === document.getElementById('detail-modal')) closeModal();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Delete ─────────────────────────────────────────────────────────────────
+async function deleteItem(e, genId, fromModal = false) {
+    e.stopPropagation();
+    if (!confirm('Delete this generation? This cannot be undone.')) return;
+
+    try {
+        const resp = await fetch(`/v1/history/${genId}`, { method: 'DELETE' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        // Remove card from grid
+        document.querySelector(`[data-gen-id="${genId}"]`)?.remove();
+        delete itemStore[genId];
+
+        // Close modal if open for this item
+        if (fromModal) closeModal();
+
+        // Show empty state if grid is now empty
+        if (!document.querySelector('.history-card')) {
+            document.getElementById('history-grid').style.display  = 'none';
+            document.getElementById('history-empty').style.display = 'block';
+            document.getElementById('history-more').style.display  = 'none';
+        }
+    } catch (err) {
+        alert(`Failed to delete: ${err.message}`);
+    }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+loadHistory(1);
+</script>
+{% endblock %}
