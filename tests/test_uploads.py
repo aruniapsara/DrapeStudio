@@ -88,3 +88,28 @@ def test_direct_upload_rejects_bad_type(client):
         files={"file": ("doc.pdf", io.BytesIO(b"fake pdf"), "application/pdf")},
     )
     assert resp.status_code == 400
+
+
+def test_model_photo_sign_returns_model_photos_path(client):
+    """Sign endpoint with kind=model_photo returns a model-photos/ URL."""
+    resp = client.post(
+        "/v1/uploads/sign",
+        json={"files": [{"kind": "model_photo", "filename": "person.jpg", "content_type": "image/jpeg"}]},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    upload = data["uploads"][0]
+    assert "model-photos/" in upload["upload_url"]
+    assert upload["file_url"].startswith("local://model-photos/")
+
+
+def test_model_photo_direct_upload_saves_to_model_photos(client, sample_image_bytes):
+    """Direct upload to model-photos/ path saves the file correctly."""
+    resp = client.post(
+        "/v1/uploads/direct/model-photos/test-session/model.jpg",
+        files={"file": ("model.jpg", io.BytesIO(sample_image_bytes), "image/jpeg")},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["file_url"] == "local://model-photos/test-session/model.jpg"

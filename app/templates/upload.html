@@ -77,14 +77,16 @@
         </p>
 
         <div id="model-drop-zone" class="drop-zone model-photo-drop-zone"
+             onclick="document.getElementById('model-photo-file').click()"
              ondrop="handleModelDrop(event)"
              ondragover="event.preventDefault()"
              ondragleave="this.classList.remove('drag-over')"
              ondragenter="this.classList.add('drag-over')">
             <input type="file" id="model-photo-file"
                    accept="image/jpeg,image/png,image/webp"
-                   onchange="handleModelFile(this.files[0])" class="file-input">
-            <div id="model-drop-content" class="drop-zone-content">
+                   onchange="handleModelFile(this.files[0])"
+                   style="display:none">
+            <div id="model-drop-content" class="drop-zone-content" style="pointer-events:none">
                 <p class="drop-zone-icon">🧍</p>
                 <p>Drag and drop a model photo, or click to select</p>
                 <p class="drop-zone-hint">Optional — 1 photo, JPG / PNG / WEBP</p>

@@ -119,16 +119,29 @@ function renderModelPhotoPreview() {
     if (!preview || !dropContent) return;
 
     if (selectedModelPhoto) {
-        preview.style.display = 'block';
+        // Show thumbnail + remove button below the zone
+        preview.style.display = 'flex';
+        preview.style.alignItems = 'center';
+        preview.style.gap = '0.75rem';
+        preview.style.marginTop = '0.5rem';
         preview.innerHTML =
             '<div class="model-photo-thumb-wrap">' +
                 '<img src="' + selectedModelPhoto.dataUrl + '" alt="Model photo" class="model-photo-thumb">' +
-                '<button class="remove-btn" onclick="removeModelPhoto()" title="Remove">&times;</button>' +
-            '</div>';
-        dropContent.style.display = 'none';
+                '<button class="remove-btn" onclick="removeModelPhoto(); event.stopPropagation();" title="Remove">&times;</button>' +
+            '</div>' +
+            '<span style="font-size:0.85rem;color:var(--color-text-muted)">Click the box above to change photo</span>';
+        // Update drop zone to show "Change" hint instead of empty dashed box
+        dropContent.innerHTML =
+            '<p class="drop-zone-icon" style="font-size:1.5rem;margin-bottom:0.25rem">🔄</p>' +
+            '<p style="font-size:0.85rem">Click to change model photo</p>';
     } else {
         preview.style.display = 'none';
-        dropContent.style.display = '';
+        preview.innerHTML = '';
+        // Restore original drop zone content
+        dropContent.innerHTML =
+            '<p class="drop-zone-icon">🧍</p>' +
+            '<p>Drag and drop a model photo, or click to select</p>' +
+            '<p class="drop-zone-hint">Optional — 1 photo, JPG / PNG / WEBP</p>';
     }
 }
 
