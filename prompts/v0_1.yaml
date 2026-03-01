@@ -1,5 +1,9 @@
 version: "v0.1"
 
+product_types:
+  clothing: "wearing the clothing/garment shown in the reference image(s)"
+  accessories: "styled with the accessory shown in the reference image(s)"
+
 quality: |
   photorealistic, ecommerce/catalogue quality
   accurate garment drape and fit; preserve garment patterns and colours exactly

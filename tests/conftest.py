@@ -46,8 +46,13 @@ def setup_db():
 
 @pytest.fixture
 def client():
-    """FastAPI test client."""
-    return TestClient(app)
+    """FastAPI test client - authenticated as tester so middleware passes."""
+    tc = TestClient(app)
+    # Set auth cookies so the auth_session_middleware allows API requests through.
+    # The 'tester' user exists in USERS dict in app/dependencies.py.
+    tc.cookies.set("username", "tester")
+    tc.cookies.set("role", "tester")
+    return tc
 
 
 @pytest.fixture

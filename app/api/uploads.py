@@ -70,7 +70,10 @@ async def sign_upload_urls(body: SignRequest, request: Request, response: Respon
             )
 
         safe_filename = _sanitize_filename(f.filename)
-        path = f"uploads/{session_id}/{safe_filename}"
+        if f.kind == "model_photo":
+            path = f"model-photos/{session_id}/{safe_filename}"
+        else:
+            path = f"uploads/{session_id}/{safe_filename}"
         upload_url = storage.signed_upload_url(
             path, f.content_type, settings.UPLOAD_URL_EXPIRY_SECONDS
         )
@@ -91,10 +94,12 @@ async def sign_upload_urls(body: SignRequest, request: Request, response: Respon
 
 
 # ---------------------------------------------------------------------------
-# POST /v1/uploads/direct/{session_id}/{filename}  (local dev only)
+# POST /v1/uploads/direct/{file_path:path}  (local dev only)
+# Handles both garment uploads ({session_id}/{filename}) and model photos
+# (model-photos/{session_id}/{filename}).
 # ---------------------------------------------------------------------------
-@router.post("/uploads/direct/{session_id}/{filename}")
-async def direct_upload(session_id: str, filename: str, file: UploadFile = File(...)):
+@router.post("/uploads/direct/{file_path:path}")
+async def direct_upload(file_path: str, file: UploadFile = File(...)):
     """Direct file upload endpoint for local development."""
     if settings.STORAGE_BACKEND != "local":
         raise HTTPException(status_code=404, detail="Direct upload only available in local mode.")
@@ -112,9 +117,13 @@ async def direct_upload(session_id: str, filename: str, file: UploadFile = File(
     if len(data) > max_size:
         raise HTTPException(status_code=413, detail="File too large. Maximum 20MB.")
 
-    path = f"uploads/{session_id}/{filename}"
-    storage.save(data, path)
+    # model-photos/ paths are kept as-is; everything else is prefixed with uploads/
+    if file_path.startswith("model-photos/"):
+        path = file_path
+    else:
+        path = f"uploads/{file_path}"
 
+    storage.save(data, path)
     return {"status": "ok", "file_url": f"local://{path}"}
 
 

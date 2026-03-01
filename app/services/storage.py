@@ -73,10 +73,15 @@ class LocalStorageBackend(StorageBackend):
         self, path: str, content_type: str, expiry_seconds: int
     ) -> str:
         """Return the local direct upload endpoint URL."""
-        # path is "uploads/{session_id}/{filename}"; strip the "uploads/" prefix
-        # because the endpoint is /v1/uploads/direct/{session_id}/{filename}
-        clean_path = path.removeprefix("uploads/")
-        return f"/v1/uploads/direct/{clean_path}"
+        # Garment uploads: strip "uploads/" prefix so the endpoint receives
+        # just "{session_id}/{filename}" and re-adds the prefix internally.
+        # Model-photo uploads: keep the full "model-photos/..." path so the
+        # generic /{file_path:path} endpoint can distinguish them.
+        if path.startswith("uploads/"):
+            url_path = path.removeprefix("uploads/")
+        else:
+            url_path = path
+        return f"/v1/uploads/direct/{url_path}"
 
     def delete(self, path: str) -> None:
         """Delete a file from local storage. Silently succeeds if not found."""
@@ -99,7 +104,7 @@ class GCSStorageBackend(StorageBackend):
 
     def _get_bucket(self, path: str):
         """Determine bucket based on path prefix."""
-        if path.startswith("uploads/"):
+        if path.startswith("uploads/") or path.startswith("model-photos/"):
             return self.uploads_bucket
         return self.outputs_bucket
 

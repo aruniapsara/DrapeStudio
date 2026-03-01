@@ -12,18 +12,10 @@ _template_cache: dict[str, dict] = {}
 
 
 def load_template(version: str = "v0.1") -> dict:
-    """Load a prompt template YAML file by version.
-
-    Args:
-        version: Template version string (e.g., "v0.1").
-
-    Returns:
-        Parsed YAML template as a dictionary.
-    """
+    """Load a prompt template YAML file by version."""
     if version in _template_cache:
         return _template_cache[version]
 
-    # Convert version format: "v0.1" → "v0_1.yaml"
     filename = version.replace(".", "_") + ".yaml"
     filepath = PROMPTS_DIR / filename
 
@@ -37,72 +29,113 @@ def load_template(version: str = "v0.1") -> dict:
     return template
 
 
+def _build_measurements_text(measurements: dict) -> str:
+    """Assemble a readable measurements string. Returns '' if nothing provided."""
+    if not measurements:
+        return ""
+    parts = []
+    if measurements.get("height_cm"):
+        parts.append(f"{measurements['height_cm']} cm tall")
+    if measurements.get("weight_kg"):
+        parts.append(f"{measurements['weight_kg']} kg")
+    if measurements.get("chest_bust_cm"):
+        parts.append(f"chest/bust {measurements['chest_bust_cm']} cm")
+    if measurements.get("waist_cm"):
+        parts.append(f"waist {measurements['waist_cm']} cm")
+    if measurements.get("hips_cm"):
+        parts.append(f"hips {measurements['hips_cm']} cm")
+    if measurements.get("inseam_cm"):
+        parts.append(f"inseam {measurements['inseam_cm']} cm")
+    if measurements.get("shoe_size_eu"):
+        parts.append(f"shoe size EU {measurements['shoe_size_eu']}")
+    return ", ".join(parts)
+
+
 def assemble_prompt(
     model_params: dict,
     scene_params: dict,
     template_version: str = "v0.1",
 ) -> str:
-    """Assemble a full prompt string from template and user parameters.
-
-    Args:
-        model_params: Dict with keys: age_range, gender_presentation, skin_tone,
-                      body_mode, body_type.
-        scene_params: Dict with keys: environment, pose_preset, framing.
-        template_version: Version of the prompt template to use.
-
-    Returns:
-        Assembled prompt string ready for the Gemini API.
-    """
+    """Assemble a full prompt string from template and user parameters."""
     template = load_template(template_version)
 
-    # Extract environment, pose, and framing keys
+    # Scene
     environment = scene_params.get("environment", "studio_white")
     pose_preset = scene_params.get("pose_preset", "front_standing")
     framing = scene_params.get("framing", "full_body")
-
-    # Look up descriptions from template
     env_desc = template.get("environments", {}).get(environment, environment)
     pose_desc = template.get("poses", {}).get(pose_preset, pose_preset)
     framing_desc = template.get("framing", {}).get(framing, framing)
     lighting_desc = template.get("lighting", {}).get(environment, "")
 
-    # Build model description
-    age_range = model_params.get("age_range", "25-34")
-    gender = model_params.get("gender_presentation", "feminine")
-    skin_tone = model_params.get("skin_tone", "4")
-    body_type = model_params.get("body_type", "average")
-    ethnicity = model_params.get("ethnicity", "")
-    hair_style = model_params.get("hair_style", "")
-    hair_color = model_params.get("hair_color", "")
-    additional_description = model_params.get("additional_description", "").strip()
-
-    ethnicity_desc = template.get("ethnicities", {}).get(ethnicity, "") if ethnicity else ""
-    hair_style_desc = template.get("hair_styles", {}).get(hair_style, "") if hair_style else ""
-    hair_color_desc = template.get("hair_colors", {}).get(hair_color, "") if hair_color else ""
-
-    model_desc = (
-        f"A {gender} model, age {age_range}, "
-        f"Fitzpatrick skin tone {skin_tone}, {body_type} body type"
+    # Product type
+    product_type = model_params.get("product_type", "clothing")
+    pt_desc = template.get("product_types", {}).get(
+        product_type, "wearing the garment shown in the reference image(s)"
     )
-    if ethnicity_desc:
-        model_desc += f", {ethnicity_desc}"
-    if hair_color_desc and hair_style_desc:
-        model_desc += f", {hair_color_desc}, {hair_style_desc}"
-    elif hair_style_desc:
-        model_desc += f", {hair_style_desc}"
-    elif hair_color_desc:
-        model_desc += f", {hair_color_desc}"
-    if additional_description:
-        model_desc += f". Additional details: {additional_description}"
 
-    # Assemble full prompt
+    # Measurements
+    raw_measurements = model_params.get("measurements") or {}
+    if hasattr(raw_measurements, "model_dump"):
+        raw_measurements = raw_measurements.model_dump()
+    measure_text = _build_measurements_text(raw_measurements)
+
     quality = template.get("quality", "").strip()
     output_instructions = template.get("output", "").strip()
     negative = template.get("negative", "").strip()
 
-    prompt = f"""Generate a photorealistic catalogue image of a model wearing the garment shown in the reference image(s).
+    # Model photo vs virtual model
+    model_photo_url = model_params.get("model_photo_url")
 
-MODEL: {model_desc}
+    if model_photo_url:
+        intro = (
+            "Generate a photorealistic catalogue image of the PERSON shown in the "
+            f"first reference image (model reference photo), {pt_desc}."
+        )
+        model_line = (
+            "MODEL: Use the exact appearance, face, skin tone, and body proportions "
+            "of the person in the model reference photo. Do not alter or idealise their appearance."
+        )
+        if measure_text:
+            model_line += f" Reference measurements: {measure_text}."
+    else:
+        age_range = model_params.get("age_range", "25-34")
+        gender = model_params.get("gender_presentation", "feminine")
+        skin_tone = model_params.get("skin_tone", "4")
+        body_type = model_params.get("body_type", "average")
+        ethnicity = model_params.get("ethnicity", "")
+        hair_style = model_params.get("hair_style", "")
+        hair_color = model_params.get("hair_color", "")
+        additional_description = model_params.get("additional_description", "").strip()
+
+        ethnicity_desc = template.get("ethnicities", {}).get(ethnicity, "") if ethnicity else ""
+        hair_style_desc = template.get("hair_styles", {}).get(hair_style, "") if hair_style else ""
+        hair_color_desc = template.get("hair_colors", {}).get(hair_color, "") if hair_color else ""
+
+        intro = f"Generate a photorealistic catalogue image of a model {pt_desc}."
+
+        model_desc = (
+            f"A {gender} model, age {age_range}, "
+            f"Fitzpatrick skin tone {skin_tone}, {body_type} body type"
+        )
+        if ethnicity_desc:
+            model_desc += f", {ethnicity_desc}"
+        if hair_color_desc and hair_style_desc:
+            model_desc += f", {hair_color_desc}, {hair_style_desc}"
+        elif hair_style_desc:
+            model_desc += f", {hair_style_desc}"
+        elif hair_color_desc:
+            model_desc += f", {hair_color_desc}"
+        if additional_description:
+            model_desc += f". Additional details: {additional_description}"
+        if measure_text:
+            model_desc += f". Measurements: {measure_text}"
+
+        model_line = f"MODEL: {model_desc}"
+
+    prompt = f"""{intro}
+
+{model_line}
 
 POSE: {pose_desc}
 

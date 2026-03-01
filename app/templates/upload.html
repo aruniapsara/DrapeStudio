@@ -1,23 +1,97 @@
 {% extends "base.html" %}
 
-{% block title %}Upload Garment — DrapeStudio{% endblock %}
+{% block title %}Upload — DrapeStudio{% endblock %}
 
 {% block content %}
 <section class="page-section">
-    <h2>Step 1: Upload Garment Photos</h2>
-    <p>Upload 1–5 photos of your garment (JPG, PNG, or WEBP). Include front, back, and detail shots for best results.</p>
+    <h2>Step 1: Product &amp; Upload</h2>
 
-    <div id="drop-zone" class="drop-zone" ondrop="handleDrop(event)" ondragover="event.preventDefault()" ondragleave="this.classList.remove('drag-over')" ondragenter="this.classList.add('drag-over')">
-        <input type="file" id="garment-files" accept="image/jpeg,image/png,image/webp"
-               multiple onchange="handleFiles(this.files)" class="file-input">
-        <div class="drop-zone-content">
-            <p class="drop-zone-icon">📸</p>
-            <p>Drag and drop up to 5 garment photos, or click to select</p>
-            <p class="drop-zone-hint">Accepted: JPG, PNG, WEBP — minimum 400px per dimension</p>
+    <!-- ── Product Type ─────────────────────────────────────────────────── -->
+    <div class="upload-block">
+        <h3 class="upload-block-title">Product Type</h3>
+        <div class="type-picker" id="type-picker">
+            <label class="type-card" id="card-clothing">
+                <input type="radio" name="_product_type" value="clothing" checked>
+                <span class="type-card-icon">👕</span>
+                <span class="type-card-label">Clothing</span>
+            </label>
+            <label class="type-card" id="card-accessories">
+                <input type="radio" name="_product_type" value="accessories">
+                <span class="type-card-icon">👜</span>
+                <span class="type-card-label">Accessories</span>
+            </label>
         </div>
     </div>
 
-    <div id="preview-grid" class="preview-grid"></div>
+    <!-- ── Garment Photos ───────────────────────────────────────────────── -->
+    <div class="upload-block">
+        <h3 class="upload-block-title">
+            Garment Photos
+            <span class="label-hint">(1–5 photos, JPG / PNG / WEBP)</span>
+        </h3>
+        <p class="field-hint">Include front, back and detail shots for best results. Minimum 400 px per side.</p>
+
+        <div id="drop-zone" class="drop-zone"
+             ondrop="handleDrop(event)"
+             ondragover="event.preventDefault()"
+             ondragleave="this.classList.remove('drag-over')"
+             ondragenter="this.classList.add('drag-over')">
+            <input type="file" id="garment-files"
+                   accept="image/jpeg,image/png,image/webp"
+                   multiple onchange="handleFiles(this.files)" class="file-input">
+            <div class="drop-zone-content">
+                <p class="drop-zone-icon">📸</p>
+                <p>Drag and drop up to 5 garment photos, or click to select</p>
+            </div>
+        </div>
+        <div id="preview-grid" class="preview-grid"></div>
+    </div>
+
+    <!-- ── Model ────────────────────────────────────────────────────────── -->
+    <div class="upload-block">
+        <h3 class="upload-block-title">Model</h3>
+
+        <label class="upload-label">Gender <span class="required-star">*</span></label>
+        <div class="gender-picker" id="gender-picker">
+            <label class="gender-option">
+                <input type="radio" name="_gender" value="feminine" onchange="updateNextButton()">
+                <span class="gender-option-label">Female</span>
+            </label>
+            <label class="gender-option">
+                <input type="radio" name="_gender" value="masculine" onchange="updateNextButton()">
+                <span class="gender-option-label">Male</span>
+            </label>
+            <label class="gender-option">
+                <input type="radio" name="_gender" value="neutral" onchange="updateNextButton()">
+                <span class="gender-option-label">Unisex</span>
+            </label>
+        </div>
+
+        <label class="upload-label" style="margin-top:1.5rem">
+            Model Photo
+            <span class="label-hint">(optional)</span>
+        </label>
+        <p class="field-hint">
+            Upload a photo of a real person to use as the model.
+            If omitted, a virtual model will be generated from your settings on the next step.
+        </p>
+
+        <div id="model-drop-zone" class="drop-zone model-photo-drop-zone"
+             ondrop="handleModelDrop(event)"
+             ondragover="event.preventDefault()"
+             ondragleave="this.classList.remove('drag-over')"
+             ondragenter="this.classList.add('drag-over')">
+            <input type="file" id="model-photo-file"
+                   accept="image/jpeg,image/png,image/webp"
+                   onchange="handleModelFile(this.files[0])" class="file-input">
+            <div id="model-drop-content" class="drop-zone-content">
+                <p class="drop-zone-icon">🧍</p>
+                <p>Drag and drop a model photo, or click to select</p>
+                <p class="drop-zone-hint">Optional — 1 photo, JPG / PNG / WEBP</p>
+            </div>
+        </div>
+        <div id="model-photo-preview" class="model-photo-preview" style="display:none;"></div>
+    </div>
 
     <div class="form-actions">
         <a href="/" class="btn btn-secondary">Back</a>

@@ -62,9 +62,11 @@ def create_generation(
                 "model_params": existing.model_params,
                 "scene_params": existing.scene_params,
             }
+            new_model_params = body.model_params.model_dump()
+            new_model_params["product_type"] = body.product_type
             new_params = {
                 "garment_images": body.garment_images,
-                "model_params": body.model_params.model_dump(),
+                "model_params": new_model_params,
                 "scene_params": body.scene.model_dump(),
             }
             if json.dumps(existing_params, sort_keys=True) == json.dumps(
@@ -80,6 +82,11 @@ def create_generation(
                     detail="Idempotency key already used with different parameters.",
                 )
 
+    # Build model_params dict — embed product_type so prompt assembly
+    # can access it without a DB schema migration.
+    model_params_dict = body.model_params.model_dump()
+    model_params_dict["product_type"] = body.product_type
+
     # Create generation request
     gen_id = generate_gen_id()
     gen_request = GenerationRequest(
@@ -87,7 +94,7 @@ def create_generation(
         session_id=session_id,
         status="queued",
         garment_image_urls=body.garment_images,
-        model_params=body.model_params.model_dump(),
+        model_params=model_params_dict,
         scene_params=body.scene.model_dump(),
         output_count=body.output.count,
         prompt_template_version="v0.1",

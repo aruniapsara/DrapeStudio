@@ -76,8 +76,13 @@ def _call_openrouter(
     garment_image_bytes: list[bytes],
     model_name: str,
     variation_index: int = 0,
+    model_photo_bytes: bytes | None = None,
 ) -> tuple[bytes, dict]:
     """Make a single OpenRouter chat completion call that returns one image.
+
+    If model_photo_bytes is provided it is included as the FIRST image in the
+    multimodal payload (before the garment images) so the model can reference
+    the real person's appearance.
 
     Returns:
         Tuple of (image_bytes, usage_dict).
@@ -88,6 +93,11 @@ def _call_openrouter(
     content_parts: list[dict] = [
         {"type": "text", "text": prompt_text + f"\n\n{view_instruction}"},
     ]
+
+    # Model reference photo goes first (if provided)
+    if model_photo_bytes:
+        data_url = _encode_image_to_data_url(model_photo_bytes)
+        content_parts.append({"type": "image_url", "image_url": {"url": data_url}})
 
     for img_bytes in garment_image_bytes:
         data_url = _encode_image_to_data_url(img_bytes)
@@ -170,6 +180,7 @@ def generate_garment_images(
     prompt_text: str,
     model_name: str | None = None,
     max_retries: int = 2,
+    model_photo_bytes: bytes | None = None,
 ) -> GeminiResult:
     """Send garment images + text prompt to OpenRouter and return generated images.
 
@@ -180,6 +191,9 @@ def generate_garment_images(
         prompt_text: Assembled prompt string.
         model_name: OpenRouter model slug. Defaults to settings.OPENROUTER_MODEL.
         max_retries: Number of retries per call on transient errors.
+        model_photo_bytes: Optional bytes of a real-person model reference photo.
+                           When provided, it is prepended to the image list so the
+                           AI can replicate the person's appearance.
 
     Returns:
         GeminiResult with generated images and usage metadata.
@@ -209,6 +223,7 @@ def generate_garment_images(
                     garment_image_bytes=garment_image_bytes,
                     model_name=model_name,
                     variation_index=variation_idx,
+                    model_photo_bytes=model_photo_bytes,
                 )
 
                 all_images.append(image_bytes)

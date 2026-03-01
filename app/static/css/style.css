@@ -631,6 +631,192 @@ body {
     color: var(--color-error);
 }
 
+/* ===== Upload Page Blocks ===== */
+.upload-block {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.upload-block:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.upload-block-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--color-text);
+}
+
+.upload-label {
+    display: block;
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+}
+
+.required-star {
+    color: var(--color-error);
+}
+
+/* ===== Product Type Picker ===== */
+.type-picker {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1rem 1.5rem;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    background: var(--color-surface);
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    min-width: 130px;
+    user-select: none;
+}
+
+.type-card input[type="radio"] {
+    display: none;
+}
+
+.type-card.selected,
+.type-card:has(input:checked) {
+    border-color: var(--color-primary);
+    background: #eff6ff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.type-card:hover:not(.selected) {
+    border-color: #93c5fd;
+    background: #f8faff;
+}
+
+.type-card-icon {
+    font-size: 1.75rem;
+    line-height: 1;
+}
+
+.type-card-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* ===== Gender Picker ===== */
+.gender-picker {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.gender-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+}
+
+.gender-option input[type="radio"] {
+    accent-color: var(--color-primary);
+}
+
+.gender-option:has(input:checked) {
+    border-color: var(--color-primary);
+    background: #eff6ff;
+}
+
+.gender-option-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* ===== Model Photo Drop Zone ===== */
+.model-photo-drop-zone {
+    padding: 1.5rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.model-photo-preview {
+    margin-top: 0.75rem;
+}
+
+.model-photo-thumb-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.model-photo-thumb {
+    width: 100px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: var(--radius);
+    border: 2px solid var(--color-primary);
+    display: block;
+}
+
+.model-photo-thumb-wrap .remove-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--color-error);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== Measurements Fieldset ===== */
+.measurements-fieldset {
+    margin-top: 1.5rem;
+}
+
+.measurements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.measure-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+    margin-top: 0;
+}
+
+.measure-field input[type="number"] {
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-family: inherit;
+    background: white;
+}
+
 /* ===== Danger Button ===== */
 .btn-danger {
     background: var(--color-error);

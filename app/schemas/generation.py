@@ -9,6 +9,17 @@ from pydantic import BaseModel, Field
 # Request schemas
 # ---------------------------------------------------------------------------
 
+class ModelMeasurements(BaseModel):
+    """Optional physical measurements for the model."""
+    height_cm: int | None = Field(default=None, description="Height in cm")
+    weight_kg: float | None = Field(default=None, description="Weight in kg")
+    chest_bust_cm: int | None = Field(default=None, description="Chest/bust in cm")
+    waist_cm: int | None = Field(default=None, description="Waist in cm")
+    hips_cm: int | None = Field(default=None, description="Hips in cm")
+    inseam_cm: int | None = Field(default=None, description="Inseam in cm")
+    shoe_size_eu: float | None = Field(default=None, description="Shoe size (EU)")
+
+
 class ModelParams(BaseModel):
     age_range: str = Field(..., description="e.g. 18-24, 25-34, 35-44, 45+")
     gender_presentation: str = Field(..., description="feminine | masculine | neutral")
@@ -19,6 +30,8 @@ class ModelParams(BaseModel):
     hair_style: str = Field(default="", description="Hair style preset key")
     hair_color: str = Field(default="", description="Hair color preset key")
     additional_description: str = Field(default="", description="Free-text extra model details")
+    model_photo_url: str | None = Field(default=None, description="Storage path of uploaded model reference photo")
+    measurements: ModelMeasurements | None = Field(default=None, description="Optional physical measurements")
 
 
 class SceneParams(BaseModel):
@@ -36,6 +49,7 @@ class CreateGenerationRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
 
     idempotency_key: str | None = None
+    product_type: str = Field(default="clothing", description="clothing | accessories")
     garment_images: list[str] = Field(..., min_length=1, max_length=5)
     model_params: ModelParams
     scene: SceneParams

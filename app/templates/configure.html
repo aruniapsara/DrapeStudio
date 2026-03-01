@@ -7,6 +7,11 @@
     <h2>Step 2: Configure Virtual Model &amp; Scene</h2>
 
     <form id="configure-form" action="/review" method="get">
+
+        <!-- Hidden fields populated from sessionStorage by JS below -->
+        <input type="hidden" id="product_type" name="product_type" value="clothing">
+        <input type="hidden" id="model_photo_url" name="model_photo_url" value="">
+
         <div class="form-grid">
             <!-- Model Appearance -->
             <fieldset class="form-group">
@@ -15,18 +20,18 @@
                 <label for="age_range">Age Range</label>
                 <select id="age_range" name="age_range" required>
                     <option value="">Select...</option>
-                    <option value="18-24">18–24</option>
-                    <option value="25-34">25–34</option>
-                    <option value="35-44">35–44</option>
+                    <option value="18-24">18-24</option>
+                    <option value="25-34">25-34</option>
+                    <option value="35-44">35-44</option>
                     <option value="45+">45+</option>
                 </select>
 
-                <label for="gender_presentation">Gender Presentation</label>
+                <label for="gender_presentation">Gender</label>
                 <select id="gender_presentation" name="gender_presentation" required>
                     <option value="">Select...</option>
-                    <option value="feminine">Feminine</option>
-                    <option value="masculine">Masculine</option>
-                    <option value="neutral">Neutral</option>
+                    <option value="feminine">Female</option>
+                    <option value="masculine">Male</option>
+                    <option value="neutral">Unisex</option>
                 </select>
 
                 <label for="ethnicity">Ethnicity</label>
@@ -42,12 +47,12 @@
                 <label for="skin_tone">Skin Tone (Fitzpatrick Scale)</label>
                 <select id="skin_tone" name="skin_tone" required>
                     <option value="">Select...</option>
-                    <option value="1">1 — Very Light</option>
-                    <option value="2">2 — Light</option>
-                    <option value="3">3 — Medium Light</option>
-                    <option value="4">4 — Medium Dark</option>
-                    <option value="5">5 — Dark</option>
-                    <option value="6">6 — Very Dark</option>
+                    <option value="1">1 - Very Light</option>
+                    <option value="2">2 - Light</option>
+                    <option value="3">3 - Medium Light</option>
+                    <option value="4">4 - Medium Dark</option>
+                    <option value="5">5 - Dark</option>
+                    <option value="6">6 - Very Dark</option>
                 </select>
 
                 <label for="hair_style">Hair Style</label>
@@ -82,7 +87,7 @@
                     name="additional_description"
                     rows="3"
                     maxlength="300"
-                    placeholder="e.g. wearing glasses, tall slim build, visible tattoos on forearms, confident expression…"
+                    placeholder="e.g. wearing glasses, tall slim build, visible tattoos on forearms, confident expression..."
                 ></textarea>
                 <p class="field-hint">Anything extra the AI should know about the model. Max 300 characters.</p>
             </fieldset>
@@ -94,13 +99,13 @@
                 <label for="environment">Environment</label>
                 <select id="environment" name="environment" required>
                     <option value="">Select...</option>
-                    <option value="studio_white">Studio — White</option>
-                    <option value="studio_beige">Studio — Beige</option>
-                    <option value="outdoor_street">Outdoor — Street</option>
-                    <option value="outdoor_park">Outdoor — Park</option>
-                    <option value="outdoor_beach">Outdoor — Beach</option>
-                    <option value="indoor_cafe">Indoor — Cafe</option>
-                    <option value="indoor_home">Indoor — Home</option>
+                    <option value="studio_white">Studio - White</option>
+                    <option value="studio_beige">Studio - Beige</option>
+                    <option value="outdoor_street">Outdoor - Street</option>
+                    <option value="outdoor_park">Outdoor - Park</option>
+                    <option value="outdoor_beach">Outdoor - Beach</option>
+                    <option value="indoor_cafe">Indoor - Cafe</option>
+                    <option value="indoor_home">Indoor - Home</option>
                 </select>
 
                 <label for="pose_preset">Pose</label>
@@ -121,6 +126,51 @@
                 </select>
             </fieldset>
         </div>
+
+        <!-- Model Measurements (optional) -->
+        <fieldset class="form-group measurements-fieldset">
+            <legend>Model Measurements <span class="label-hint">(optional)</span></legend>
+            <p class="field-hint" style="margin-bottom:1rem">
+                Leave any field blank if unknown. Measurements help the AI match the correct fit.
+            </p>
+            <div class="measurements-grid">
+                <div class="measure-field">
+                    <label for="m_height_cm">Height (cm)</label>
+                    <input type="number" id="m_height_cm" name="m_height_cm"
+                           min="100" max="220" step="1" placeholder="e.g. 170">
+                </div>
+                <div class="measure-field">
+                    <label for="m_weight_kg">Weight (kg)</label>
+                    <input type="number" id="m_weight_kg" name="m_weight_kg"
+                           min="30" max="200" step="0.5" placeholder="e.g. 65">
+                </div>
+                <div class="measure-field">
+                    <label for="m_chest_bust_cm">Chest / Bust (cm)</label>
+                    <input type="number" id="m_chest_bust_cm" name="m_chest_bust_cm"
+                           min="60" max="160" step="1" placeholder="e.g. 90">
+                </div>
+                <div class="measure-field">
+                    <label for="m_waist_cm">Waist (cm)</label>
+                    <input type="number" id="m_waist_cm" name="m_waist_cm"
+                           min="50" max="150" step="1" placeholder="e.g. 70">
+                </div>
+                <div class="measure-field">
+                    <label for="m_hips_cm">Hips (cm)</label>
+                    <input type="number" id="m_hips_cm" name="m_hips_cm"
+                           min="60" max="170" step="1" placeholder="e.g. 95">
+                </div>
+                <div class="measure-field">
+                    <label for="m_inseam_cm">Inseam (cm)</label>
+                    <input type="number" id="m_inseam_cm" name="m_inseam_cm"
+                           min="50" max="110" step="1" placeholder="e.g. 78">
+                </div>
+                <div class="measure-field">
+                    <label for="m_shoe_size_eu">Shoe Size (EU)</label>
+                    <input type="number" id="m_shoe_size_eu" name="m_shoe_size_eu"
+                           min="30" max="52" step="0.5" placeholder="e.g. 38">
+                </div>
+            </div>
+        </fieldset>
 
         <div class="form-actions">
             <a href="/upload" class="btn btn-secondary">Back</a>
@@ -160,24 +210,31 @@
         const gender = document.getElementById('gender_presentation').value;
         const sel = document.getElementById('hair_style');
         const prev = sel.value;
-
         sel.innerHTML = '<option value="">Select...</option>';
-
         const styles = HAIR_STYLES[gender];
         if (!styles) return;
-
-        styles.forEach(({ value, label }) => {
+        styles.forEach(function(s) {
             const opt = document.createElement('option');
-            opt.value = value;
-            opt.textContent = label;
-            if (value === prev) opt.selected = true;
+            opt.value = s.value;
+            opt.textContent = s.label;
+            if (s.value === prev) opt.selected = true;
             sel.appendChild(opt);
         });
     }
 
     document.getElementById('gender_presentation').addEventListener('change', updateHairStyles);
 
-    // Populate on load if gender is already set (e.g. browser back-fill)
-    updateHairStyles();
+    // Pre-fill from sessionStorage (set on upload page)
+    (function() {
+        const gender = sessionStorage.getItem('genderPresentation') || '';
+        if (gender) document.getElementById('gender_presentation').value = gender;
+        updateHairStyles();
+
+        const productType = sessionStorage.getItem('productType') || 'clothing';
+        document.getElementById('product_type').value = productType;
+
+        const modelPhotoUrl = sessionStorage.getItem('modelPhotoUrl') || '';
+        document.getElementById('model_photo_url').value = modelPhotoUrl;
+    })();
 </script>
 {% endblock %}

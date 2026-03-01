@@ -102,10 +102,29 @@ def generate_images(generation_request_id: str) -> None:
             _fail_generation(db, gen, f"Prompt assembly failed: {e}")
             return
 
+        # Load model reference photo (optional)
+        model_photo_bytes = None
+        model_photo_url = gen.model_params.get("model_photo_url")
+        if model_photo_url:
+            try:
+                model_photo_bytes = storage.load(model_photo_url)
+                logger.info(
+                    "Generation %s: loaded model photo from %s",
+                    generation_request_id,
+                    model_photo_url,
+                )
+            except FileNotFoundError:
+                logger.warning(
+                    "Generation %s: model photo not found at %s — proceeding without it",
+                    generation_request_id,
+                    model_photo_url,
+                )
+
         logger.info(
-            "Generation %s: calling Gemini with %d images, prompt length %d",
+            "Generation %s: calling Gemini with %d garment image(s)%s, prompt length %d",
             generation_request_id,
             len(garment_image_bytes_list),
+            " + model photo" if model_photo_bytes else "",
             len(prompt_text),
         )
 
@@ -114,6 +133,7 @@ def generate_images(generation_request_id: str) -> None:
             result = generate_garment_images(
                 garment_image_bytes=garment_image_bytes_list,
                 prompt_text=prompt_text,
+                model_photo_bytes=model_photo_bytes,
             )
         except GeminiError as e:
             _fail_generation(db, gen, f"Gemini API error: {e}")
