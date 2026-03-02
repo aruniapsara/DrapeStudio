@@ -1,0 +1,108 @@
+{# ─────────────────────────────────────────────────────────
+   DrapeStudio — SVG Icon Macros
+   Usage: {% from "components/icons.html" import icon_upload, icon_generate %}
+   All icons render at 1em × 1em by default. Pass size class via extra_class.
+   ───────────────────────────────────────────────────────── #}
+
+{% macro _svg(path_content, extra_class="w-5 h-5", viewBox="0 0 24 24") %}
+<svg class="{{ extra_class }}" fill="none" stroke="currentColor" viewBox="{{ viewBox }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    {{ path_content | safe }}
+</svg>
+{% endmacro %}
+
+
+{% macro icon_upload(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_generate(extra_class="w-5 h-5") %}
+{{ _svg('<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_history(extra_class="w-5 h-5") %}
+{{ _svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_home(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_user(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_settings(extra_class="w-5 h-5") %}
+{{ _svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_star(extra_class="w-5 h-5") %}
+{{ _svg('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_image(extra_class="w-5 h-5") %}
+{{ _svg('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_camera(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_check(extra_class="w-5 h-5") %}
+{{ _svg('<polyline points="20 6 9 17 4 12"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_close(extra_class="w-5 h-5") %}
+{{ _svg('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_chevron_right(extra_class="w-5 h-5") %}
+{{ _svg('<polyline points="9 18 15 12 9 6"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_chevron_down(extra_class="w-5 h-5") %}
+{{ _svg('<polyline points="6 9 12 15 18 9"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_arrow_right(extra_class="w-5 h-5") %}
+{{ _svg('<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_download(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_share(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_trash(extra_class="w-5 h-5") %}
+{{ _svg('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_info(extra_class="w-5 h-5") %}
+{{ _svg('<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_alert(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_sparkles(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z"/><path d="M19 3L19.75 5.25L22 6L19.75 6.75L19 9L18.25 6.75L16 6L18.25 5.25L19 3Z"/><path d="M5 17L5.5 18.5L7 19L5.5 19.5L5 21L4.5 19.5L3 19L4.5 18.5L5 17Z"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_bar_chart(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M18 20V10M12 20V4M6 20v-6"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_logout(extra_class="w-5 h-5") %}
+{{ _svg('<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_plus(extra_class="w-5 h-5") %}
+{{ _svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', extra_class) }}
+{% endmacro %}
+
+{% macro icon_clock(extra_class="w-5 h-5") %}
+{{ _svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', extra_class) }}
+{% endmacro %}

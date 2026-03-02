@@ -180,3 +180,52 @@ async def admin_usage_page(request: Request):
         "admin_usage.html",
         _ctx(request),
     )
+
+
+@app.get("/profile")
+async def profile_page(request: Request):
+    return templates.TemplateResponse("profile.html", _ctx(request))
+
+
+@app.get("/children")
+async def children_page(request: Request):
+    return templates.TemplateResponse(
+        "coming_soon.html",
+        _ctx(
+            request,
+            module_name="Children's Clothing",
+            module_icon="👕",
+            module_description="Age-appropriate AI model images for kids' clothing across 4 age groups.",
+        ),
+    )
+
+
+@app.get("/accessories")
+async def accessories_page(request: Request):
+    return templates.TemplateResponse(
+        "coming_soon.html",
+        _ctx(
+            request,
+            module_name="Accessories",
+            module_icon="👜",
+            module_description="Showcase jewellery, bags, belts and more in 9 categories × 3 display modes.",
+        ),
+    )
+
+
+@app.get("/fiton")
+async def fiton_page(request: Request):
+    return templates.TemplateResponse(
+        "coming_soon.html",
+        _ctx(
+            request,
+            module_name="Virtual Fit-On",
+            module_icon="🪞",
+            module_description="Try garments on a body-measurement-matched virtual model for the perfect fit.",
+        ),
+    )
+
+
+@app.get("/dev/components")
+async def dev_components_page(request: Request):
+    return templates.TemplateResponse("dev/components.html", _ctx(request))

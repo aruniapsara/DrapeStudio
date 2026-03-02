@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import stat_card %}
+
+{% block title %}Profile — DrapeStudio{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-6 space-y-6">
+
+    {# ── User info card ─────────────────────────────────────── #}
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-6">
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-[#9B6DFF] flex items-center justify-center text-white text-2xl font-bold shadow-md">
+                {% if user %}{{ user.username[0].upper() }}{% else %}U{% endif %}
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-dark">
+                    {% if user %}{{ user.username }}{% else %}User{% endif %}
+                </h2>
+                <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full
+                             {% if user and user.role == 'admin' %}bg-primary/10 text-primary{% else %}bg-gray-100 text-gray-500{% endif %}">
+                    {% if user and user.role == 'admin' %}
+                    ⚡ Administrator
+                    {% else %}
+                    👤 Standard User
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <dl class="space-y-3">
+            <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                <dt class="text-sm text-gray-500">Username</dt>
+                <dd class="text-sm font-medium text-dark">
+                    {% if user %}{{ user.username }}{% else %}—{% endif %}
+                </dd>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                <dt class="text-sm text-gray-500">Account Type</dt>
+                <dd class="text-sm font-medium text-dark">
+                    {% if user and user.role == 'admin' %}Admin{% else %}Standard{% endif %}
+                </dd>
+            </div>
+            <div class="flex items-center justify-between py-2">
+                <dt class="text-sm text-gray-500">Member Since</dt>
+                <dd class="text-sm font-medium text-dark">2026</dd>
+            </div>
+        </dl>
+    </div>
+
+    {# ── Credits & Usage ────────────────────────────────────── #}
+    <div>
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Credits & Usage</h3>
+        <div class="grid grid-cols-2 gap-3">
+            {{ stat_card("Credits Remaining", "—", "💎") }}
+            {{ stat_card("Total Generations", "—", "🎨") }}
+        </div>
+    </div>
+
+    {# ── Plan ───────────────────────────────────────────────── #}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-dark">Current Plan</h3>
+            <span class="text-xs font-medium bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Free</span>
+        </div>
+        <p class="text-sm text-gray-500 mb-4 leading-relaxed">
+            Upgrade to a paid plan to unlock more credits and access all modules including Children's, Accessories and Virtual Fit-On.
+        </p>
+        <a href="/#pricing"
+           class="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary-dark text-white font-semibold text-sm py-3 rounded-xl transition-colors">
+            View Plans
+        </a>
+    </div>
+
+    {# ── Preferences ────────────────────────────────────────── #}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+        <h3 class="font-semibold text-dark mb-4">Preferences</h3>
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-dark">Language</p>
+                    <p class="text-xs text-gray-400">Interface language</p>
+                </div>
+                <select class="text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
+                    <option>English</option>
+                    <option>සිංහල</option>
+                    <option>தமிழ்</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    {# ── Actions ────────────────────────────────────────────── #}
+    <div class="space-y-2">
+        {% if user and user.role == "admin" %}
+        <a href="/admin/usage"
+           class="flex items-center gap-3 w-full px-5 py-3.5 bg-white border border-gray-100 rounded-2xl text-sm font-medium text-dark hover:bg-gray-50 transition-colors shadow-card">
+            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Usage Report
+            <svg class="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+        {% endif %}
+        <a href="/logout"
+           class="flex items-center gap-3 w-full px-5 py-3.5 bg-white border border-red-100 rounded-2xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors shadow-card">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            Sign Out
+        </a>
+    </div>
+
+</div>
+{% endblock %}

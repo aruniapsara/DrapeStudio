@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon_sparkles %}
+
+{% block title %}{{ module_name or "Coming Soon" }} — DrapeStudio{% endblock %}
+{% block page_title %}{{ module_name or "Coming Soon" }}{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+
+    <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-[#9B6DFF] flex items-center justify-center text-4xl mb-6 shadow-lg">
+        {{ module_icon or "🚧" }}
+    </div>
+
+    <h2 class="text-2xl font-bold text-dark mb-2">{{ module_name or "Coming Soon" }}</h2>
+
+    <p class="text-gray-500 text-sm max-w-xs leading-relaxed mb-2">
+        {{ module_description or "This module is under development and will be available soon." }}
+    </p>
+
+    <div class="flex items-center gap-1.5 mb-8">
+        <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay: 0ms"></div>
+        <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay: 150ms"></div>
+        <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay: 300ms"></div>
+    </div>
+
+    <div class="bg-primary/5 border border-primary/10 rounded-2xl px-6 py-4 max-w-sm mb-8">
+        <p class="text-xs text-primary font-semibold mb-1">Be the first to know</p>
+        <p class="text-xs text-gray-500">We'll notify you when {{ module_name or "this module" }} launches.</p>
+    </div>
+
+    <a href="/"
+       class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-dark transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Back to Dashboard
+    </a>
+
+</div>
+{% endblock %}
