@@ -1,4 +1,5 @@
 {# DrapeStudio — Desktop sidebar navigation #}
+{%- set p = request.url.path -%}
 <div class="flex flex-col h-full px-3 py-5">
 
     {# ── Logo ─────────────────────────────────────────────── #}
@@ -9,21 +10,27 @@
     {# ── Primary nav ──────────────────────────────────────── #}
     <nav class="flex-1 space-y-0.5">
 
-        <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-sm font-medium">
+        <a href="/"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p == '/' %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
             </svg>
             Home
         </a>
 
-        <a href="/upload" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-sm font-medium">
+        <a href="/upload"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p in ['/upload', '/configure', '/review', '/generating'] or p.startswith('/generating') %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
             </svg>
             New Generation
         </a>
 
-        <a href="/history" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-sm font-medium">
+        <a href="/history"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p == '/history' or p.startswith('/results') %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
@@ -33,7 +40,9 @@
         {# ── Module section ─ #}
         <p class="mt-5 mb-1.5 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Modules</p>
 
-        <a href="/upload" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-sm font-medium">
+        <a href="/upload"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p in ['/upload', '/configure', '/review'] %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z"/>
             </svg>
@@ -68,7 +77,9 @@
         {% if user and user.role == "admin" %}
         <p class="mt-5 mb-1.5 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Admin</p>
 
-        <a href="/admin/usage" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-sm font-medium">
+        <a href="/admin/usage"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p == '/admin/usage' %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 20V10M12 20V4M6 20v-6"/>
             </svg>
