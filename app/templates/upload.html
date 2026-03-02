@@ -1,107 +1,127 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import step_indicator, selector_grid, button %}
 
 {% block title %}Upload — DrapeStudio{% endblock %}
+{% block page_title %}New Generation{% endblock %}
 
 {% block content %}
-<section class="page-section">
-    <h2>Step 1: Product &amp; Upload</h2>
+<div class="max-w-xl mx-auto px-4 py-6">
 
-    <!-- ── Product Type ─────────────────────────────────────────────────── -->
-    <div class="upload-block">
-        <h3 class="upload-block-title">Product Type</h3>
-        <div class="type-picker" id="type-picker">
-            <label class="type-card" id="card-clothing">
-                <input type="radio" name="_product_type" value="clothing" checked>
-                <span class="type-card-icon">👕</span>
-                <span class="type-card-label">Clothing</span>
-            </label>
-            <label class="type-card" id="card-accessories">
-                <input type="radio" name="_product_type" value="accessories">
-                <span class="type-card-icon">👜</span>
-                <span class="type-card-label">Accessories</span>
-            </label>
+    {# Step indicator #}
+    {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 1) }}
+
+    <div class="space-y-4">
+
+        {# ── Product Type ──────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-3">Product Type</h3>
+            {{ selector_grid("_product_type", [
+                {"value": "clothing",    "label": "Clothing",    "icon": "👕"},
+                {"value": "accessories", "label": "Accessories", "icon": "👜"},
+            ], cols=2, current="clothing") }}
         </div>
-    </div>
 
-    <!-- ── Garment Photos ───────────────────────────────────────────────── -->
-    <div class="upload-block">
-        <h3 class="upload-block-title">
-            Garment Photos
-            <span class="label-hint">(1–5 photos, JPG / PNG / WEBP)</span>
-        </h3>
-        <p class="field-hint">Include front, back and detail shots for best results. Minimum 400 px per side.</p>
+        {# ── Garment Photos ────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <div class="flex items-start justify-between mb-1">
+                <h3 class="text-sm font-bold text-dark">Garment Photos</h3>
+                <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">1–5 photos</span>
+            </div>
+            <p class="text-xs text-gray-500 mb-4 leading-relaxed">
+                Include front, back and detail shots for best results. JPG / PNG / WEBP, min 400 px per side.
+            </p>
 
-        <div id="drop-zone" class="drop-zone"
-             ondrop="handleDrop(event)"
-             ondragover="event.preventDefault()"
-             ondragleave="this.classList.remove('drag-over')"
-             ondragenter="this.classList.add('drag-over')">
-            <input type="file" id="garment-files"
-                   accept="image/jpeg,image/png,image/webp"
-                   multiple onchange="handleFiles(this.files)" class="file-input">
-            <div class="drop-zone-content">
-                <p class="drop-zone-icon">📸</p>
-                <p>Drag and drop up to 5 garment photos, or click to select</p>
+            {# Drop zone — IDs preserved for upload.js compatibility #}
+            <div id="drop-zone"
+                 class="rounded-2xl border-2 border-dashed border-gray-200 hover:border-primary/40 hover:bg-primary/2 transition-all cursor-pointer"
+                 ondrop="handleDrop(event)"
+                 ondragover="event.preventDefault(); this.classList.add('!border-primary','!bg-primary/5')"
+                 ondragleave="this.classList.remove('!border-primary','!bg-primary/5')"
+                 ondragenter="this.classList.add('!border-primary','!bg-primary/5')"
+                 onclick="document.getElementById('garment-files').click()">
+                <input type="file" id="garment-files"
+                       accept="image/jpeg,image/png,image/webp"
+                       multiple onchange="handleFiles(this.files)"
+                       style="display:none">
+                <div class="drop-zone-content flex flex-col items-center justify-center py-10 px-4 text-center pointer-events-none">
+                    <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm font-semibold text-dark mb-0.5">Drag &amp; drop garment photos</p>
+                    <p class="text-xs text-gray-400">or tap to select from your gallery</p>
+                </div>
+            </div>
+
+            {# Preview grid — managed by upload.js #}
+            <div id="preview-grid" class="mt-3 grid grid-cols-3 gap-2"></div>
+        </div>
+
+        {# ── Model ─────────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-4">Model</h3>
+
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                Gender <span class="text-red-400">*</span>
+            </label>
+            {{ selector_grid("_gender", [
+                {"value": "feminine",  "label": "Female",  "icon": "♀"},
+                {"value": "masculine", "label": "Male",    "icon": "♂"},
+                {"value": "neutral",   "label": "Unisex",  "icon": "⚪"},
+            ], cols=3, onchange="updateNextButton()") }}
+
+            <div class="mt-5">
+                <label class="block text-sm font-medium text-gray-700 mb-0.5">
+                    Model Photo
+                    <span class="ml-1 text-xs text-gray-400 font-normal">(optional)</span>
+                </label>
+                <p class="text-xs text-gray-500 mb-3 leading-relaxed">
+                    Upload a real person's photo to use as reference model.
+                    If omitted, a virtual model is generated from your settings.
+                </p>
+
+                {# Model photo drop zone — IDs preserved for upload.js #}
+                <div id="model-drop-zone"
+                     class="rounded-2xl border-2 border-dashed border-gray-200 hover:border-primary/40 transition-all cursor-pointer"
+                     onclick="document.getElementById('model-photo-file').click()"
+                     ondrop="handleModelDrop(event)"
+                     ondragover="event.preventDefault()"
+                     ondragleave="this.classList.remove('!border-primary','!bg-primary/5')"
+                     ondragenter="this.classList.add('!border-primary','!bg-primary/5')">
+                    <input type="file" id="model-photo-file"
+                           accept="image/jpeg,image/png,image/webp"
+                           onchange="handleModelFile(this.files[0])"
+                           style="display:none">
+                    <div id="model-drop-content"
+                         class="flex flex-col items-center justify-center py-7 px-4 text-center pointer-events-none">
+                        <p class="text-2xl mb-1">🧍</p>
+                        <p class="text-xs text-gray-500 font-medium">Drag &amp; drop or tap to select</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">1 photo · JPG / PNG / WEBP</p>
+                    </div>
+                </div>
+                <div id="model-photo-preview" class="mt-2" style="display:none"></div>
             </div>
         </div>
-        <div id="preview-grid" class="preview-grid"></div>
-    </div>
 
-    <!-- ── Model ────────────────────────────────────────────────────────── -->
-    <div class="upload-block">
-        <h3 class="upload-block-title">Model</h3>
-
-        <label class="upload-label">Gender <span class="required-star">*</span></label>
-        <div class="gender-picker" id="gender-picker">
-            <label class="gender-option">
-                <input type="radio" name="_gender" value="feminine" onchange="updateNextButton()">
-                <span class="gender-option-label">Female</span>
-            </label>
-            <label class="gender-option">
-                <input type="radio" name="_gender" value="masculine" onchange="updateNextButton()">
-                <span class="gender-option-label">Male</span>
-            </label>
-            <label class="gender-option">
-                <input type="radio" name="_gender" value="neutral" onchange="updateNextButton()">
-                <span class="gender-option-label">Unisex</span>
-            </label>
+        {# ── Actions ───────────────────────────────────────────── #}
+        <div class="flex gap-3 pt-2 pb-4">
+            {{ button("Back", href="/", variant="secondary", size="lg") }}
+            <button id="btn-next"
+                    class="flex-1 inline-flex items-center justify-center font-semibold rounded-xl transition-all text-base px-6 py-3
+                           bg-primary text-white shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50
+                           disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled
+                    onclick="proceedToConfigure()">
+                Next: Configure Model
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
         </div>
 
-        <label class="upload-label" style="margin-top:1.5rem">
-            Model Photo
-            <span class="label-hint">(optional)</span>
-        </label>
-        <p class="field-hint">
-            Upload a photo of a real person to use as the model.
-            If omitted, a virtual model will be generated from your settings on the next step.
-        </p>
-
-        <div id="model-drop-zone" class="drop-zone model-photo-drop-zone"
-             onclick="document.getElementById('model-photo-file').click()"
-             ondrop="handleModelDrop(event)"
-             ondragover="event.preventDefault()"
-             ondragleave="this.classList.remove('drag-over')"
-             ondragenter="this.classList.add('drag-over')">
-            <input type="file" id="model-photo-file"
-                   accept="image/jpeg,image/png,image/webp"
-                   onchange="handleModelFile(this.files[0])"
-                   style="display:none">
-            <div id="model-drop-content" class="drop-zone-content" style="pointer-events:none">
-                <p class="drop-zone-icon">🧍</p>
-                <p>Drag and drop a model photo, or click to select</p>
-                <p class="drop-zone-hint">Optional — 1 photo, JPG / PNG / WEBP</p>
-            </div>
-        </div>
-        <div id="model-photo-preview" class="model-photo-preview" style="display:none;"></div>
     </div>
-
-    <div class="form-actions">
-        <a href="/" class="btn btn-secondary">Back</a>
-        <button id="btn-next" class="btn btn-primary" disabled onclick="proceedToConfigure()">
-            Next: Configure Model
-        </button>
-    </div>
-</section>
+</div>
 {% endblock %}
 
 {% block scripts %}

@@ -3,11 +3,12 @@
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app.config import settings
 from app.dependencies import get_current_user, verify_credentials
 
 # Base directories
@@ -228,4 +229,6 @@ async def fiton_page(request: Request):
 
 @app.get("/dev/components")
 async def dev_components_page(request: Request):
+    if settings.APP_ENV not in ("development", "testing"):
+        raise HTTPException(status_code=404)
     return templates.TemplateResponse("dev/components.html", _ctx(request))

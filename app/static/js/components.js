@@ -14,6 +14,13 @@ function toastStore() {
         init() {
             // Expose globally so any JS can call window.$toast.show(...)
             window.$toast = this;
+            // Support @toast.window event: dispatch('toast', {type, message, duration})
+            window.addEventListener('toast', (e) => this.addToast(e.detail));
+        },
+
+        /** Called by @toast.window Alpine events: { type, message, duration? } */
+        addToast({ type = 'default', message = '', duration = 3500 } = {}) {
+            this.show(message, type, duration);
         },
 
         show(message, type = 'default', duration = 3500) {

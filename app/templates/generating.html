@@ -1,55 +1,86 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import step_indicator %}
 
 {% block title %}Generating — DrapeStudio{% endblock %}
+{% block page_title %}Generating Images{% endblock %}
 
 {% block content %}
-<section class="page-section generating-page">
-    <h2>Step 4: Generating Your Images</h2>
+<div class="max-w-xl mx-auto px-4 py-6">
 
+    {# Step indicator #}
+    {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 4) }}
+
+    {# HTMX polling container — replaced entirely by status_poll.html partial #}
     <div id="status-container"
          hx-get="/v1/generations/{{ gen_id }}/status-partial"
          hx-trigger="every 4s"
          hx-swap="outerHTML">
-        <div class="status-card status-queued">
-            <div class="spinner"></div>
-            <p class="status-text">Queued — preparing your generation...</p>
-            <p class="status-hint">This typically takes 30–60 seconds.</p>
+
+        {# Initial queued state #}
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-8 text-center">
+
+            {# Animated spinner ring #}
+            <div class="relative w-20 h-20 mx-auto mb-6">
+                <div class="absolute inset-0 rounded-full border-4 border-primary/15"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold text-dark mb-2">Creating Your Images</h3>
+            <p id="status-text" class="text-sm text-gray-500 mb-1">Queued — preparing your generation…</p>
+            <p id="status-hint" class="text-xs text-gray-400">This typically takes 30–60 seconds</p>
+
+            {# Bouncing dots #}
+            <div class="flex justify-center gap-2 mt-6">
+                <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:0ms"></div>
+                <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:150ms"></div>
+                <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:300ms"></div>
+            </div>
+
+            {# Generation ID #}
+            <div class="mt-6 inline-flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl">
+                <span class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">ID</span>
+                <code class="text-xs text-gray-500 font-mono">{{ gen_id }}</code>
+            </div>
+
         </div>
     </div>
-
-    <div class="generation-info">
-        <p><strong>Generation ID:</strong> <code>{{ gen_id }}</code></p>
-    </div>
-</section>
+</div>
 
 <script>
-    // Client-side timeout warnings
-    const startTime = Date.now();
-    const WARNING_MS = 150000;  // 150 seconds
-    const ERROR_MS = 300000;    // 300 seconds
+(function() {
+    var startTime = Date.now();
+    var WARNING_MS = 150000;
+    var ERROR_MS   = 300000;
 
-    setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const container = document.getElementById('status-container');
-        if (!container) return;  // Polling replaced it
+    var iv = setInterval(function() {
+        var elapsed   = Date.now() - startTime;
+        var container = document.getElementById('status-container');
+        if (!container) { clearInterval(iv); return; }
 
         if (elapsed > ERROR_MS) {
-            container.innerHTML = `
-                <div class="status-card status-error">
-                    <p class="status-text">Generation is taking too long.</p>
-                    <p>Something may have gone wrong. Please try again.</p>
-                    <a href="/upload" class="btn btn-primary">Start Over</a>
-                </div>
-            `;
+            clearInterval(iv);
             container.removeAttribute('hx-trigger');
             container.removeAttribute('hx-get');
+            container.innerHTML =
+                '<div class="bg-white rounded-3xl border border-red-100 shadow-card p-8 text-center">' +
+                    '<div class="text-4xl mb-4">\u26a0\ufe0f</div>' +
+                    '<h3 class="text-lg font-bold text-dark mb-2">Generation Timed Out</h3>' +
+                    '<p class="text-sm text-gray-500 mb-5">This is taking too long. Please try again.</p>' +
+                    '<a href="/upload" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-xl transition-colors">Start Over</a>' +
+                '</div>';
         } else if (elapsed > WARNING_MS) {
-            const hint = container.querySelector('.status-hint');
+            var hint = document.getElementById('status-hint');
             if (hint) {
-                hint.textContent = 'This is taking longer than usual. Please wait...';
-                hint.classList.add('status-warning');
+                hint.textContent = 'Taking a bit longer than usual \u2014 please wait\u2026';
+                hint.style.color = '#FF6B35';
             }
         }
     }, 5000);
+})();
 </script>
 {% endblock %}

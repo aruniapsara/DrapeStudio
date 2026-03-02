@@ -1,65 +1,112 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import step_indicator, button, empty_state %}
 
 {% block title %}Results — DrapeStudio{% endblock %}
+{% block page_title %}Your Images{% endblock %}
 
 {% block content %}
-<section class="page-section">
-    <h2>Step 5: Your Generated Images</h2>
+<div class="max-w-xl mx-auto px-4 py-6">
 
-    <div id="results-container" class="results-container">
-        <p>Loading results...</p>
+    {# Step indicator #}
+    {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 5) }}
+
+    {# Results container — populated by JS below #}
+    <div id="results-container">
+        {# Loading skeleton #}
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+            {% for _ in range(3) %}
+            <div class="bg-white rounded-2xl shadow-card overflow-hidden animate-pulse">
+                <div class="aspect-[3/4] bg-gray-200"></div>
+                <div class="p-3 space-y-1.5">
+                    <div class="h-2.5 bg-gray-200 rounded w-2/3"></div>
+                    <div class="h-2.5 bg-gray-200 rounded w-1/3"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <div class="form-actions">
-        <a href="/upload" class="btn btn-primary">Create New Generation</a>
+    {# Actions footer #}
+    <div id="results-actions" class="flex gap-3 pb-4">
+        {{ button("← New Generation", href="/upload", variant="primary", size="lg", extra_class="flex-1") }}
+        {{ button("History", href="/history", variant="secondary", size="lg") }}
     </div>
-</section>
+
+</div>
 
 <script>
+(function() {
+    var genId = '{{ gen_id }}';
+
+    function renderCard(output, i) {
+        var url   = output.image_url || '';
+        var w     = output.width  || '—';
+        var h     = output.height || '—';
+        var fname = 'drapestudio_' + genId + '_' + (i + 1) + '.jpg';
+        return (
+            '<div class="group relative bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all">' +
+                '<img src="' + url + '" alt="Image ' + (i+1) + '" loading="lazy" class="w-full aspect-[3/4] object-cover">' +
+                '<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 gap-2">' +
+                    '<a href="' + url + '" download="' + fname + '" class="flex-1 text-center bg-white/90 hover:bg-white text-dark text-xs font-semibold py-2 rounded-xl transition-colors">Download</a>' +
+                    '<button type="button" onclick="window.DS && window.DS.share(\'' + url + '\')" class="p-2 bg-white/90 hover:bg-white text-dark rounded-xl transition-colors">' +
+                        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>' +
+                    '</button>' +
+                '</div>' +
+                '<div class="px-3 py-2 border-t border-gray-50 flex items-center justify-between">' +
+                    '<p class="text-xs text-gray-400 font-medium">Image ' + (i+1) + '</p>' +
+                    '<span class="text-[10px] text-gray-300">' + w + ' \u00d7 ' + h + '</span>' +
+                '</div>' +
+            '</div>'
+        );
+    }
+
+    function renderError(msg) {
+        return (
+            '<div class="bg-white rounded-3xl border border-red-100 shadow-card p-8 text-center">' +
+                '<div class="text-4xl mb-4">\u274c</div>' +
+                '<h3 class="text-lg font-bold text-dark mb-2">Generation Failed</h3>' +
+                '<p class="text-sm text-gray-500 mb-5">' + (msg || 'Unknown error') + '</p>' +
+                '<a href="/upload" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-xl transition-colors">Try Again</a>' +
+            '</div>'
+        );
+    }
+
     async function loadResults() {
-        const genId = '{{ gen_id }}';
         try {
-            const resp = await fetch(`/v1/generations/${genId}/outputs`);
-            const data = await resp.json();
-            const container = document.getElementById('results-container');
+            var resp = await fetch('/v1/generations/' + genId + '/outputs');
+            var data = await resp.json();
+            var container = document.getElementById('results-container');
 
             if (data.status === 'succeeded' && data.outputs && data.outputs.length > 0) {
-                const costHtml = data.cost_usd != null
-                    ? `<p class="generation-cost">Generation cost: $${data.cost_usd.toFixed(4)} USD</p>`
-                    : '';
-                container.innerHTML = '<div class="image-grid">' +
-                    data.outputs.map((output, i) => `
-                        <div class="image-card">
-                            <img src="${output.image_url}" alt="Generated image ${i + 1}"
-                                 loading="lazy">
-                            <div class="image-card-footer">
-                                <span>Variation ${i + 1}</span>
-                                <span>${output.width || '—'} × ${output.height || '—'}</span>
-                                <a href="${output.image_url}" download="drapestudio_${genId}_${i + 1}.jpg"
-                                   class="btn btn-small">Download</a>
-                            </div>
-                        </div>
-                    `).join('') +
-                    '</div>' + costHtml;
+                var grid = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">' +
+                    data.outputs.map(function(o, i) { return renderCard(o, i); }).join('') +
+                    '</div>';
+
+                if (data.cost_usd != null) {
+                    grid += '<p class="text-xs text-center text-gray-400 mb-4">Generation cost: $' + data.cost_usd.toFixed(4) + ' USD</p>';
+                }
+                container.innerHTML = grid;
+
             } else if (data.status === 'failed') {
-                container.innerHTML = `
-                    <div class="status-card status-error">
-                        <p>Generation failed: ${data.error_message || 'Unknown error'}</p>
-                        <a href="/upload" class="btn btn-primary">Try Again</a>
-                    </div>`;
+                container.innerHTML = renderError(data.error_message);
+                document.getElementById('results-actions').style.display = 'none';
+
             } else {
-                container.innerHTML = `
-                    <div class="status-card">
-                        <p>Status: ${data.status}. Images may still be processing.</p>
-                        <a href="/generating/${genId}" class="btn btn-secondary">Check Progress</a>
-                    </div>`;
+                container.innerHTML =
+                    '<div class="bg-white rounded-2xl border border-gray-100 shadow-card p-6 text-center">' +
+                        '<p class="text-sm text-gray-500 mb-3">Status: <strong>' + data.status + '</strong>. Images may still be processing.</p>' +
+                        '<a href="/generating/' + genId + '" class="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">' +
+                            '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+                            'Check Progress' +
+                        '</a>' +
+                    '</div>';
             }
         } catch (err) {
-            document.getElementById('results-container').innerHTML =
-                `<p class="error">Failed to load results: ${err.message}</p>`;
+            document.getElementById('results-container').innerHTML = renderError(err.message);
         }
     }
 
     loadResults();
+})();
 </script>
 {% endblock %}

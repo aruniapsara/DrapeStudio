@@ -1,240 +1,225 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import step_indicator, selector_grid, skin_tone_picker, accordion, form_select, form_input, button %}
 
 {% block title %}Configure Model — DrapeStudio{% endblock %}
+{% block page_title %}Configure Model{% endblock %}
 
 {% block content %}
-<section class="page-section">
-    <h2>Step 2: Configure Virtual Model &amp; Scene</h2>
+<div class="max-w-xl mx-auto px-4 py-6">
+
+    {# Step indicator #}
+    {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 2) }}
 
     <form id="configure-form" action="/review" method="get">
 
-        <!-- Hidden fields populated from sessionStorage by JS below -->
-        <input type="hidden" id="product_type" name="product_type" value="clothing">
+        {# Hidden fields populated from sessionStorage by JS below #}
+        <input type="hidden" id="product_type"   name="product_type"   value="clothing">
         <input type="hidden" id="model_photo_url" name="model_photo_url" value="">
 
-        <div class="form-grid">
-            <!-- Model Appearance -->
-            <fieldset class="form-group">
-                <legend>Model Appearance</legend>
+        <div class="space-y-3">
 
-                <label for="age_range">Age Range</label>
-                <select id="age_range" name="age_range" required>
-                    <option value="">Select...</option>
-                    <option value="18-24">18-24</option>
-                    <option value="25-34">25-34</option>
-                    <option value="35-44">35-44</option>
-                    <option value="45+">45+</option>
-                </select>
+            {# ── Model Appearance accordion ────────────────────── #}
+            {% call accordion("model-appearance", "Model Appearance", open=True, badge="Required") %}
+            <div class="space-y-5">
 
-                <label for="gender_presentation">Gender</label>
-                <select id="gender_presentation" name="gender_presentation" required>
-                    <option value="">Select...</option>
-                    <option value="feminine">Female</option>
-                    <option value="masculine">Male</option>
-                    <option value="neutral">Unisex</option>
-                </select>
+                {# Age Range #}
+                {{ form_select("age_range", "Age Range", [
+                    {"value": "",      "label": "Select…"},
+                    {"value": "18-24", "label": "18 – 24"},
+                    {"value": "25-34", "label": "25 – 34"},
+                    {"value": "35-44", "label": "35 – 44"},
+                    {"value": "45+",   "label": "45+"},
+                ], required=True) }}
 
-                <label for="ethnicity">Ethnicity</label>
-                <select id="ethnicity" name="ethnicity" required>
-                    <option value="">Select...</option>
-                    <option value="sri_lankan">Sri Lankan</option>
-                    <option value="indian">Indian</option>
-                    <option value="middle_eastern">Middle Eastern</option>
-                    <option value="african">African</option>
-                    <option value="european">European</option>
-                </select>
+                {# Gender #}
+                {{ form_select("gender_presentation", "Gender", [
+                    {"value": "",           "label": "Select…"},
+                    {"value": "feminine",   "label": "Female"},
+                    {"value": "masculine",  "label": "Male"},
+                    {"value": "neutral",    "label": "Unisex"},
+                ], required=True, id="gender_presentation", onchange="updateHairStyles()") }}
 
-                <label for="skin_tone">Skin Tone (Fitzpatrick Scale)</label>
-                <select id="skin_tone" name="skin_tone" required>
-                    <option value="">Select...</option>
-                    <option value="1">1 - Very Light</option>
-                    <option value="2">2 - Light</option>
-                    <option value="3">3 - Medium Light</option>
-                    <option value="4">4 - Medium Dark</option>
-                    <option value="5">5 - Dark</option>
-                    <option value="6">6 - Very Dark</option>
-                </select>
+                {# Ethnicity #}
+                {{ form_select("ethnicity", "Ethnicity", [
+                    {"value": "",              "label": "Select…"},
+                    {"value": "sri_lankan",    "label": "Sri Lankan"},
+                    {"value": "indian",        "label": "Indian"},
+                    {"value": "middle_eastern","label": "Middle Eastern"},
+                    {"value": "african",       "label": "African"},
+                    {"value": "european",      "label": "European"},
+                ], required=True) }}
 
-                <label for="hair_style">Hair Style</label>
-                <select id="hair_style" name="hair_style" required>
-                    <option value="">Select gender first...</option>
-                </select>
-
-                <label for="hair_color">Hair Color</label>
-                <select id="hair_color" name="hair_color" required>
-                    <option value="">Select...</option>
-                    <option value="black">Black</option>
-                    <option value="dark_brown">Dark Brown</option>
-                    <option value="medium_brown">Medium Brown</option>
-                    <option value="light_brown">Light Brown / Caramel</option>
-                    <option value="blonde">Blonde</option>
-                    <option value="auburn">Red / Auburn</option>
-                    <option value="grey">Grey / Silver</option>
-                </select>
-
-                <label>Body Type</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="body_type" value="petite" required> Petite</label>
-                    <label><input type="radio" name="body_type" value="average"> Average</label>
-                    <label><input type="radio" name="body_type" value="athletic"> Athletic</label>
-                    <label><input type="radio" name="body_type" value="curvy"> Curvy</label>
-                    <label><input type="radio" name="body_type" value="plus"> Plus</label>
+                {# Skin Tone — visual swatch picker instead of select #}
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Skin Tone <span class="text-red-400">*</span>
+                        <span class="ml-1 text-xs text-gray-400 font-normal">(Fitzpatrick Scale)</span>
+                    </label>
+                    {{ skin_tone_picker("skin_tone") }}
                 </div>
 
-                <label for="additional_description">Additional Description <span class="label-hint">(optional)</span></label>
-                <textarea
-                    id="additional_description"
-                    name="additional_description"
-                    rows="3"
-                    maxlength="300"
-                    placeholder="e.g. wearing glasses, tall slim build, visible tattoos on forearms, confident expression..."
-                ></textarea>
-                <p class="field-hint">Anything extra the AI should know about the model. Max 300 characters.</p>
-            </fieldset>
+                {# Hair Style — populated by JS #}
+                {{ form_select("hair_style", "Hair Style", [
+                    {"value": "", "label": "Select gender first…"},
+                ], required=True, id="hair_style") }}
 
-            <!-- Scene Settings -->
-            <fieldset class="form-group">
-                <legend>Scene Settings</legend>
+                {# Hair Color #}
+                {{ form_select("hair_color", "Hair Color", [
+                    {"value": "",             "label": "Select…"},
+                    {"value": "black",        "label": "Black"},
+                    {"value": "dark_brown",   "label": "Dark Brown"},
+                    {"value": "medium_brown", "label": "Medium Brown"},
+                    {"value": "light_brown",  "label": "Light Brown / Caramel"},
+                    {"value": "blonde",       "label": "Blonde"},
+                    {"value": "auburn",       "label": "Red / Auburn"},
+                    {"value": "grey",         "label": "Grey / Silver"},
+                ], required=True) }}
 
-                <label for="environment">Environment</label>
-                <select id="environment" name="environment" required>
-                    <option value="">Select...</option>
-                    <option value="studio_white">Studio - White</option>
-                    <option value="studio_beige">Studio - Beige</option>
-                    <option value="outdoor_street">Outdoor - Street</option>
-                    <option value="outdoor_park">Outdoor - Park</option>
-                    <option value="outdoor_beach">Outdoor - Beach</option>
-                    <option value="indoor_cafe">Indoor - Cafe</option>
-                    <option value="indoor_home">Indoor - Home</option>
-                </select>
+                {# Body Type #}
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Body Type <span class="text-red-400">*</span></label>
+                    {{ selector_grid("body_type", [
+                        {"value": "petite",   "label": "Petite"},
+                        {"value": "average",  "label": "Average"},
+                        {"value": "athletic", "label": "Athletic"},
+                        {"value": "curvy",    "label": "Curvy"},
+                        {"value": "plus",     "label": "Plus"},
+                    ], cols=3, required=True) }}
+                </div>
 
-                <label for="pose_preset">Pose</label>
-                <select id="pose_preset" name="pose_preset" required>
-                    <option value="">Select...</option>
-                    <option value="front_standing">Front Standing</option>
-                    <option value="walking">Walking</option>
-                    <option value="three_quarter">Three-Quarter Turn</option>
-                    <option value="seated">Seated</option>
-                </select>
+                {# Additional description #}
+                <div class="space-y-1.5">
+                    <label for="additional_description" class="block text-sm font-medium text-gray-700">
+                        Additional Description
+                        <span class="ml-1 text-xs text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <textarea id="additional_description" name="additional_description"
+                              rows="3" maxlength="300"
+                              placeholder="e.g. wearing glasses, tall slim build, visible tattoos on forearms…"
+                              class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 resize-none
+                                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"></textarea>
+                    <p class="text-xs text-gray-400">Anything extra the AI should know about the model. Max 300 characters.</p>
+                </div>
 
-                <label for="framing">Framing</label>
-                <select id="framing" name="framing" required>
-                    <option value="">Select...</option>
-                    <option value="full_body">Full Body</option>
-                    <option value="three_quarter">Three-Quarter</option>
-                    <option value="waist_up">Waist Up</option>
-                </select>
-            </fieldset>
-        </div>
+            </div>
+            {% endcall %}
 
-        <!-- Model Measurements (optional) -->
-        <fieldset class="form-group measurements-fieldset">
-            <legend>Model Measurements <span class="label-hint">(optional)</span></legend>
-            <p class="field-hint" style="margin-bottom:1rem">
-                Leave any field blank if unknown. Measurements help the AI match the correct fit.
-            </p>
-            <div class="measurements-grid">
-                <div class="measure-field">
-                    <label for="m_height_cm">Height (cm)</label>
-                    <input type="number" id="m_height_cm" name="m_height_cm"
-                           min="100" max="220" step="1" placeholder="e.g. 170">
-                </div>
-                <div class="measure-field">
-                    <label for="m_weight_kg">Weight (kg)</label>
-                    <input type="number" id="m_weight_kg" name="m_weight_kg"
-                           min="30" max="200" step="0.5" placeholder="e.g. 65">
-                </div>
-                <div class="measure-field">
-                    <label for="m_chest_bust_cm">Chest / Bust (cm)</label>
-                    <input type="number" id="m_chest_bust_cm" name="m_chest_bust_cm"
-                           min="60" max="160" step="1" placeholder="e.g. 90">
-                </div>
-                <div class="measure-field">
-                    <label for="m_waist_cm">Waist (cm)</label>
-                    <input type="number" id="m_waist_cm" name="m_waist_cm"
-                           min="50" max="150" step="1" placeholder="e.g. 70">
-                </div>
-                <div class="measure-field">
-                    <label for="m_hips_cm">Hips (cm)</label>
-                    <input type="number" id="m_hips_cm" name="m_hips_cm"
-                           min="60" max="170" step="1" placeholder="e.g. 95">
-                </div>
-                <div class="measure-field">
-                    <label for="m_inseam_cm">Inseam (cm)</label>
-                    <input type="number" id="m_inseam_cm" name="m_inseam_cm"
-                           min="50" max="110" step="1" placeholder="e.g. 78">
-                </div>
-                <div class="measure-field">
-                    <label for="m_shoe_size_eu">Shoe Size (EU)</label>
-                    <input type="number" id="m_shoe_size_eu" name="m_shoe_size_eu"
-                           min="30" max="52" step="0.5" placeholder="e.g. 38">
+            {# ── Scene Settings accordion ──────────────────────── #}
+            {% call accordion("scene-settings", "Scene Settings", open=True, badge="Required") %}
+            <div class="space-y-5">
+
+                {# Environment #}
+                {{ form_select("environment", "Environment", [
+                    {"value": "",               "label": "Select…"},
+                    {"value": "studio_white",   "label": "Studio — White"},
+                    {"value": "studio_beige",   "label": "Studio — Beige"},
+                    {"value": "outdoor_street", "label": "Outdoor — Street"},
+                    {"value": "outdoor_park",   "label": "Outdoor — Park"},
+                    {"value": "outdoor_beach",  "label": "Outdoor — Beach"},
+                    {"value": "indoor_cafe",    "label": "Indoor — Cafe"},
+                    {"value": "indoor_home",    "label": "Indoor — Home"},
+                ], required=True) }}
+
+                {# Pose #}
+                {{ form_select("pose_preset", "Pose", [
+                    {"value": "",                "label": "Select…"},
+                    {"value": "front_standing",  "label": "Front Standing"},
+                    {"value": "walking",         "label": "Walking"},
+                    {"value": "three_quarter",   "label": "Three-Quarter Turn"},
+                    {"value": "seated",          "label": "Seated"},
+                ], required=True) }}
+
+                {# Framing #}
+                {{ form_select("framing", "Framing", [
+                    {"value": "",              "label": "Select…"},
+                    {"value": "full_body",     "label": "Full Body"},
+                    {"value": "three_quarter", "label": "Three-Quarter"},
+                    {"value": "waist_up",      "label": "Waist Up"},
+                ], required=True) }}
+
+            </div>
+            {% endcall %}
+
+            {# ── Measurements accordion ────────────────────────── #}
+            {% call accordion("measurements", "Model Measurements", open=False, badge="Optional") %}
+            <div>
+                <p class="text-xs text-gray-500 mb-4 leading-relaxed">
+                    Leave any field blank if unknown. Measurements help the AI match the correct garment fit.
+                </p>
+                <div class="grid grid-cols-2 gap-4">
+                    {{ form_input("m_height_cm",    "Height (cm)",    type="number", min="100", max="220", step="1",   placeholder="e.g. 170") }}
+                    {{ form_input("m_weight_kg",    "Weight (kg)",    type="number", min="30",  max="200", step="0.5", placeholder="e.g. 65") }}
+                    {{ form_input("m_chest_bust_cm","Chest / Bust cm",type="number", min="60",  max="160", step="1",   placeholder="e.g. 90") }}
+                    {{ form_input("m_waist_cm",     "Waist (cm)",     type="number", min="50",  max="150", step="1",   placeholder="e.g. 70") }}
+                    {{ form_input("m_hips_cm",      "Hips (cm)",      type="number", min="60",  max="170", step="1",   placeholder="e.g. 95") }}
+                    {{ form_input("m_inseam_cm",    "Inseam (cm)",    type="number", min="50",  max="110", step="1",   placeholder="e.g. 78") }}
+                    {{ form_input("m_shoe_size_eu", "Shoe Size (EU)", type="number", min="30",  max="52",  step="0.5", placeholder="e.g. 38") }}
                 </div>
             </div>
-        </fieldset>
+            {% endcall %}
 
-        <div class="form-actions">
-            <a href="/upload" class="btn btn-secondary">Back</a>
-            <button type="submit" class="btn btn-primary">Next: Review</button>
         </div>
+
+        {# ── Actions ─────────────────────────────────────────── #}
+        <div class="flex gap-3 mt-5 pb-4">
+            {{ button("← Back", href="/upload", variant="secondary", size="lg") }}
+            {{ button("Next: Review →", type="submit", variant="primary", size="lg", extra_class="flex-1") }}
+        </div>
+
     </form>
-</section>
+</div>
 
 <script>
-    const HAIR_STYLES = {
-        feminine: [
-            { value: 'long_straight',  label: 'Long Straight' },
-            { value: 'long_wavy',      label: 'Long Wavy' },
-            { value: 'long_curly',     label: 'Long Curly' },
-            { value: 'short_bob',      label: 'Short Bob' },
-            { value: 'medium_layered', label: 'Medium Layered' },
-            { value: 'braided',        label: 'Braided / Updo' },
-        ],
-        masculine: [
-            { value: 'short_tapered',   label: 'Short Tapered' },
-            { value: 'medium_textured', label: 'Medium Textured' },
-            { value: 'buzz_cut',        label: 'Buzz Cut' },
-            { value: 'slicked_back',    label: 'Slicked Back' },
-            { value: 'afro_curly',      label: 'Afro / Curly' },
-            { value: 'dreadlocks',      label: 'Dreadlocks' },
-        ],
-        neutral: [
-            { value: 'short_straight', label: 'Short Straight' },
-            { value: 'medium_length',  label: 'Medium Length' },
-            { value: 'long_straight',  label: 'Long Straight' },
-            { value: 'shaved',         label: 'Shaved' },
-            { value: 'natural_curly',  label: 'Natural Curly' },
-        ],
-    };
+const HAIR_STYLES = {
+    feminine: [
+        { value: 'long_straight',  label: 'Long Straight' },
+        { value: 'long_wavy',      label: 'Long Wavy' },
+        { value: 'long_curly',     label: 'Long Curly' },
+        { value: 'short_bob',      label: 'Short Bob' },
+        { value: 'medium_layered', label: 'Medium Layered' },
+        { value: 'braided',        label: 'Braided / Updo' },
+    ],
+    masculine: [
+        { value: 'short_tapered',   label: 'Short Tapered' },
+        { value: 'medium_textured', label: 'Medium Textured' },
+        { value: 'buzz_cut',        label: 'Buzz Cut' },
+        { value: 'slicked_back',    label: 'Slicked Back' },
+        { value: 'afro_curly',      label: 'Afro / Curly' },
+        { value: 'dreadlocks',      label: 'Dreadlocks' },
+    ],
+    neutral: [
+        { value: 'short_straight', label: 'Short Straight' },
+        { value: 'medium_length',  label: 'Medium Length' },
+        { value: 'long_straight',  label: 'Long Straight' },
+        { value: 'shaved',         label: 'Shaved' },
+        { value: 'natural_curly',  label: 'Natural Curly' },
+    ],
+};
 
-    function updateHairStyles() {
-        const gender = document.getElementById('gender_presentation').value;
-        const sel = document.getElementById('hair_style');
-        const prev = sel.value;
-        sel.innerHTML = '<option value="">Select...</option>';
-        const styles = HAIR_STYLES[gender];
-        if (!styles) return;
-        styles.forEach(function(s) {
-            const opt = document.createElement('option');
-            opt.value = s.value;
-            opt.textContent = s.label;
-            if (s.value === prev) opt.selected = true;
-            sel.appendChild(opt);
-        });
-    }
+function updateHairStyles() {
+    var gender = document.getElementById('gender_presentation').value;
+    var sel = document.getElementById('hair_style');
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">Select…</option>';
+    var styles = HAIR_STYLES[gender];
+    if (!styles) return;
+    styles.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.value;
+        opt.textContent = s.label;
+        if (s.value === prev) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
 
-    document.getElementById('gender_presentation').addEventListener('change', updateHairStyles);
-
-    // Pre-fill from sessionStorage (set on upload page)
-    (function() {
-        const gender = sessionStorage.getItem('genderPresentation') || '';
-        if (gender) document.getElementById('gender_presentation').value = gender;
-        updateHairStyles();
-
-        const productType = sessionStorage.getItem('productType') || 'clothing';
-        document.getElementById('product_type').value = productType;
-
-        const modelPhotoUrl = sessionStorage.getItem('modelPhotoUrl') || '';
-        document.getElementById('model_photo_url').value = modelPhotoUrl;
-    })();
+(function() {
+    var gender = sessionStorage.getItem('genderPresentation') || '';
+    if (gender) document.getElementById('gender_presentation').value = gender;
+    updateHairStyles();
+    var productType = sessionStorage.getItem('productType') || 'clothing';
+    document.getElementById('product_type').value = productType;
+    var modelPhotoUrl = sessionStorage.getItem('modelPhotoUrl') || '';
+    document.getElementById('model_photo_url').value = modelPhotoUrl;
+})();
 </script>
 {% endblock %}
