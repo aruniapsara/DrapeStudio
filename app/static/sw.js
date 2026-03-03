@@ -8,7 +8,7 @@
 
 'use strict';
 
-const CACHE_NAME   = 'drapestudio-v1';
+const CACHE_NAME   = 'drapestudio-v2-shell';
 const OFFLINE_URL  = '/';
 
 const STATIC_PRECACHE = [

@@ -1,134 +1,180 @@
 {% extends "base.html" %}
-{% from "components/ui.html" import module_card, stat_card, empty_state %}
-{% from "components/icons.html" import icon_sparkles, icon_arrow_right %}
+{% from "components/icons.html" import icon_facebook, icon_instagram, icon_tiktok %}
 
-{% block title %}Home — DrapeStudio{% endblock %}
+{% block title %}DrapeStudio — AI Product Photography{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-6 space-y-8">
+<div class="max-w-3xl mx-auto">
 
-    {# ── Welcome strip ──────────────────────────────────────── #}
-    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1A1A2E] via-[#2D1B69] to-[#6C3CE1] px-6 py-8 text-white">
-        <div class="relative z-10">
-            <p class="text-white/70 text-sm font-medium mb-1">Welcome back 👋</p>
-            <h2 class="text-2xl font-bold mb-2">
-                {% if user %}{{ user.username }}{% else %}Creator{% endif %}
-            </h2>
-            <p class="text-white/60 text-sm mb-5 max-w-xs">
-                Generate professional garment model photos in seconds — no photoshoot needed.
-            </p>
+    {# ── Hero ────────────────────────────────────────────────────── #}
+    <section class="px-4 pt-6 pb-2">
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1A1A2E] via-[#2D1B69] to-[#6C3CE1] px-6 py-10 text-white">
+            <div class="relative z-10">
+                <p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-3">✨ AI-Powered Photography</p>
+                <h1 class="text-2xl sm:text-3xl font-bold leading-tight mb-3">
+                    AI Product Photography<br>for Your Business
+                </h1>
+                <p class="text-white/70 text-sm mb-6 max-w-sm leading-relaxed">
+                    Professional catalogue images without models or studios.
+                </p>
+                <a href="/upload"
+                   class="inline-flex items-center gap-2 bg-white text-[#6C3CE1] font-bold text-sm px-6 py-3 rounded-xl hover:bg-white/90 transition-colors shadow-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z"/>
+                    </svg>
+                    Start Creating — Free
+                </a>
+                <p class="text-white/50 text-xs mt-3">No credit card required · 3 free images daily</p>
+            </div>
+            {# Decorative circles #}
+            <div class="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5"></div>
+            <div class="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5"></div>
+            <div class="absolute left-1/2 -bottom-4 w-24 h-24 rounded-full bg-[#FF6B35]/20"></div>
+        </div>
+    </section>
+
+    {# ── Module Cards ─────────────────────────────────────────────── #}
+    <section class="px-4 py-5">
+        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Modules</h2>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+
+            {# Adult Fashion — Active #}
             <a href="/upload"
-               class="inline-flex items-center gap-2 bg-white text-[#6C3CE1] font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-white/90 transition-colors shadow-lg">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z"/>
-                </svg>
-                New Generation
+               class="group relative bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:border-primary/20 p-5 flex flex-col items-start transition-all">
+                <div class="text-3xl mb-3">👗</div>
+                <h3 class="text-sm font-bold text-dark">Adult Fashion</h3>
+                <p class="text-xs text-gray-500 mt-1 leading-relaxed">Showcase tops, dresses &amp; more</p>
+                <div class="mt-3 flex items-center justify-between w-full">
+                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Active</span>
+                    <svg class="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </div>
             </a>
-        </div>
-        {# Decorative circles #}
-        <div class="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5"></div>
-        <div class="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5"></div>
-    </div>
 
-    {# ── Modules ───────────────────────────────────────────── #}
-    <div>
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Modules</h3>
-        <div class="grid grid-cols-2 gap-3">
-            {{ module_card(
-                title="Adult Clothing",
-                description="Showcase tops, dresses, trousers & more on AI models.",
-                icon="👗",
-                href="/upload",
-                color="primary",
-                badge="Active",
-                active=True
-            ) }}
-            {{ module_card(
-                title="Children's",
-                description="Age-appropriate model images for kids' clothing.",
-                icon="👕",
-                href="/children",
-                color="teal",
-                badge="Soon",
-                active=False
-            ) }}
-            {{ module_card(
-                title="Accessories",
-                description="Jewellery, bags, belts & more styled to perfection.",
-                icon="👜",
-                href="/accessories",
-                color="accent",
-                badge="Soon",
-                active=False
-            ) }}
-            {{ module_card(
-                title="Virtual Fit-On",
-                description="Try garments on a body-matched virtual model.",
-                icon="🪞",
-                href="/fiton",
-                color="primary",
-                badge="Soon",
-                active=False
-            ) }}
-        </div>
-    </div>
+            {# Kids — Coming Soon #}
+            <a href="/children"
+               class="group relative bg-white rounded-2xl border border-gray-100 shadow-card p-5 flex flex-col items-start opacity-80">
+                <div class="text-3xl mb-3">👕</div>
+                <h3 class="text-sm font-bold text-dark">Kids Clothing</h3>
+                <p class="text-xs text-gray-500 mt-1 leading-relaxed">Age-appropriate model images</p>
+                <div class="mt-3">
+                    <span class="text-[10px] font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Coming Soon</span>
+                </div>
+            </a>
 
-    {# ── How It Works ──────────────────────────────────────── #}
-    <div>
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">How It Works</h3>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-card divide-y divide-gray-50">
+            {# Accessories — Coming Soon #}
+            <a href="/accessories"
+               class="group relative bg-white rounded-2xl border border-gray-100 shadow-card p-5 flex flex-col items-start opacity-80">
+                <div class="text-3xl mb-3">👜</div>
+                <h3 class="text-sm font-bold text-dark">Accessories</h3>
+                <p class="text-xs text-gray-500 mt-1 leading-relaxed">Jewellery, bags &amp; more</p>
+                <div class="mt-3">
+                    <span class="text-[10px] font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Coming Soon</span>
+                </div>
+            </a>
+
+            {# Virtual Fit-On — Coming Soon #}
+            <a href="/fiton"
+               class="group relative bg-white rounded-2xl border border-gray-100 shadow-card p-5 flex flex-col items-start opacity-80">
+                <div class="text-3xl mb-3">🪞</div>
+                <h3 class="text-sm font-bold text-dark">Virtual Fit-On</h3>
+                <p class="text-xs text-gray-500 mt-1 leading-relaxed">Try on before buying</p>
+                <div class="mt-3">
+                    <span class="text-[10px] font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Coming Soon</span>
+                </div>
+            </a>
+
+        </div>
+    </section>
+
+    {# ── How It Works ─────────────────────────────────────────────── #}
+    <section class="px-4 py-5">
+        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">How It Works</h2>
+
+        {# Mobile: vertical stack / Desktop: horizontal row #}
+        <div class="lg:hidden bg-white rounded-2xl border border-gray-100 shadow-card divide-y divide-gray-50">
             {% set steps = [
-                ("1", "Upload Garment Photos", "Upload 1–5 photos of your garment from any angle. JPG, PNG or WEBP.", "📸"),
-                ("2", "Configure Your Model", "Choose age, gender, ethnicity, body type, hair and scene settings.", "⚙️"),
-                ("3", "Generate & Download", "AI creates 3 professional catalogue-quality images. Download instantly.", "✨"),
+                ("📸", "1", "Upload Your Product", "Take a photo of your garment or accessory from any angle"),
+                ("⚙️", "2", "Choose Your Style",  "Select model appearance, pose, and background settings"),
+                ("✨", "3", "Get Professional Images", "Receive 3 catalogue-ready photos in 60 seconds"),
             ] %}
-            {% for num, title, desc, emoji in steps %}
+            {% for icon, num, title, desc in steps %}
             <div class="flex items-start gap-4 px-5 py-4">
                 <div class="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center flex-shrink-0 mt-0.5">{{ num }}</div>
                 <div>
-                    <p class="font-semibold text-dark text-sm">{{ emoji }} {{ title }}</p>
+                    <p class="font-semibold text-dark text-sm">{{ icon }} {{ title }}</p>
                     <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ desc }}</p>
                 </div>
             </div>
             {% endfor %}
         </div>
-    </div>
 
-    {# ── Recent Generations ────────────────────────────────── #}
-    <div>
-        <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Recent</h3>
-            <a href="/history" class="text-xs font-medium text-primary hover:underline">View all →</a>
+        {# Desktop: 3-column horizontal #}
+        <div class="hidden lg:grid grid-cols-3 gap-4">
+            {% for icon, num, title, desc in steps %}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-2xl mx-auto mb-3">{{ icon }}</div>
+                <div class="w-6 h-6 rounded-full bg-primary text-white font-bold text-xs flex items-center justify-center mx-auto mb-2">{{ num }}</div>
+                <h3 class="font-semibold text-dark text-sm mb-1">{{ title }}</h3>
+                <p class="text-xs text-gray-500 leading-relaxed">{{ desc }}</p>
+            </div>
+            {% endfor %}
         </div>
-        <div id="recent-generations">
-            {{ empty_state(
-                icon="🎨",
-                title="No generations yet",
-                description="Upload a garment and generate your first AI model photo to get started.",
-                action_href="/upload",
-                action_text="Create First Generation"
-            ) }}
-        </div>
-    </div>
+    </section>
 
-    {# ── Pricing ───────────────────────────────────────────── #}
-    <div>
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Pricing</h3>
+    {# ── Sample Gallery ────────────────────────────────────────────── #}
+    <section class="px-4 py-5">
+        <div class="flex items-baseline justify-between mb-3">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">See What DrapeStudio Creates</h2>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            {% set gallery = [
+                ("#6C3CE1", "#9B6DFF", "Adult Dress", "👗"),
+                ("#00C9A7", "#00E5C4", "Kids Outfit", "👕"),
+                ("#FF6B35", "#FF9A6C", "Necklace",   "📿"),
+                ("#1A1A2E", "#2D1B69", "Handbag",    "👜"),
+                ("#F59E0B", "#FCD34D", "Saree",      "🥻"),
+                ("#6C3CE1", "#FF6B35", "Virtual Fit", "🪞"),
+            ] %}
+            {% for from_c, to_c, label, emoji in gallery %}
+            <div class="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-card bg-gradient-to-br"
+                 style="background: linear-gradient(135deg, {{ from_c }}22, {{ to_c }}44);">
+                <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                    <span class="text-4xl">{{ emoji }}</span>
+                    <span class="text-xs font-semibold text-gray-500">{{ label }}</span>
+                </div>
+                <div class="absolute top-2 left-2">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                          style="background: {{ from_c }};">{{ label }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="text-xs text-center text-gray-400 mt-3">Sample gallery — real generated images coming soon</p>
+    </section>
+
+    {# ── Pricing ──────────────────────────────────────────────────── #}
+    <section class="px-4 py-5">
+        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Simple, Affordable Pricing</h2>
+        <p class="text-xs text-gray-400 mb-4">All prices in LKR · No hidden fees · Cancel anytime</p>
+
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {% set plans = [
-                ("Starter", "LKR 990", "50 credits / month", ["50 generations", "3 images each", "High resolution", "Email support"], False),
-                ("Pro", "LKR 2,490", "150 credits / month", ["150 generations", "3 images each", "Priority queue", "WhatsApp support", "All modules"], True),
-                ("Business", "LKR 5,990", "500 credits / month", ["500 generations", "3 images each", "API access", "Dedicated support", "Custom branding"], False),
+                ("Free",  "Rs. 0",     "/month",  "3 images/day",      ["3 generations/day", "3 images each",  "Watermark",          "All modules"],        False),
+                ("Basic", "Rs. 990",   "/month",  "150 images/month",  ["150 generations",   "3 images each",  "No watermark",       "Basic fit-on"],       True),
+                ("Pro",   "Rs. 2,490", "/month",  "500 images/month",  ["500 generations",   "3 images each",  "Priority queue",     "Unlimited fit-on"],   False),
             ] %}
-            {% for name, price, sub, features, popular in plans %}
+            {% for name, price, period, sub, features, popular in plans %}
             <div class="relative bg-white rounded-2xl border p-5
                         {% if popular %}border-primary shadow-card-hover{% else %}border-gray-100 shadow-card{% endif %}">
                 {% if popular %}
-                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full">POPULAR</div>
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">MOST POPULAR</div>
                 {% endif %}
-                <h4 class="font-bold text-dark">{{ name }}</h4>
-                <p class="text-2xl font-bold {% if popular %}text-primary{% else %}text-dark{% endif %} mt-2">{{ price }}</p>
+                <h3 class="font-bold text-dark">{{ name }}</h3>
+                <div class="flex items-baseline gap-1 mt-2 mb-0.5">
+                    <span class="text-2xl font-bold {% if popular %}text-primary{% else %}text-dark{% endif %}">{{ price }}</span>
+                    <span class="text-xs text-gray-400">{{ period }}</span>
+                </div>
                 <p class="text-xs text-gray-400 mb-4">{{ sub }}</p>
                 <ul class="space-y-1.5 mb-5">
                     {% for f in features %}
@@ -139,37 +185,132 @@
                     {% endfor %}
                 </ul>
                 <a href="/profile"
-                   class="block text-center text-xs font-semibold py-2 rounded-xl transition-colors
+                   class="block text-center text-xs font-semibold py-2.5 rounded-xl transition-colors
                           {% if popular %}bg-primary text-white hover:bg-primary-dark{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
                     Get Started
                 </a>
             </div>
             {% endfor %}
         </div>
-        <p class="text-center text-xs text-gray-400 mt-3">All prices in LKR · No hidden fees · Cancel anytime</p>
-    </div>
+    </section>
 
-    {# ── Testimonials ──────────────────────────────────────── #}
-    <div>
-        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">What Sellers Say</h3>
-        <div class="space-y-3">
+    {# ── Testimonials Carousel ─────────────────────────────────────── #}
+    <section class="px-4 py-5"
+             x-data="{
+                 current: 0,
+                 count: 3,
+                 timer: null,
+                 init() {
+                     this.timer = setInterval(() => { this.current = (this.current + 1) % this.count; }, 4000);
+                 },
+                 stop()  { clearInterval(this.timer); },
+                 start() { this.timer = setInterval(() => { this.current = (this.current + 1) % this.count; }, 4000); }
+             }"
+             @mouseenter="stop()" @mouseleave="start()">
+
+        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">What Sellers Say</h2>
+
+        {# Mobile: single-card carousel #}
+        <div class="lg:hidden relative overflow-hidden">
             {% set testimonials = [
-                ("Nimal S.", "Clothing Seller, Colombo", "Saved me Rs. 15,000 per photoshoot! The images look completely professional.", "⭐⭐⭐⭐⭐"),
-                ("Priya K.", "Boutique Owner, Kandy", "My product listings look so much better now. Sales increased by 40%.", "⭐⭐⭐⭐⭐"),
-                ("Amal R.", "Online Retailer, Galle", "So easy to use. Upload, configure, done. Takes less than 2 minutes.", "⭐⭐⭐⭐⭐"),
+                ("Kumari P.",  "Kumari's Boutique, Colombo",  "Saved me Rs. 15,000 per photoshoot! The images look completely professional."),
+                ("Sanjay R.",  "StyleMen, Kandy",             "My product listings look so much better now. Sales increased by 40%."),
+                ("Fathima N.", "Modest Fashion LK, Galle",    "So easy to use. Upload, configure, done. Takes less than 2 minutes."),
             ] %}
-            {% for name, role, quote, stars in testimonials %}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-card px-5 py-4">
-                <p class="text-xs mb-1">{{ stars }}</p>
+            {% for name, biz, quote in testimonials %}
+            <div x-show="current === {{ loop.index0 }}"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-x-4"
+                 x-transition:enter-end="opacity-100 translate-x-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-x-0"
+                 x-transition:leave-end="opacity-0 -translate-x-4"
+                 class="bg-white rounded-2xl border border-gray-100 shadow-card px-5 py-5">
+                <p class="text-xs text-[#F59E0B] mb-1">★★★★★</p>
                 <p class="text-sm text-gray-700 leading-relaxed mb-3">"{{ quote }}"</p>
                 <div>
                     <p class="text-xs font-semibold text-dark">{{ name }}</p>
-                    <p class="text-xs text-gray-400">{{ role }}</p>
+                    <p class="text-xs text-gray-400">{{ biz }}</p>
+                </div>
+            </div>
+            {% endfor %}
+
+            {# Dots #}
+            <div class="flex justify-center gap-1.5 mt-3">
+                {% for i in range(3) %}
+                <button @click="current = {{ i }}; stop(); start()"
+                        class="w-2 h-2 rounded-full transition-colors"
+                        :class="current === {{ i }} ? 'bg-primary' : 'bg-gray-200'"></button>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# Desktop: 3-column grid #}
+        <div class="hidden lg:grid grid-cols-3 gap-3">
+            {% for name, biz, quote in testimonials %}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card px-5 py-5">
+                <p class="text-xs text-[#F59E0B] mb-1">★★★★★</p>
+                <p class="text-sm text-gray-700 leading-relaxed mb-3">"{{ quote }}"</p>
+                <div>
+                    <p class="text-xs font-semibold text-dark">{{ name }}</p>
+                    <p class="text-xs text-gray-400">{{ biz }}</p>
                 </div>
             </div>
             {% endfor %}
         </div>
-    </div>
+
+    </section>
+
+    {# ── Footer ───────────────────────────────────────────────────── #}
+    <footer class="px-4 py-8 mt-4 border-t border-gray-100">
+        <div class="flex flex-col items-center text-center gap-4">
+
+            {# Logo + tagline #}
+            <div>
+                <a href="/" class="inline-flex items-center gap-2 mb-1">
+                    <img src="/static/logo.png" alt="DrapeStudio" class="h-6 w-auto">
+                    <span class="font-bold text-dark">DrapeStudio</span>
+                </a>
+                <p class="text-xs text-gray-400">AI Product Photography for Sri Lankan Businesses</p>
+            </div>
+
+            {# Links #}
+            <nav class="flex flex-wrap justify-center gap-x-5 gap-y-1">
+                {% for label, href in [("About", "#"), ("Pricing", "#pricing"), ("Contact", "#"), ("Terms", "#"), ("Privacy", "#")] %}
+                <a href="{{ href }}" class="text-xs text-gray-500 hover:text-primary transition-colors">{{ label }}</a>
+                {% endfor %}
+            </nav>
+
+            {# Social icons #}
+            <div class="flex items-center gap-3">
+                <a href="#" aria-label="Facebook"  class="w-8 h-8 rounded-full bg-gray-100 hover:bg-primary/10 flex items-center justify-center transition-colors text-gray-500 hover:text-primary">
+                    {{ icon_facebook(size=4) }}
+                </a>
+                <a href="#" aria-label="Instagram" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-primary/10 flex items-center justify-center transition-colors text-gray-500 hover:text-primary">
+                    {{ icon_instagram(size=4) }}
+                </a>
+                <a href="#" aria-label="TikTok"    class="w-8 h-8 rounded-full bg-gray-100 hover:bg-primary/10 flex items-center justify-center transition-colors text-gray-500 hover:text-primary">
+                    {{ icon_tiktok(size=4) }}
+                </a>
+                <a href="https://wa.me/94XXXXXXXXX" target="_blank" rel="noopener"
+                   aria-label="WhatsApp"
+                   class="w-8 h-8 rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 flex items-center justify-center transition-colors text-[#25D366]">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                </a>
+            </div>
+
+            {# Made in Sri Lanka + copyright #}
+            <div class="space-y-1">
+                <p class="text-xs text-gray-400">
+                    🇱🇰 Made with ❤️ in Sri Lanka
+                </p>
+                <p class="text-[10px] text-gray-300">© 2026 DrapeStudio. All rights reserved.</p>
+            </div>
+
+        </div>
+    </footer>
 
 </div>
 {% endblock %}
