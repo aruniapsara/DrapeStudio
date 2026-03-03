@@ -1,54 +1,79 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import step_indicator %}
 
 {% block title %}Review — DrapeStudio{% endblock %}
+{% block page_title %}Review & Generate{% endblock %}
 
 {% block content %}
-<section class="page-section">
-    <h2>Step 3: Review &amp; Generate</h2>
+<div class="max-w-xl mx-auto px-4 py-6">
 
-    <div class="review-summary">
-        <h3>Your Configuration</h3>
-        <div class="review-grid">
+    {# Step indicator #}
+    {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 3) }}
 
-            <div class="review-section">
-                <h4>Garment Images</h4>
-                <div id="review-images" class="review-images"></div>
-            </div>
+    <div class="space-y-4">
 
-            <div class="review-section">
-                <h4>Product &amp; Model</h4>
-                <dl class="review-details" id="review-model"></dl>
-                <div id="review-model-photo" style="display:none; margin-top:0.75rem;">
-                    <p style="font-size:0.8rem;color:var(--color-text-muted);margin-bottom:0.3rem;font-weight:600;">MODEL REFERENCE PHOTO</p>
-                    <img id="review-model-photo-img" src="" alt="Model photo"
-                         style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--color-border);">
+        {# ── Garment photos ───────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-3">Garment Photos</h3>
+            <div id="review-images" class="flex gap-2 overflow-x-auto pb-1"></div>
+        </div>
+
+        {# ── Model Appearance ─────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-3">Model Appearance</h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-model"></dl>
+            <div id="review-model-photo" class="hidden mt-3">
+                <div class="flex items-center gap-3">
+                    <img id="review-model-photo-img" src="" alt="Model reference"
+                         class="w-14 h-14 rounded-xl object-cover border border-gray-200 flex-shrink-0">
+                    <p class="text-xs text-gray-500">Custom model reference photo</p>
                 </div>
             </div>
-
-            <div class="review-section">
-                <h4>Scene Settings</h4>
-                <dl class="review-details" id="review-scene"></dl>
-            </div>
-
-            <div class="review-section" id="review-measurements-section" style="display:none;">
-                <h4>Measurements</h4>
-                <dl class="review-details" id="review-measurements"></dl>
-            </div>
-
         </div>
 
-        <div class="cost-indicator">
-            <p><strong>Cost:</strong> 1 credit per generation (3 output images)</p>
+        {# ── Scene Settings ───────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-3">Scene Settings</h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-scene"></dl>
         </div>
-    </div>
 
-    <div class="form-actions">
-        <a href="/configure" class="btn btn-secondary">Back: Edit Settings</a>
-        <button id="btn-generate" class="btn btn-primary btn-large" onclick="submitGeneration()">
-            Generate Images
-        </button>
+        {# ── Measurements (conditional) ───────────────────────────────── #}
+        <div id="review-measurements-section" class="hidden bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-3">Measurements</h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-measurements"></dl>
+        </div>
+
+        {# ── Credit indicator ─────────────────────────────────────────── #}
+        <div class="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span class="text-xl">✨</span>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-dark">1 credit · 3 output images</p>
+                <p class="text-xs text-gray-500">AI-generated catalogue quality photos</p>
+            </div>
+        </div>
+
+        {# ── Actions ──────────────────────────────────────────────────── #}
+        <div class="flex gap-3 pb-6">
+            <a href="/configure"
+               class="inline-flex items-center justify-center font-semibold rounded-xl transition-all text-sm px-5 py-3 min-h-[48px]
+                      border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 flex-none">
+                ← Edit
+            </a>
+            <button id="btn-generate"
+                    class="flex-1 inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all text-base px-6 py-3 min-h-[48px]
+                           bg-primary text-white shadow-sm hover:bg-primary-dark
+                           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50
+                           disabled:opacity-40 disabled:cursor-not-allowed"
+                    onclick="submitGeneration()">
+                <span class="text-lg leading-none">✨</span>
+                Generate 3 Images
+            </button>
+        </div>
+
     </div>
-</section>
+</div>
 
 <script>
     const LABELS = {
@@ -60,166 +85,190 @@
         body_type:              'Body Type',
         hair_style:             'Hair Style',
         hair_color:             'Hair Color',
-        additional_description: 'Additional Details',
+        additional_description: 'Extra Details',
         environment:            'Environment',
         pose_preset:            'Pose',
         framing:                'Framing',
     };
 
     const VALUE_LABELS = {
-        clothing:        'Clothing',
-        accessories:     'Accessories',
+        // Ethnicity
         sri_lankan:      'Sri Lankan',
-        indian:          'Indian',
+        south_indian:    'South Indian',
         middle_eastern:  'Middle Eastern',
         african:         'African',
         european:        'European',
-        feminine:        'Female',
-        masculine:       'Male',
+        // Gender
+        feminine:        'Female (Women)',
+        masculine:       'Male (Men)',
         neutral:         'Unisex',
+        // Skin tone
+        very_light:      'Very Light',
+        light:           'Light',
+        medium:          'Medium',
+        dark:            'Dark',
+        very_dark:       'Very Dark',
+        // Body type
+        slim:            'Slim',
+        average:         'Average',
+        athletic:        'Athletic',
+        plus_size:       'Plus Size',
+        // Hair styles (feminine)
         long_straight:   'Long Straight',
         long_wavy:       'Long Wavy',
-        long_curly:      'Long Curly',
+        medium_layered:  'Med Layered',
         short_bob:       'Short Bob',
-        medium_layered:  'Medium Layered',
-        braided:         'Braided / Updo',
-        short_tapered:   'Short Tapered',
-        medium_textured: 'Medium Textured',
-        buzz_cut:        'Buzz Cut',
+        curly:           'Curly',
+        braided:         'Braided',
+        // Hair styles (masculine)
+        short_crop:      'Short Crop',
+        side_part:       'Side Part',
         slicked_back:    'Slicked Back',
-        afro_curly:      'Afro / Curly',
-        dreadlocks:      'Dreadlocks',
+        curly_short:     'Curly Short',
+        buzz_cut:        'Buzz Cut',
+        long:            'Long',
+        // Hair styles (neutral)
         short_straight:  'Short Straight',
-        medium_length:   'Medium Length',
+        medium_length:   'Medium',
         shaved:          'Shaved',
         natural_curly:   'Natural Curly',
+        // Hair color
         black:           'Black',
         dark_brown:      'Dark Brown',
-        medium_brown:    'Medium Brown',
-        light_brown:     'Light Brown / Caramel',
+        brown:           'Brown',
+        auburn:          'Auburn',
         blonde:          'Blonde',
-        auburn:          'Red / Auburn',
-        grey:            'Grey / Silver',
-        studio_white:    'Studio - White',
-        studio_beige:    'Studio - Beige',
-        outdoor_street:  'Outdoor - Street',
-        outdoor_park:    'Outdoor - Park',
-        outdoor_beach:   'Outdoor - Beach',
-        indoor_cafe:     'Indoor - Cafe',
-        indoor_home:     'Indoor - Home',
-        front_standing:  'Front Standing',
-        walking:         'Walking',
-        three_quarter:   'Three-Quarter Turn',
-        seated:          'Seated',
-        full_body:       'Full Body',
-        waist_up:        'Waist Up',
+        gray:            'Gray',
+        white:           'White',
+        // Product types
+        casual:          'Casual Wear',
+        formal:          'Formal / Office',
+        saree:           'Saree',
+        shalwar:         'Shalwar Kameez',
+        batik:           'Batik',
+        sarong:          'Sarong',
+        // Environments
+        studio_white:     'White Studio',
+        urban_street:     'Urban Street',
+        beach:            'Beach',
+        garden:           'Garden',
+        indoor_office:    'Office',
+        coffee_shop:      'Café',
+        traditional_room: 'Traditional Room',
+        // Poses
+        front_standing:   'Standing',
+        casual_walking:   'Walking',
+        seated:           'Seated',
+        dynamic:          'Dynamic',
+        // Framing
+        full_body:        'Full Body',
+        half_body:        'Half Body',
+        close_up:         'Close-Up',
     };
 
     function fmt(val) {
+        if (!val) return '—';
         return VALUE_LABELS[val] || val.replace(/_/g, ' ');
+    }
+
+    function addRow(dlEl, label, value) {
+        if (!value) return;
+        dlEl.innerHTML +=
+            '<dt class="text-xs text-gray-400 font-medium">' + label + '</dt>' +
+            '<dd class="text-xs text-dark font-semibold truncate">' + fmt(value) + '</dd>';
     }
 
     const params = new URLSearchParams(window.location.search);
 
-    // Product + Model section
-    const modelFields = [
-        'product_type', 'age_range', 'gender_presentation', 'ethnicity',
-        'skin_tone', 'body_type', 'hair_style', 'hair_color', 'additional_description'
-    ];
-    const modelDl = document.getElementById('review-model');
-    modelFields.forEach(function(f) {
-        const val = params.get(f);
-        if (val) {
-            modelDl.innerHTML += '<dt>' + (LABELS[f] || f.replace(/_/g, ' ')) + '</dt><dd>' + fmt(val) + '</dd>';
-        }
-    });
+    // ── Garment images from sessionStorage ───────────────────────────────────
+    var uploadedFiles = [];
+    try { uploadedFiles = JSON.parse(sessionStorage.getItem('uploadedFiles') || '[]'); } catch(e) {}
 
-    // Model photo preview
-    const modelPhotoUrl = params.get('model_photo_url') || '';
-    if (modelPhotoUrl) {
-        document.getElementById('review-model-photo').style.display = 'block';
-        document.getElementById('review-model-photo-img').src = '/v1/files/' + modelPhotoUrl.replace('local://', '');
+    var imgContainer = document.getElementById('review-images');
+    if (uploadedFiles.length > 0) {
+        imgContainer.innerHTML = uploadedFiles.map(function(url) {
+            var src = '/v1/files/' + url.replace('local://', '');
+            return '<img src="' + src + '" alt="Garment"' +
+                   ' class="w-20 h-24 rounded-xl object-cover border border-gray-100 flex-shrink-0">';
+        }).join('');
+    } else {
+        imgContainer.innerHTML = '<p class="text-xs text-gray-400">No images found in session.</p>';
     }
 
-    // Scene section
-    const sceneFields = ['environment', 'pose_preset', 'framing'];
-    const sceneDl = document.getElementById('review-scene');
-    sceneFields.forEach(function(f) {
-        const val = params.get(f);
-        if (val) {
-            sceneDl.innerHTML += '<dt>' + (LABELS[f] || f.replace(/_/g, ' ')) + '</dt><dd>' + fmt(val) + '</dd>';
-        }
+    // ── Model appearance ─────────────────────────────────────────────────────
+    var modelDl = document.getElementById('review-model');
+    ['product_type', 'gender_presentation', 'age_range', 'ethnicity',
+     'skin_tone', 'body_type', 'hair_style', 'hair_color'].forEach(function(f) {
+        addRow(modelDl, LABELS[f] || f.replace(/_/g, ' '), params.get(f));
+    });
+    var addl = params.get('additional_description');
+    if (addl) addRow(modelDl, LABELS['additional_description'], addl);
+
+    // Model photo
+    var modelPhotoUrl = params.get('model_photo_url') || '';
+    if (modelPhotoUrl) {
+        document.getElementById('review-model-photo-img').src =
+            '/v1/files/' + modelPhotoUrl.replace('local://', '');
+        document.getElementById('review-model-photo').classList.remove('hidden');
+    }
+
+    // ── Scene ─────────────────────────────────────────────────────────────────
+    var sceneDl = document.getElementById('review-scene');
+    ['environment', 'pose_preset', 'framing'].forEach(function(f) {
+        addRow(sceneDl, LABELS[f] || f.replace(/_/g, ' '), params.get(f));
     });
 
-    // Measurements section
-    const measureMap = {
-        m_height_cm:     'Height',
-        m_weight_kg:     'Weight',
-        m_chest_bust_cm: 'Chest / Bust',
-        m_waist_cm:      'Waist',
-        m_hips_cm:       'Hips',
-        m_inseam_cm:     'Inseam',
-        m_shoe_size_eu:  'Shoe Size (EU)',
+    // ── Measurements ─────────────────────────────────────────────────────────
+    var measureMap = {
+        m_height_cm:     'Height (cm)',
+        m_chest_bust_cm: 'Chest / Bust (cm)',
+        m_waist_cm:      'Waist (cm)',
+        m_hips_cm:       'Hips (cm)',
     };
-    const measureUnits = {
-        m_height_cm:     ' cm',
-        m_weight_kg:     ' kg',
-        m_chest_bust_cm: ' cm',
-        m_waist_cm:      ' cm',
-        m_hips_cm:       ' cm',
-        m_inseam_cm:     ' cm',
-        m_shoe_size_eu:  '',
-    };
-    const measureDl = document.getElementById('review-measurements');
+    var measureDl = document.getElementById('review-measurements');
     var hasMeasurements = false;
     Object.keys(measureMap).forEach(function(key) {
-        const val = params.get(key);
+        var val = params.get(key);
         if (val) {
             hasMeasurements = true;
-            measureDl.innerHTML += '<dt>' + measureMap[key] + '</dt><dd>' + val + measureUnits[key] + '</dd>';
+            measureDl.innerHTML +=
+                '<dt class="text-xs text-gray-400 font-medium">' + measureMap[key] + '</dt>' +
+                '<dd class="text-xs text-dark font-semibold">' + val + '</dd>';
         }
     });
     if (hasMeasurements) {
-        document.getElementById('review-measurements-section').style.display = '';
+        document.getElementById('review-measurements-section').classList.remove('hidden');
     }
 
-    // Garment image previews from sessionStorage
-    const uploadedFiles = JSON.parse(sessionStorage.getItem('uploadedFiles') || '[]');
-    const imgContainer = document.getElementById('review-images');
-    if (uploadedFiles.length > 0) {
-        imgContainer.innerHTML = uploadedFiles.map(function(url, i) {
-            return '<img src="/v1/files/' + url.replace('local://', '') + '" alt="Garment ' + (i + 1) + '">';
-        }).join('');
-    } else {
-        imgContainer.innerHTML = '<p>No images found.</p>';
-    }
-
+    // ── Measurements helper for API body ─────────────────────────────────────
     function buildMeasurements() {
-        const schemaMap = {
+        var schemaMap = {
             m_height_cm:     'height_cm',
-            m_weight_kg:     'weight_kg',
             m_chest_bust_cm: 'chest_bust_cm',
             m_waist_cm:      'waist_cm',
             m_hips_cm:       'hips_cm',
-            m_inseam_cm:     'inseam_cm',
-            m_shoe_size_eu:  'shoe_size_eu',
         };
-        const meas = {};
+        var meas = {};
         Object.keys(schemaMap).forEach(function(urlKey) {
-            const val = params.get(urlKey);
+            var val = params.get(urlKey);
             if (val) meas[schemaMap[urlKey]] = parseFloat(val);
         });
         return Object.keys(meas).length > 0 ? meas : null;
     }
 
+    // ── Submit ────────────────────────────────────────────────────────────────
     async function submitGeneration() {
-        const btn = document.getElementById('btn-generate');
+        var btn = document.getElementById('btn-generate');
         btn.disabled = true;
-        btn.textContent = 'Submitting...';
+        btn.innerHTML =
+            '<svg class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">' +
+                '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+                '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>' +
+            '</svg>Submitting…';
 
-        const body = {
+        var body = {
             idempotency_key: crypto.randomUUID(),
-            product_type: params.get('product_type') || 'clothing',
+            product_type: params.get('product_type') || 'casual',
             garment_images: uploadedFiles,
             model_params: {
                 age_range:              params.get('age_range'),
@@ -242,24 +291,32 @@
             output: { count: 3, resolution: 'high' },
         };
 
+        function showErr(msg) {
+            if (window.$toast && typeof window.$toast.addToast === 'function') {
+                window.$toast.addToast({ type: 'error', message: msg });
+            } else {
+                alert(msg);
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<span class="text-lg leading-none">✨</span> Generate 3 Images';
+        }
+
         try {
-            const resp = await fetch('/v1/generations', {
+            var resp = await fetch('/v1/generations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
-            const data = await resp.json();
+            var data = await resp.json();
             if (resp.ok) {
+                // Record start time for the progress indicators on generating page
+                sessionStorage.setItem('genStartTime', String(Date.now()));
                 window.location.href = '/generating/' + data.id;
             } else {
-                alert('Error: ' + (data.detail || 'Failed to create generation'));
-                btn.disabled = false;
-                btn.textContent = 'Generate Images';
+                showErr(data.detail || 'Failed to create generation.');
             }
         } catch (err) {
-            alert('Network error: ' + err.message);
-            btn.disabled = false;
-            btn.textContent = 'Generate Images';
+            showErr('Network error: ' + err.message);
         }
     }
 </script>

@@ -1,10 +1,12 @@
-"""Generation endpoints — create, poll, outputs, regenerate."""
+"""Generation endpoints — create, poll, outputs, download, regenerate."""
 
 import json
 from datetime import datetime
+from io import BytesIO
+from zipfile import ZipFile
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -218,5 +220,51 @@ def get_generation_status_partial(
             "gen_id": gen_id,
             "status": gen.status,
             "error_message": gen.error_message,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/generations/{id}/download-zip
+# ---------------------------------------------------------------------------
+@router.get("/generations/{gen_id}/download-zip")
+def download_zip(gen_id: str, db: Session = Depends(get_db)):
+    """Download all output images for a generation as a ZIP file."""
+    gen = db.query(GenerationRequest).filter(GenerationRequest.id == gen_id).first()
+    if not gen:
+        raise HTTPException(status_code=404, detail="Generation not found.")
+    if gen.status != "succeeded":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Generation is '{gen.status}', not yet succeeded.",
+        )
+
+    db_outputs = (
+        db.query(GenerationOutput)
+        .filter(GenerationOutput.generation_request_id == gen_id)
+        .order_by(GenerationOutput.variation_index)
+        .all()
+    )
+
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, "w") as zf:
+        for i, out in enumerate(db_outputs):
+            try:
+                image_bytes = storage.load(out.image_url)
+                filename = f"drapestudio_{gen_id}_{i + 1}.jpg"
+                zf.writestr(filename, image_bytes)
+            except Exception:
+                # Skip images that can't be loaded
+                pass
+
+    zip_buffer.seek(0)
+    zip_bytes = zip_buffer.read()
+
+    return StreamingResponse(
+        iter([zip_bytes]),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="drapestudio_{gen_id}.zip"',
+            "Content-Length": str(len(zip_bytes)),
         },
     )
