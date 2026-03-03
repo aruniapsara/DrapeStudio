@@ -136,9 +136,21 @@ async def home(request: Request):
     return templates.TemplateResponse("home.html", _ctx(request))
 
 
+PRODUCT_TYPES = [
+    {"value": "casual",  "label": "Casual Wear",     "icon": "👕"},
+    {"value": "formal",  "label": "Formal / Office", "icon": "👔"},
+    {"value": "saree",   "label": "Saree",           "icon": "🥻"},
+    {"value": "shalwar", "label": "Shalwar Kameez",  "icon": "👘"},
+    {"value": "batik",   "label": "Batik",           "icon": "🎨"},
+    {"value": "sarong",  "label": "Sarong",          "icon": "🩱"},
+]
+
+
 @app.get("/upload")
 async def upload_page(request: Request):
-    return templates.TemplateResponse("upload.html", _ctx(request))
+    ctx = _ctx(request)
+    ctx["product_types"] = PRODUCT_TYPES
+    return templates.TemplateResponse("upload.html", ctx)
 
 
 @app.get("/configure")
