@@ -1,225 +1,479 @@
 {% extends "base.html" %}
-{% from "components/ui.html" import step_indicator, selector_grid, skin_tone_picker, accordion, form_select, form_input, button %}
+{% from "components/ui.html" import step_indicator, button %}
 
 {% block title %}Configure Model — DrapeStudio{% endblock %}
 {% block page_title %}Configure Model{% endblock %}
 
+{# ── Static option lists (server-rendered) ────────────────────────────────── #}
+{% set age_ranges = [
+    {"value": "18-24", "label": "18–24"},
+    {"value": "25-34", "label": "25–34"},
+    {"value": "35-44", "label": "35–44"},
+    {"value": "45-54", "label": "45–54"},
+    {"value": "55+",   "label": "55+"},
+] %}
+
+{% set ethnicities = [
+    {"value": "sri_lankan",    "label": "Sri Lankan",    "icon": "🇱🇰"},
+    {"value": "south_indian",  "label": "South Indian",  "icon": "🇮🇳"},
+    {"value": "middle_eastern","label": "Mid Eastern",   "icon": "🌙"},
+    {"value": "african",       "label": "African",       "icon": "🌍"},
+    {"value": "european",      "label": "European",      "icon": "🇪🇺"},
+] %}
+
+{% set body_types = [
+    {"value": "slim",     "label": "Slim",    "icon": "🧍"},
+    {"value": "average",  "label": "Average", "icon": "🚶"},
+    {"value": "athletic", "label": "Athletic","icon": "🏃"},
+    {"value": "plus",     "label": "Plus",    "icon": "🤸"},
+] %}
+
+{% set environments = [
+    {"value": "studio_white",    "label": "White Studio",     "icon": "🏛️", "bg": "#F5F5F5"},
+    {"value": "urban_street",    "label": "Urban Street",     "icon": "🏙️", "bg": "#78716C"},
+    {"value": "beach",           "label": "Beach",            "icon": "🏖️", "bg": "#38BDF8"},
+    {"value": "garden",          "label": "Garden",           "icon": "🌿", "bg": "#4ADE80"},
+    {"value": "indoor_office",   "label": "Office",           "icon": "💼", "bg": "#94A3B8"},
+    {"value": "coffee_shop",     "label": "Coffee Shop",      "icon": "☕", "bg": "#D97706"},
+    {"value": "traditional_room","label": "Traditional Room", "icon": "🏮", "bg": "#F87171"},
+] %}
+
+{% set poses = [
+    {"value": "front_standing", "label": "Fashion Stand", "icon": "🧍"},
+    {"value": "casual_walking", "label": "Casual Walk",   "icon": "🚶"},
+    {"value": "seated",         "label": "Seated",        "icon": "🪑"},
+    {"value": "dynamic",        "label": "Dynamic",       "icon": "💃"},
+] %}
+
+{% set framings = [
+    {"value": "full_body",  "label": "Full Body"},
+    {"value": "half_body",  "label": "Half Body"},
+    {"value": "close_up",   "label": "Close-Up"},
+] %}
+
+{% set lightings = [
+    {"value": "auto",         "label": "Auto"},
+    {"value": "soft_natural", "label": "Soft Natural"},
+    {"value": "studio_flash", "label": "Studio Flash"},
+    {"value": "golden_hour",  "label": "Golden Hour"},
+] %}
+
 {% block content %}
-<div class="max-w-xl mx-auto px-4 py-6">
+<div class="max-w-xl mx-auto px-4 py-6"
+     x-data="configureState()"
+     x-init="init()">
 
     {# Step indicator #}
     {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 2) }}
 
     <form id="configure-form" action="/review" method="get">
 
-        {# Hidden fields populated from sessionStorage by JS below #}
-        <input type="hidden" id="product_type"   name="product_type"   value="clothing">
-        <input type="hidden" id="model_photo_url" name="model_photo_url" value="">
+        {# ── Hidden fields bound to Alpine state ──────────────────────────── #}
+        <input type="hidden" name="gender_presentation"   x-bind:value="gender">
+        <input type="hidden" name="age_range"             x-bind:value="age_range">
+        <input type="hidden" name="ethnicity"             x-bind:value="ethnicity">
+        <input type="hidden" name="skin_tone"             x-bind:value="skin_tone">
+        <input type="hidden" name="body_type"             x-bind:value="body_type">
+        <input type="hidden" name="hair_style"            x-bind:value="hair_style">
+        <input type="hidden" name="hair_color"            x-bind:value="hair_color">
+        <input type="hidden" name="additional_description" x-bind:value="additional_description">
+        <input type="hidden" name="environment"           x-bind:value="environment">
+        <input type="hidden" name="pose_preset"           x-bind:value="pose_preset">
+        <input type="hidden" name="framing"               x-bind:value="framing">
+        <input type="hidden" name="lighting"              x-bind:value="lighting">
+        <input type="hidden" name="m_height_cm"           x-bind:value="m_height_cm">
+        <input type="hidden" name="m_chest_bust_cm"       x-bind:value="m_chest_bust_cm">
+        <input type="hidden" name="m_waist_cm"            x-bind:value="m_waist_cm">
+        <input type="hidden" name="m_hips_cm"             x-bind:value="m_hips_cm">
+        <input type="hidden" name="product_type"          x-bind:value="product_type">
+        <input type="hidden" name="model_photo_url"       x-bind:value="model_photo_url">
 
         <div class="space-y-3">
 
-            {# ── Model Appearance accordion ────────────────────── #}
-            {% call accordion("model-appearance", "Model Appearance", open=True, badge="Required") %}
-            <div class="space-y-5">
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# PANEL 1 — Model Appearance                                      #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
 
-                {# Age Range #}
-                {{ form_select("age_range", "Age Range", [
-                    {"value": "",      "label": "Select…"},
-                    {"value": "18-24", "label": "18 – 24"},
-                    {"value": "25-34", "label": "25 – 34"},
-                    {"value": "35-44", "label": "35 – 44"},
-                    {"value": "45+",   "label": "45+"},
-                ], required=True) }}
+                {# Panel header #}
+                <button type="button" @click="showAppearance = !showAppearance"
+                        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-base flex-shrink-0">🧑</div>
+                        <div class="text-left">
+                            <p class="text-sm font-semibold text-dark">Model Appearance</p>
+                            <p class="text-[11px] text-gray-400 truncate max-w-[200px]" x-text="appearanceSummary"></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <span class="hidden sm:block text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Required</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform" :class="showAppearance ? 'rotate-180' : ''"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </button>
 
-                {# Gender #}
-                {{ form_select("gender_presentation", "Gender", [
-                    {"value": "",           "label": "Select…"},
-                    {"value": "feminine",   "label": "Female"},
-                    {"value": "masculine",  "label": "Male"},
-                    {"value": "neutral",    "label": "Unisex"},
-                ], required=True, id="gender_presentation", onchange="updateHairStyles()") }}
+                {# Panel body #}
+                <div x-show="showAppearance"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1"
+                     class="border-t border-gray-100 px-5 pb-6 pt-5 space-y-6">
 
-                {# Ethnicity #}
-                {{ form_select("ethnicity", "Ethnicity", [
-                    {"value": "",              "label": "Select…"},
-                    {"value": "sri_lankan",    "label": "Sri Lankan"},
-                    {"value": "indian",        "label": "Indian"},
-                    {"value": "middle_eastern","label": "Middle Eastern"},
-                    {"value": "african",       "label": "African"},
-                    {"value": "european",      "label": "European"},
-                ], required=True) }}
+                    {# Gender — read-only display from upload step #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Gender</p>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-dark capitalize"
+                                  x-text="gender === 'feminine' ? '♀ Female' : gender === 'masculine' ? '♂ Male' : '⚪ Unisex'"></span>
+                            <span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Set in upload step</span>
+                        </div>
+                    </div>
 
-                {# Skin Tone — visual swatch picker instead of select #}
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
-                        Skin Tone <span class="text-red-400">*</span>
-                        <span class="ml-1 text-xs text-gray-400 font-normal">(Fitzpatrick Scale)</span>
-                    </label>
-                    {{ skin_tone_picker("skin_tone") }}
+                    {# Age Range — segmented control #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Age Range</p>
+                        <div class="flex gap-1.5 flex-wrap">
+                            {% for ar in age_ranges %}
+                            <label @click="age_range = '{{ ar.value }}'" class="cursor-pointer">
+                                <div class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border min-h-[36px] flex items-center"
+                                     :class="age_range === '{{ ar.value }}'
+                                         ? 'bg-primary text-white border-primary'
+                                         : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40'">
+                                    {{ ar.label }}
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Ethnicity — horizontal scroll cards #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ethnicity</p>
+                        <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+                            {% for eth in ethnicities %}
+                            <label @click="ethnicity = '{{ eth.value }}'" class="cursor-pointer flex-shrink-0 snap-start">
+                                <div class="w-20 rounded-xl border-2 overflow-hidden transition-all text-center py-2.5 px-1"
+                                     :class="ethnicity === '{{ eth.value }}'
+                                         ? 'border-primary bg-primary/5 shadow-card-hover'
+                                         : 'border-gray-200 hover:border-primary/30'">
+                                    <p class="text-xl mb-0.5">{{ eth.icon }}</p>
+                                    <p class="text-[10px] font-semibold text-dark leading-tight">{{ eth.label }}</p>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Skin Tone — Alpine x-for swatches #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Skin Tone</p>
+                        <div class="flex gap-4 flex-wrap">
+                            <template x-for="tone in skinTones" :key="tone.value">
+                                <label @click="skin_tone = tone.value" class="cursor-pointer flex flex-col items-center gap-1">
+                                    <div class="w-10 h-10 rounded-full shadow-sm border-[3px] transition-all"
+                                         :class="skin_tone === tone.value
+                                             ? 'border-primary scale-110 shadow-md'
+                                             : 'border-transparent hover:border-gray-300'"
+                                         :style="'background-color:' + tone.hex"></div>
+                                    <span class="text-[9px] text-gray-500 font-medium" x-text="tone.label"></span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+
+                    {# Body Type — 4 cards #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Body Type</p>
+                        <div class="grid grid-cols-4 gap-2">
+                            {% for bt in body_types %}
+                            <label @click="body_type = '{{ bt.value }}'" class="cursor-pointer">
+                                <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
+                                     :class="body_type === '{{ bt.value }}'
+                                         ? 'border-primary bg-primary/5'
+                                         : 'border-gray-200 hover:border-primary/30'">
+                                    <p class="text-xl mb-0.5">{{ bt.icon }}</p>
+                                    <p class="text-[10px] font-semibold text-dark">{{ bt.label }}</p>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Hair Style — Alpine x-for (gender-dependent) #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Hair Style</p>
+                        <div class="grid grid-cols-3 gap-2">
+                            <template x-for="style in currentHairStyles" :key="style.value">
+                                <label @click="hair_style = style.value" class="cursor-pointer">
+                                    <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-2.5 px-1"
+                                         :class="hair_style === style.value
+                                             ? 'border-primary bg-primary/5'
+                                             : 'border-gray-200 hover:border-primary/30'">
+                                        <div class="text-xl mb-0.5" x-text="style.icon"></div>
+                                        <p class="text-[10px] font-semibold text-dark leading-tight" x-text="style.label"></p>
+                                    </div>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+
+                    {# Hair Color — Alpine x-for swatches #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Hair Color</p>
+                        <div class="flex gap-3 flex-wrap">
+                            <template x-for="color in hairColors" :key="color.value">
+                                <label @click="hair_color = color.value" class="cursor-pointer flex flex-col items-center gap-1">
+                                    <div class="w-8 h-8 rounded-full shadow-sm border-[3px] transition-all"
+                                         :class="hair_color === color.value
+                                             ? 'border-primary scale-110 shadow-md'
+                                             : 'border-gray-200 hover:border-gray-400'"
+                                         :style="'background-color:' + color.hex"></div>
+                                    <span class="text-[9px] text-gray-500" x-text="color.label"></span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+
+                    {# Additional Description — optional textarea #}
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                            Additional Description
+                            <span class="normal-case font-normal text-gray-400 ml-1">(optional)</span>
+                        </label>
+                        <textarea x-model="additional_description"
+                                  rows="2" maxlength="300"
+                                  placeholder="e.g. wearing glasses, tall slim build, visible tattoos…"
+                                  class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 resize-none
+                                         focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"></textarea>
+                        <p class="text-[10px] text-gray-400 mt-1">Max 300 characters</p>
+                    </div>
+
                 </div>
-
-                {# Hair Style — populated by JS #}
-                {{ form_select("hair_style", "Hair Style", [
-                    {"value": "", "label": "Select gender first…"},
-                ], required=True, id="hair_style") }}
-
-                {# Hair Color #}
-                {{ form_select("hair_color", "Hair Color", [
-                    {"value": "",             "label": "Select…"},
-                    {"value": "black",        "label": "Black"},
-                    {"value": "dark_brown",   "label": "Dark Brown"},
-                    {"value": "medium_brown", "label": "Medium Brown"},
-                    {"value": "light_brown",  "label": "Light Brown / Caramel"},
-                    {"value": "blonde",       "label": "Blonde"},
-                    {"value": "auburn",       "label": "Red / Auburn"},
-                    {"value": "grey",         "label": "Grey / Silver"},
-                ], required=True) }}
-
-                {# Body Type #}
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Body Type <span class="text-red-400">*</span></label>
-                    {{ selector_grid("body_type", [
-                        {"value": "petite",   "label": "Petite"},
-                        {"value": "average",  "label": "Average"},
-                        {"value": "athletic", "label": "Athletic"},
-                        {"value": "curvy",    "label": "Curvy"},
-                        {"value": "plus",     "label": "Plus"},
-                    ], cols=3, required=True) }}
-                </div>
-
-                {# Additional description #}
-                <div class="space-y-1.5">
-                    <label for="additional_description" class="block text-sm font-medium text-gray-700">
-                        Additional Description
-                        <span class="ml-1 text-xs text-gray-400 font-normal">(optional)</span>
-                    </label>
-                    <textarea id="additional_description" name="additional_description"
-                              rows="3" maxlength="300"
-                              placeholder="e.g. wearing glasses, tall slim build, visible tattoos on forearms…"
-                              class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 resize-none
-                                     focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"></textarea>
-                    <p class="text-xs text-gray-400">Anything extra the AI should know about the model. Max 300 characters.</p>
-                </div>
-
             </div>
-            {% endcall %}
 
-            {# ── Scene Settings accordion ──────────────────────── #}
-            {% call accordion("scene-settings", "Scene Settings", open=True, badge="Required") %}
-            <div class="space-y-5">
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# PANEL 2 — Scene Settings                                        #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
 
-                {# Environment #}
-                {{ form_select("environment", "Environment", [
-                    {"value": "",               "label": "Select…"},
-                    {"value": "studio_white",   "label": "Studio — White"},
-                    {"value": "studio_beige",   "label": "Studio — Beige"},
-                    {"value": "outdoor_street", "label": "Outdoor — Street"},
-                    {"value": "outdoor_park",   "label": "Outdoor — Park"},
-                    {"value": "outdoor_beach",  "label": "Outdoor — Beach"},
-                    {"value": "indoor_cafe",    "label": "Indoor — Cafe"},
-                    {"value": "indoor_home",    "label": "Indoor — Home"},
-                ], required=True) }}
+                <button type="button" @click="showScene = !showScene"
+                        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center text-base flex-shrink-0">🎬</div>
+                        <div class="text-left">
+                            <p class="text-sm font-semibold text-dark">Scene Settings</p>
+                            <p class="text-[11px] text-gray-400 truncate max-w-[200px]" x-text="sceneSummary"></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <span class="hidden sm:block text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Required</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform" :class="showScene ? 'rotate-180' : ''"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </button>
 
-                {# Pose #}
-                {{ form_select("pose_preset", "Pose", [
-                    {"value": "",                "label": "Select…"},
-                    {"value": "front_standing",  "label": "Front Standing"},
-                    {"value": "walking",         "label": "Walking"},
-                    {"value": "three_quarter",   "label": "Three-Quarter Turn"},
-                    {"value": "seated",          "label": "Seated"},
-                ], required=True) }}
+                <div x-show="showScene"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1"
+                     class="border-t border-gray-100 px-5 pb-6 pt-5 space-y-6">
 
-                {# Framing #}
-                {{ form_select("framing", "Framing", [
-                    {"value": "",              "label": "Select…"},
-                    {"value": "full_body",     "label": "Full Body"},
-                    {"value": "three_quarter", "label": "Three-Quarter"},
-                    {"value": "waist_up",      "label": "Waist Up"},
-                ], required=True) }}
+                    {# Environment — 7 visual cards #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Environment</p>
+                        <div class="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                            {% for env in environments %}
+                            <label @click="environment = '{{ env.value }}'" class="cursor-pointer">
+                                <div class="rounded-xl border-2 overflow-hidden transition-all"
+                                     :class="environment === '{{ env.value }}'
+                                         ? 'border-primary shadow-card-hover'
+                                         : 'border-gray-200 hover:border-primary/30'">
+                                    <div class="aspect-square flex items-center justify-center text-2xl"
+                                         style="background-color: {{ env.bg }}22;">
+                                        {{ env.icon }}
+                                    </div>
+                                    <div class="py-1 px-1 text-center bg-white">
+                                        <p class="text-[9px] font-semibold text-dark leading-tight">{{ env.label }}</p>
+                                    </div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
 
+                    {# Pose — 4 cards #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pose</p>
+                        <div class="grid grid-cols-4 gap-2">
+                            {% for pose in poses %}
+                            <label @click="pose_preset = '{{ pose.value }}'" class="cursor-pointer">
+                                <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
+                                     :class="pose_preset === '{{ pose.value }}'
+                                         ? 'border-primary bg-primary/5'
+                                         : 'border-gray-200 hover:border-primary/30'">
+                                    <p class="text-xl mb-0.5">{{ pose.icon }}</p>
+                                    <p class="text-[10px] font-semibold text-dark leading-tight">{{ pose.label }}</p>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Framing — 3 segmented buttons #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Framing</p>
+                        <div class="flex gap-1.5">
+                            {% for fr in framings %}
+                            <label @click="framing = '{{ fr.value }}'" class="flex-1 cursor-pointer">
+                                <div class="py-2 rounded-xl text-xs font-semibold text-center transition-all border"
+                                     :class="framing === '{{ fr.value }}'
+                                         ? 'bg-primary text-white border-primary'
+                                         : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40'">
+                                    {{ fr.label }}
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
             </div>
-            {% endcall %}
 
-            {# ── Measurements accordion ────────────────────────── #}
-            {% call accordion("measurements", "Model Measurements", open=False, badge="Optional") %}
-            <div>
-                <p class="text-xs text-gray-500 mb-4 leading-relaxed">
-                    Leave any field blank if unknown. Measurements help the AI match the correct garment fit.
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# PANEL 3 — Advanced Options (collapsed by default)               #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
+
+                <button type="button" @click="showAdvanced = !showAdvanced"
+                        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-base flex-shrink-0">⚙️</div>
+                        <div class="text-left">
+                            <p class="text-sm font-semibold text-dark">Advanced Options</p>
+                            <p class="text-[11px] text-gray-400">Measurements &amp; lighting override</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <span class="text-[10px] font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Optional</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform" :class="showAdvanced ? 'rotate-180' : ''"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </button>
+
+                <div x-show="showAdvanced"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1"
+                     class="border-t border-gray-100 px-5 pb-6 pt-5 space-y-6">
+
+                    {# Measurements #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Measurements</p>
+                        <p class="text-xs text-gray-400 mb-3">Leave blank if unknown. Helps the AI match garment fit.</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            {% for field, label, placeholder in [
+                                ("m_height_cm",    "Height (cm)",     "e.g. 165"),
+                                ("m_chest_bust_cm","Chest / Bust cm", "e.g. 88"),
+                                ("m_waist_cm",     "Waist (cm)",      "e.g. 68"),
+                                ("m_hips_cm",      "Hips (cm)",       "e.g. 94"),
+                            ] %}
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">{{ label }}</label>
+                                <input type="number" x-model="{{ field }}"
+                                       inputmode="numeric" placeholder="{{ placeholder }}"
+                                       class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900
+                                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Lighting override #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Lighting</p>
+                        <div class="flex gap-1.5 flex-wrap">
+                            {% for lt in lightings %}
+                            <label @click="lighting = '{{ lt.value }}'" class="cursor-pointer">
+                                <div class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border min-h-[36px] flex items-center"
+                                     :class="lighting === '{{ lt.value }}'
+                                         ? 'bg-primary text-white border-primary'
+                                         : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40'">
+                                    {{ lt.label }}
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>{# end space-y-3 #}
+
+        {# ── Quick Preview Card ────────────────────────────────────────────── #}
+        <div class="mt-4 bg-white rounded-2xl border border-gray-100 shadow-card p-4 flex items-start gap-3">
+
+            {# Garment thumbnail #}
+            <div class="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                <img :src="garment_preview"
+                     x-show="garment_preview"
+                     class="w-full h-full object-cover"
+                     alt="Garment">
+                <div x-show="!garment_preview"
+                     class="w-full h-full flex items-center justify-center text-2xl">👗</div>
+            </div>
+
+            {# Summary text #}
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-dark mb-0.5">Quick Preview</p>
+                <p class="text-[11px] text-gray-500 leading-relaxed">
+                    <span x-text="appearanceSummary"></span>
                 </p>
-                <div class="grid grid-cols-2 gap-4">
-                    {{ form_input("m_height_cm",    "Height (cm)",    type="number", min="100", max="220", step="1",   placeholder="e.g. 170") }}
-                    {{ form_input("m_weight_kg",    "Weight (kg)",    type="number", min="30",  max="200", step="0.5", placeholder="e.g. 65") }}
-                    {{ form_input("m_chest_bust_cm","Chest / Bust cm",type="number", min="60",  max="160", step="1",   placeholder="e.g. 90") }}
-                    {{ form_input("m_waist_cm",     "Waist (cm)",     type="number", min="50",  max="150", step="1",   placeholder="e.g. 70") }}
-                    {{ form_input("m_hips_cm",      "Hips (cm)",      type="number", min="60",  max="170", step="1",   placeholder="e.g. 95") }}
-                    {{ form_input("m_inseam_cm",    "Inseam (cm)",    type="number", min="50",  max="110", step="1",   placeholder="e.g. 78") }}
-                    {{ form_input("m_shoe_size_eu", "Shoe Size (EU)", type="number", min="30",  max="52",  step="0.5", placeholder="e.g. 38") }}
-                </div>
+                <p class="text-[11px] text-gray-400 mt-0.5">
+                    <span x-text="sceneSummary"></span>
+                </p>
             </div>
-            {% endcall %}
 
+            {# Edit hint #}
+            <button type="button" @click="showAppearance = true; $el.closest('form').querySelector('[x-show]').scrollIntoView({behavior:'smooth'})"
+                    class="flex-shrink-0 text-[10px] text-primary font-semibold hover:underline">
+                Edit
+            </button>
         </div>
 
-        {# ── Actions ─────────────────────────────────────────── #}
-        <div class="flex gap-3 mt-5 pb-4">
+        {# ── Actions ─────────────────────────────────────────────────────── #}
+        <div class="flex gap-3 mt-4 pb-6">
             {{ button("← Back", href="/upload", variant="secondary", size="lg") }}
-            {{ button("Next: Review →", type="submit", variant="primary", size="lg", extra_class="flex-1") }}
+            <button type="button"
+                    @click="saveAndProceed()"
+                    class="flex-1 inline-flex items-center justify-center font-semibold rounded-xl transition-all text-base px-6 py-3 min-h-[48px]
+                           bg-primary text-white shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50">
+                Next: Review
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
         </div>
 
     </form>
 </div>
+{% endblock %}
 
-<script>
-const HAIR_STYLES = {
-    feminine: [
-        { value: 'long_straight',  label: 'Long Straight' },
-        { value: 'long_wavy',      label: 'Long Wavy' },
-        { value: 'long_curly',     label: 'Long Curly' },
-        { value: 'short_bob',      label: 'Short Bob' },
-        { value: 'medium_layered', label: 'Medium Layered' },
-        { value: 'braided',        label: 'Braided / Updo' },
-    ],
-    masculine: [
-        { value: 'short_tapered',   label: 'Short Tapered' },
-        { value: 'medium_textured', label: 'Medium Textured' },
-        { value: 'buzz_cut',        label: 'Buzz Cut' },
-        { value: 'slicked_back',    label: 'Slicked Back' },
-        { value: 'afro_curly',      label: 'Afro / Curly' },
-        { value: 'dreadlocks',      label: 'Dreadlocks' },
-    ],
-    neutral: [
-        { value: 'short_straight', label: 'Short Straight' },
-        { value: 'medium_length',  label: 'Medium Length' },
-        { value: 'long_straight',  label: 'Long Straight' },
-        { value: 'shaved',         label: 'Shaved' },
-        { value: 'natural_curly',  label: 'Natural Curly' },
-    ],
-};
-
-function updateHairStyles() {
-    var gender = document.getElementById('gender_presentation').value;
-    var sel = document.getElementById('hair_style');
-    var prev = sel.value;
-    sel.innerHTML = '<option value="">Select…</option>';
-    var styles = HAIR_STYLES[gender];
-    if (!styles) return;
-    styles.forEach(function(s) {
-        var opt = document.createElement('option');
-        opt.value = s.value;
-        opt.textContent = s.label;
-        if (s.value === prev) opt.selected = true;
-        sel.appendChild(opt);
-    });
-}
-
-(function() {
-    var gender = sessionStorage.getItem('genderPresentation') || '';
-    if (gender) document.getElementById('gender_presentation').value = gender;
-    updateHairStyles();
-    var productType = sessionStorage.getItem('productType') || 'clothing';
-    document.getElementById('product_type').value = productType;
-    var modelPhotoUrl = sessionStorage.getItem('modelPhotoUrl') || '';
-    document.getElementById('model_photo_url').value = modelPhotoUrl;
-})();
-</script>
+{% block scripts %}
+<script src="/static/js/configure.js"></script>
 {% endblock %}
