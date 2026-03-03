@@ -1,0 +1,140 @@
+version: children_v1
+module: children
+
+# ---------------------------------------------------------------------------
+# Age group specific body and clothing descriptions
+# ---------------------------------------------------------------------------
+age_groups:
+  baby:
+    body_description: >
+      A baby (approximately 0-2 years old) with natural baby proportions:
+      large head relative to body (approximately 1:4 head-to-body ratio),
+      round face with soft features, chubby cheeks, short chubby limbs,
+      round torso. The baby should look natural and healthy.
+    clothing_instruction: >
+      The baby is wearing the provided garment. Show how the garment fits
+      on a baby's body with natural draping. The garment should look
+      comfortable and well-fitted for a baby.
+
+  toddler:
+    body_description: >
+      A toddler (approximately 2-5 years old) with natural toddler proportions:
+      head-to-body ratio approximately 1:5, rounder torso, slightly longer limbs
+      than a baby but still with child-like proportions, round face with
+      developing features.
+    clothing_instruction: >
+      The toddler is wearing the provided garment. Show natural movement and
+      playfulness appropriate for a toddler. The clothing should drape
+      naturally on the toddler's frame.
+
+  kid:
+    body_description: >
+      A child (approximately 6-12 years old) with school-age proportions:
+      head-to-body ratio approximately 1:6, leaner build than a toddler,
+      longer limbs, developing facial features, natural and healthy appearance.
+    clothing_instruction: >
+      The child is wearing the provided garment. Show a confident, natural pose
+      appropriate for a school-age child. The clothing should fit naturally
+      and look age-appropriate.
+
+  teen:
+    body_description: >
+      A teenager (approximately 13-17 years old) with near-adult proportions
+      but clearly still a young person. Age-appropriate appearance, natural
+      and healthy look, developing features.
+    clothing_instruction: >
+      The teenager is wearing the provided garment in a natural, age-appropriate
+      fashion pose. The clothing should look stylish and properly fitted.
+
+# ---------------------------------------------------------------------------
+# Pose descriptions — keyed by age_group then pose_style
+# ---------------------------------------------------------------------------
+poses:
+  baby:
+    sitting: "sitting upright on a soft surface, looking at camera with a gentle expression"
+    lying: "lying comfortably on a soft blanket, looking up at camera"
+    held: "being held securely (only adult hands visible, not full adult), looking at camera"
+
+  toddler:
+    standing: "standing with a natural, slightly unsteady toddler stance"
+    walking: "taking playful steps, natural toddler walking pose"
+    playing: "in a playful pose, perhaps reaching for something or clapping"
+    sitting: "sitting cross-legged or on a small chair, looking at camera"
+
+  kid:
+    standing: "standing naturally with good posture, looking at camera"
+    casual: "in a relaxed, natural pose like leaning slightly or hands in pockets"
+    school: "standing neatly as if for a school photo, clean and presentable"
+    active: "in a dynamic but still pose, perhaps mid-step or arms slightly raised"
+
+  teen:
+    fashion_standing: "in a confident fashion standing pose, looking at camera"
+    casual: "in a relaxed, natural teenage pose"
+    urban: "in a casual urban style pose against the backdrop"
+    seated: "seated naturally on a stool or ledge"
+
+# ---------------------------------------------------------------------------
+# Background / environment descriptions
+# ---------------------------------------------------------------------------
+backgrounds:
+  nursery:         "in a soft, warm nursery room with gentle pastel colors and soft lighting"
+  soft_blanket:    "on a clean, soft textured blanket with warm, diffused studio lighting"
+  pastel_studio:   "in a professional photography studio with soft pastel backdrop"
+  playground:      "at a colorful playground with natural daylight"
+  garden:          "in a beautiful green garden with natural sunlight filtering through"
+  colorful_studio: "in a bright photography studio with colorful backdrop"
+  park:            "in a scenic park with trees and natural light"
+  studio:          "in a clean professional photography studio with neutral backdrop"
+  bedroom:         "in a tidy, well-lit children's bedroom"
+  school:          "in a clean school corridor or classroom setting"
+  urban:           "in a clean urban setting with interesting architecture"
+  campus:          "on a school or college campus with greenery"
+  outdoor:         "in a beautiful outdoor setting with natural light"
+  beach:           "at a scenic beach with gentle waves in the background"
+
+# ---------------------------------------------------------------------------
+# Quality and output instructions (shared across all age groups)
+# ---------------------------------------------------------------------------
+quality: >
+  Photorealistic, high-quality catalogue photograph, professional photography,
+  natural lighting, sharp focus, high resolution, accurate clothing drape and fit,
+  single child only, no other people except adult hands in 'held' pose,
+  face clearly visible.
+
+output: >
+  Generate exactly one image. The face must be visible and natural-looking.
+  High resolution, no watermarks, no text overlay, no logos.
+
+# ---------------------------------------------------------------------------
+# SAFETY: These are MANDATORY and CANNOT be overridden by any user input
+# ---------------------------------------------------------------------------
+safety_positive: >
+  The child is fully clothed in the provided garment. Age-appropriate styling.
+  Wholesome, family-friendly image. Natural, innocent child expression.
+  Safe, appropriate setting. Child-safe content.
+
+safety_negative: >
+  nsfw, nude, naked, revealing clothing, suggestive pose, provocative,
+  inappropriate, adult content, sexualized, bikini, lingerie, underwear visible,
+  violence, weapons, blood, alcohol, smoking, drugs, scary, horror,
+  extra limbs, deformed, distorted, watermark, text overlay,
+  multiple children, crowd, strangers, isolated location,
+  inappropriate touching, uncomfortable expression
+
+# ---------------------------------------------------------------------------
+# Skin tone descriptions
+# ---------------------------------------------------------------------------
+skin_tones:
+  very_light: "very fair/light skin complexion"
+  light:      "light skin complexion"
+  medium:     "medium/olive skin complexion typical of South Asian heritage"
+  dark:       "dark/brown skin complexion"
+  very_dark:  "very dark/deep skin complexion"
+
+# ---------------------------------------------------------------------------
+# Camera angle descriptions — gentler language for children's content
+# ---------------------------------------------------------------------------
+camera_angles:
+  front: "front view, child facing camera directly, full outfit visible"
+  side:  "gentle 45-degree side view, child's face slightly turned, outfit silhouette visible"
+  back:  "back view, child looking over shoulder slightly, back of outfit visible"

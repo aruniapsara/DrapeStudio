@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Fixed camera angles for the three output variations.
+# Fixed camera angles for the three output variations — adult module.
 # Each description also requires the face to remain visible.
 VARIATION_VIEWS = [
     (
@@ -27,6 +27,24 @@ VARIATION_VIEWS = [
     (
         "CAMERA ANGLE FOR THIS IMAGE: Back view — model facing away from camera to show the back of the garment. "
         "Model's head turned over the shoulder looking back toward the camera so the face is clearly visible."
+    ),
+]
+
+# Gentler camera angle descriptions for the children's module.
+# Uses softer language to avoid overly fashion-forward framing for minors.
+CHILDREN_VARIATION_VIEWS = [
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Front view — child facing directly toward the camera. "
+        "Face clearly and naturally visible, neutral or gentle expression."
+    ),
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Gentle 45-degree side view — child turned slightly to the side. "
+        "Face gently turned back toward the camera so it remains clearly visible. "
+        "Outfit silhouette visible on both sides."
+    ),
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Back view — child facing away from camera to show the back of the garment. "
+        "Child looking over the shoulder with a natural, comfortable head turn so the face is partially visible."
     ),
 ]
 
@@ -77,6 +95,7 @@ def _call_openrouter(
     model_name: str,
     variation_index: int = 0,
     model_photo_bytes: bytes | None = None,
+    module: str = "adult",
 ) -> tuple[bytes, dict]:
     """Make a single OpenRouter chat completion call that returns one image.
 
@@ -84,10 +103,14 @@ def _call_openrouter(
     multimodal payload (before the garment images) so the model can reference
     the real person's appearance.
 
+    Args:
+        module: "adult" or "children" — controls which camera angle set is used.
+
     Returns:
         Tuple of (image_bytes, usage_dict).
     """
-    view_instruction = VARIATION_VIEWS[variation_index % len(VARIATION_VIEWS)]
+    views = CHILDREN_VARIATION_VIEWS if module == "children" else VARIATION_VIEWS
+    view_instruction = views[variation_index % len(views)]
 
     # Build the multimodal content: text prompt first, then images
     content_parts: list[dict] = [
@@ -181,6 +204,7 @@ def generate_garment_images(
     model_name: str | None = None,
     max_retries: int = 2,
     model_photo_bytes: bytes | None = None,
+    module: str = "adult",
 ) -> GeminiResult:
     """Send garment images + text prompt to OpenRouter and return generated images.
 
@@ -194,6 +218,7 @@ def generate_garment_images(
         model_photo_bytes: Optional bytes of a real-person model reference photo.
                            When provided, it is prepended to the image list so the
                            AI can replicate the person's appearance.
+        module: "adult" or "children" — controls camera angle descriptions.
 
     Returns:
         GeminiResult with generated images and usage metadata.
@@ -224,6 +249,7 @@ def generate_garment_images(
                     model_name=model_name,
                     variation_index=variation_idx,
                     model_photo_bytes=model_photo_bytes,
+                    module=module,
                 )
 
                 all_images.append(image_bytes)

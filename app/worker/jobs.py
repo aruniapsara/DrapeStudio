@@ -16,7 +16,7 @@ from app.models.db import (
     generate_ulid,
 )
 from app.services.gemini import GeminiError, generate_garment_images
-from app.services.prompt import assemble_prompt
+from app.services.prompt import assemble_prompt, assemble_children_prompt, load_children_template
 from app.services.storage import storage
 
 logger = logging.getLogger(__name__)
@@ -91,18 +91,43 @@ def generate_images(generation_request_id: str) -> None:
             _fail_generation(db, gen, "No garment images could be loaded.")
             return
 
-        # Step 4 & 5: Load template and assemble prompt
+        # Step 4 & 5: Load template and assemble prompt (module-aware)
+        module = gen.module or "adult"
         try:
-            prompt_text = assemble_prompt(
-                model_params=gen.model_params,
-                scene_params=gen.scene_params,
-                template_version=gen.prompt_template_version,
-            )
+            if module == "children":
+                # Children's module: combine model_params + scene_params into
+                # a single child_params dict for the children's prompt assembler
+                child_params_for_prompt = {
+                    "age_group":         gen.model_params.get("age_group", "kid"),
+                    "child_gender":      gen.model_params.get("child_gender", "unisex"),
+                    "pose_style":        gen.scene_params.get("pose_style", "standing"),
+                    "background_preset": gen.scene_params.get("background_preset", "studio"),
+                    "hair_style":        gen.model_params.get("hair_style", ""),
+                    "expression":        gen.model_params.get("expression", "happy"),
+                    "skin_tone":         gen.model_params.get("skin_tone", "medium"),
+                }
+                children_template = load_children_template()
+                prompt_text = assemble_children_prompt(
+                    template=children_template,
+                    child_params=child_params_for_prompt,
+                )
+                logger.info(
+                    "Generation %s (children/%s): prompt assembled (%d chars)",
+                    generation_request_id,
+                    child_params_for_prompt.get("age_group"),
+                    len(prompt_text),
+                )
+            else:
+                prompt_text = assemble_prompt(
+                    model_params=gen.model_params,
+                    scene_params=gen.scene_params,
+                    template_version=gen.prompt_template_version,
+                )
         except Exception as e:
             _fail_generation(db, gen, f"Prompt assembly failed: {e}")
             return
 
-        # Load model reference photo (optional)
+        # Load model reference photo (optional — adult module only)
         model_photo_bytes = None
         model_photo_url = gen.model_params.get("model_photo_url")
         if model_photo_url:
@@ -121,19 +146,21 @@ def generate_images(generation_request_id: str) -> None:
                 )
 
         logger.info(
-            "Generation %s: calling Gemini with %d garment image(s)%s, prompt length %d",
+            "Generation %s: calling Gemini with %d garment image(s)%s, module=%s, prompt length %d",
             generation_request_id,
             len(garment_image_bytes_list),
             " + model photo" if model_photo_bytes else "",
+            module,
             len(prompt_text),
         )
 
-        # Step 6: Call Gemini API
+        # Step 6: Call Gemini API (pass module for camera angle selection)
         try:
             result = generate_garment_images(
                 garment_image_bytes=garment_image_bytes_list,
                 prompt_text=prompt_text,
                 model_photo_bytes=model_photo_bytes,
+                module=module,
             )
         except GeminiError as e:
             _fail_generation(db, gen, f"Gemini API error: {e}")
