@@ -1,12 +1,20 @@
 """Pydantic request/response schemas for generation endpoints."""
 
 from datetime import datetime
+from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from app.children_config import (
+    AGE_GROUPS,
+    VALID_GENDERS,
+    get_allowed_poses,
+    get_allowed_backgrounds,
+)
 
 
 # ---------------------------------------------------------------------------
-# Request schemas
+# Request schemas — Adult module
 # ---------------------------------------------------------------------------
 
 class ModelMeasurements(BaseModel):
@@ -45,15 +53,88 @@ class OutputParams(BaseModel):
     resolution: str = Field(default="high")
 
 
+# ---------------------------------------------------------------------------
+# Request schemas — Children's module
+# ---------------------------------------------------------------------------
+
+class ChildParamsCreate(BaseModel):
+    """Parameters for children's clothing generation.
+
+    Validated against the allowed options for the specified age group.
+    """
+    age_group: Literal["baby", "toddler", "kid", "teen"]
+    child_gender: Literal["girl", "boy", "unisex"]
+    pose_style: str = Field(..., description="Pose preset key (must be valid for age_group)")
+    background_preset: str = Field(..., description="Background preset (must be valid for age_group)")
+    hair_style: Optional[str] = Field(default=None, description="Hair style option")
+    expression: Optional[str] = Field(default="happy", description="Facial expression")
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def validate_age_group_params(self) -> "ChildParamsCreate":
+        """Validate pose_style and background_preset against the age group."""
+        age_group = self.age_group
+
+        # Validate pose
+        allowed_poses = get_allowed_poses(age_group)
+        if allowed_poses and self.pose_style not in allowed_poses:
+            raise ValueError(
+                f"pose_style '{self.pose_style}' is not allowed for age group '{age_group}'. "
+                f"Allowed: {allowed_poses}"
+            )
+
+        # Validate background
+        allowed_backgrounds = get_allowed_backgrounds(age_group)
+        if allowed_backgrounds and self.background_preset not in allowed_backgrounds:
+            raise ValueError(
+                f"background_preset '{self.background_preset}' is not allowed for age group "
+                f"'{age_group}'. Allowed: {allowed_backgrounds}"
+            )
+
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Main create request
+# ---------------------------------------------------------------------------
+
 class CreateGenerationRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
 
     idempotency_key: str | None = None
+    module: Literal["adult", "children"] = Field(
+        default="adult",
+        description="Which DrapeStudio module to use"
+    )
     product_type: str = Field(default="clothing", description="clothing | accessories")
     garment_images: list[str] = Field(..., min_length=1, max_length=5)
-    model_params: ModelParams
-    scene: SceneParams
+    model_params: ModelParams | None = Field(
+        default=None,
+        description="Required when module=adult"
+    )
+    scene: SceneParams | None = Field(
+        default=None,
+        description="Required when module=adult"
+    )
+    child_params: ChildParamsCreate | None = Field(
+        default=None,
+        description="Required when module=children"
+    )
     output: OutputParams = OutputParams()
+
+    @model_validator(mode="after")
+    def check_module_params(self) -> "CreateGenerationRequest":
+        """Ensure required params are present for the selected module."""
+        if self.module == "adult":
+            if self.model_params is None:
+                raise ValueError("model_params is required when module='adult'")
+            if self.scene is None:
+                raise ValueError("scene is required when module='adult'")
+        elif self.module == "children":
+            if self.child_params is None:
+                raise ValueError("child_params is required when module='children'")
+        return self
 
 
 # ---------------------------------------------------------------------------

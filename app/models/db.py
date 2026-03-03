@@ -10,6 +10,7 @@ from sqlalchemy import (
     JSON,
     Numeric,
     String,
+    func,
 )
 from sqlalchemy.orm import relationship
 from ulid import ULID
@@ -34,6 +35,7 @@ class GenerationRequest(Base):
     session_id = Column(String, nullable=False, index=True)
     status = Column(String, nullable=False, default="queued")
     # status values: queued | running | succeeded | failed
+    module = Column(String(20), nullable=True, default="adult")
     garment_image_urls = Column(JSON, nullable=False)
     model_params = Column(JSON, nullable=False)
     scene_params = Column(JSON, nullable=False)
@@ -51,6 +53,9 @@ class GenerationRequest(Base):
 
     outputs = relationship("GenerationOutput", back_populates="request")
     usage = relationship("UsageCost", back_populates="request", uselist=False)
+    child_params = relationship(
+        "ChildParams", back_populates="generation_request", uselist=False
+    )
 
 
 class GenerationOutput(Base):
@@ -89,3 +94,26 @@ class UsageCost(Base):
     recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     request = relationship("GenerationRequest", back_populates="usage")
+
+
+class ChildParams(Base):
+    __tablename__ = "child_params"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    generation_request_id = Column(
+        String(26),
+        ForeignKey("generation_request.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    age_group = Column(String(10), nullable=False)          # baby | toddler | kid | teen
+    child_gender = Column(String(10), nullable=False)       # girl | boy | unisex
+    pose_style = Column(String(30), nullable=False)
+    background_preset = Column(String(30), nullable=False)
+    hair_style = Column(String(30), nullable=True)
+    expression = Column(String(20), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    generation_request = relationship(
+        "GenerationRequest", back_populates="child_params"
+    )

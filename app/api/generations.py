@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_or_create_session_id
-from app.models.db import GenerationRequest, GenerationOutput, generate_gen_id
+from app.models.db import ChildParams, GenerationRequest, GenerationOutput, generate_gen_id, generate_ulid
 from app.schemas.generation import (
     CreateGenerationRequest,
     GenerationCreatedResponse,
@@ -20,6 +20,7 @@ from app.schemas.generation import (
     GenerationStatusResponse,
     OutputImage,
 )
+from app.services.safety import ChildSafetyValidator
 from app.services.storage import storage
 
 router = APIRouter(tags=["generations"])
@@ -50,7 +51,45 @@ def create_generation(
     if len(body.garment_images) == 0:
         raise HTTPException(status_code=400, detail="At least one garment image is required.")
 
-    # Idempotency check
+    # ── Children's module safety validation ───────────────────────────────────
+    if body.module == "children" and body.child_params is not None:
+        cp = body.child_params
+        is_valid, error_msg = ChildSafetyValidator.validate_child_params(
+            cp.age_group,
+            {
+                "pose_style": cp.pose_style,
+                "background_preset": cp.background_preset,
+                "hair_style": cp.hair_style or "",
+                "expression": cp.expression or "",
+            },
+        )
+        if not is_valid:
+            raise HTTPException(status_code=422, detail=error_msg)
+
+    # ── Build canonical params dicts (used for idempotency and DB storage) ────
+    if body.module == "children":
+        # For the children module, model_params stores child config
+        # and scene_params stores background + pose info for prompt assembly.
+        cp = body.child_params  # type: ignore[assignment]
+        model_params_dict: dict = {
+            "module": "children",
+            "age_group": cp.age_group,
+            "child_gender": cp.child_gender,
+            "hair_style": cp.hair_style or "",
+            "expression": cp.expression or "happy",
+            "product_type": body.product_type,
+        }
+        scene_params_dict: dict = {
+            "pose_style": cp.pose_style,
+            "background_preset": cp.background_preset,
+        }
+    else:
+        # Adult module — original behaviour
+        model_params_dict = body.model_params.model_dump()  # type: ignore[union-attr]
+        model_params_dict["product_type"] = body.product_type
+        scene_params_dict = body.scene.model_dump()  # type: ignore[union-attr]
+
+    # ── Idempotency check ─────────────────────────────────────────────────────
     if body.idempotency_key:
         existing = (
             db.query(GenerationRequest)
@@ -58,46 +97,36 @@ def create_generation(
             .first()
         )
         if existing:
-            # Check if params match
             existing_params = {
                 "garment_images": existing.garment_image_urls,
                 "model_params": existing.model_params,
                 "scene_params": existing.scene_params,
             }
-            new_model_params = body.model_params.model_dump()
-            new_model_params["product_type"] = body.product_type
             new_params = {
                 "garment_images": body.garment_images,
-                "model_params": new_model_params,
-                "scene_params": body.scene.model_dump(),
+                "model_params": model_params_dict,
+                "scene_params": scene_params_dict,
             }
             if json.dumps(existing_params, sort_keys=True) == json.dumps(
                 new_params, sort_keys=True
             ):
-                # Identical request — return existing
-                return GenerationCreatedResponse(
-                    id=existing.id, status=existing.status
-                )
+                return GenerationCreatedResponse(id=existing.id, status=existing.status)
             else:
                 raise HTTPException(
                     status_code=409,
                     detail="Idempotency key already used with different parameters.",
                 )
 
-    # Build model_params dict — embed product_type so prompt assembly
-    # can access it without a DB schema migration.
-    model_params_dict = body.model_params.model_dump()
-    model_params_dict["product_type"] = body.product_type
-
-    # Create generation request
+    # ── Create GenerationRequest record ───────────────────────────────────────
     gen_id = generate_gen_id()
     gen_request = GenerationRequest(
         id=gen_id,
         session_id=session_id,
         status="queued",
+        module=body.module,
         garment_image_urls=body.garment_images,
         model_params=model_params_dict,
-        scene_params=body.scene.model_dump(),
+        scene_params=scene_params_dict,
         output_count=body.output.count,
         prompt_template_version="v0.1",
         idempotency_key=body.idempotency_key,
@@ -106,10 +135,27 @@ def create_generation(
     )
 
     db.add(gen_request)
+    db.flush()  # Flush so gen_id is persisted before inserting child_params FK
+
+    # ── Create ChildParams record (children module only) ──────────────────────
+    if body.module == "children" and body.child_params is not None:
+        cp = body.child_params
+        child_record = ChildParams(
+            id=generate_ulid(),
+            generation_request_id=gen_id,
+            age_group=cp.age_group,
+            child_gender=cp.child_gender,
+            pose_style=cp.pose_style,
+            background_preset=cp.background_preset,
+            hair_style=cp.hair_style,
+            expression=cp.expression or "happy",
+        )
+        db.add(child_record)
+
     db.commit()
     db.refresh(gen_request)
 
-    # Enqueue worker job (try Redis Queue, fall back gracefully)
+    # ── Enqueue worker job ────────────────────────────────────────────────────
     try:
         import redis as redis_lib
         from rq import Queue
@@ -123,7 +169,6 @@ def create_generation(
         )
     except Exception:
         # If Redis is not available, the job stays queued
-        # Worker can pick it up later, or it can be processed manually
         pass
 
     return GenerationCreatedResponse(id=gen_id, status="queued")
@@ -167,7 +212,6 @@ def get_generation_outputs(gen_id: str, db: Session = Depends(get_db)):
             .all()
         )
         for out in db_outputs:
-            # Generate a signed download URL
             image_url = storage.signed_download_url(
                 out.image_url,
                 settings.OUTPUT_URL_EXPIRY_SECONDS,
@@ -254,7 +298,6 @@ def download_zip(gen_id: str, db: Session = Depends(get_db)):
                 filename = f"drapestudio_{gen_id}_{i + 1}.jpg"
                 zf.writestr(filename, image_bytes)
             except Exception:
-                # Skip images that can't be loaded
                 pass
 
     zip_buffer.seek(0)
