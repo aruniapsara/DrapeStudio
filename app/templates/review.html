@@ -2,6 +2,7 @@
 {% from "components/ui.html" import step_indicator %}
 
 {% set is_children = module is defined and module == 'children' %}
+{% set is_accessories = module is defined and module == 'accessories' %}
 
 {% block title %}Review — DrapeStudio{% endblock %}
 {% block page_title %}Review & Generate{% endblock %}
@@ -9,8 +10,8 @@
 {% block content %}
 <div class="max-w-xl mx-auto px-4 py-6">
 
-    {# Step indicator — 4 steps for children, 5 for adult #}
-    {% if is_children %}
+    {# Step indicator — 4 steps for children/accessories, 5 for adult #}
+    {% if is_children or is_accessories %}
     {{ step_indicator(["Upload", "Configure", "Review", "Results"], 3) }}
     {% else %}
     {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 3) }}
@@ -32,8 +33,16 @@
         </div>
         {% endif %}
 
+        {# ── Accessories configuration (accessories module only) ────────── #}
+        {% if is_accessories %}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-3">Accessory Configuration</h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-accessory"></dl>
+        </div>
+        {% endif %}
+
         {# ── Model Appearance (adult module only) ─────────────────────── #}
-        {% if not is_children %}
+        {% if not is_children and not is_accessories %}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
             <h3 class="text-sm font-bold text-dark mb-3">Model Appearance</h3>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-model"></dl>
@@ -48,7 +57,7 @@
         {% endif %}
 
         {# ── Scene Settings (adult module only) ───────────────────────── #}
-        {% if not is_children %}
+        {% if not is_children and not is_accessories %}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
             <h3 class="text-sm font-bold text-dark mb-3">Scene Settings</h3>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-scene"></dl>
@@ -56,7 +65,7 @@
         {% endif %}
 
         {# ── Measurements (adult only, conditional) ───────────────────── #}
-        {% if not is_children %}
+        {% if not is_children and not is_accessories %}
         <div id="review-measurements-section" class="hidden bg-white rounded-2xl border border-gray-100 shadow-card p-5">
             <h3 class="text-sm font-bold text-dark mb-3">Measurements</h3>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-measurements"></dl>
@@ -69,14 +78,18 @@
                 <span class="text-xl">✨</span>
             </div>
             <div>
+                {% if is_accessories %}
+                <p class="text-sm font-semibold text-dark">1 credit · 2 output images</p>
+                {% else %}
                 <p class="text-sm font-semibold text-dark">1 credit · 3 output images</p>
+                {% endif %}
                 <p class="text-xs text-gray-500">AI-generated catalogue quality photos</p>
             </div>
         </div>
 
         {# ── Actions ──────────────────────────────────────────────────── #}
         <div class="flex gap-3 pb-6">
-            <a href="{% if is_children %}/children/configure{% else %}/configure{% endif %}"
+            <a href="{% if is_children %}/children/configure{% elif is_accessories %}/accessories/configure{% else %}/configure{% endif %}"
                class="inline-flex items-center justify-center font-semibold rounded-xl transition-all text-sm px-5 py-3 min-h-[48px]
                       border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 flex-none">
                 ← Edit
@@ -88,7 +101,7 @@
                            disabled:opacity-40 disabled:cursor-not-allowed"
                     onclick="submitGeneration()">
                 <span class="text-lg leading-none">✨</span>
-                Generate 3 Images
+                {% if is_accessories %}Generate 2 Images{% else %}Generate 3 Images{% endif %}
             </button>
         </div>
 
@@ -96,7 +109,8 @@
 </div>
 
 <script>
-    const IS_CHILDREN = {{ 'true' if is_children else 'false' }};
+    const IS_CHILDREN   = {{ 'true' if is_children else 'false' }};
+    const IS_ACCESSORIES = {{ 'true' if is_accessories else 'false' }};
 
     const LABELS = {
         product_type:           'Product Type',
@@ -117,6 +131,12 @@
         pose_style:             'Pose',
         background_preset:      'Background',
         expression:             'Expression',
+        // Accessories labels
+        accessory_category:     'Category',
+        display_mode:           'Display Mode',
+        model_skin_tone:        'Skin Tone',
+        background_surface:     'Surface',
+        context_scene:          'Scene',
     };
 
     const VALUE_LABELS = {
@@ -229,6 +249,34 @@
         laughing:         'Laughing',
         confident:        'Confident',
         cool:             'Cool',
+        // Accessory categories
+        necklace:         'Necklaces / Chains',
+        earrings:         'Earrings',
+        bracelet:         'Bracelets / Bangles',
+        ring:             'Rings',
+        handbag:          'Handbags / Purses',
+        hat:              'Hats / Headwear',
+        scarf:            'Scarves / Shawls',
+        crochet:          'Crochet Items',
+        hair_accessory:   'Hair Accessories',
+        // Display modes
+        on_model:         'On Model',
+        flat_lay:         'Flat Lay',
+        lifestyle:        'Lifestyle',
+        // Surfaces
+        white_marble:     'White Marble',
+        wooden_table:     'Wooden Table',
+        velvet_fabric:    'Velvet Fabric',
+        linen_cloth:      'Linen Cloth',
+        concrete:         'Concrete',
+        rose_petals:      'Rose Petals',
+        // Scenes
+        cafe:             'Café',
+        garden:           'Garden',
+        beach:            'Beach',
+        urban_street:     'Urban Street',
+        cozy_room:        'Cozy Room',
+        office:           'Office',
     };
 
     function fmt(val) {
@@ -271,6 +319,17 @@
             addRow(childDl, 'Background',   params.get('background_preset'));
             addRow(childDl, 'Hair',         params.get('hair_style'));
             addRow(childDl, 'Expression',   params.get('expression'));
+        }
+    } else if (IS_ACCESSORIES) {
+        // ── Accessories configuration ──────────────────────────────────────────
+        var accessoryDl = document.getElementById('review-accessory');
+        if (accessoryDl) {
+            addRow(accessoryDl, 'Category',     params.get('accessory_category'));
+            addRow(accessoryDl, 'Display Mode', params.get('display_mode'));
+            var mode = params.get('display_mode');
+            if (mode === 'on_model')   addRow(accessoryDl, 'Skin Tone', params.get('model_skin_tone'));
+            if (mode === 'flat_lay')   addRow(accessoryDl, 'Surface',   params.get('background_surface'));
+            if (mode === 'lifestyle')  addRow(accessoryDl, 'Scene',     params.get('context_scene'));
         }
     } else {
         // ── Adult: model appearance ───────────────────────────────────────────
@@ -363,6 +422,23 @@
                 },
                 output: { count: 3, resolution: 'high' },
             };
+        } else if (IS_ACCESSORIES) {
+            var accessoryParams = {
+                accessory_category: params.get('accessory_category') || 'necklace',
+                display_mode:       params.get('display_mode') || 'on_model',
+            };
+            var mode = params.get('display_mode') || 'on_model';
+            if (mode === 'on_model')  accessoryParams.model_skin_tone    = params.get('model_skin_tone') || 'medium';
+            if (mode === 'flat_lay')  accessoryParams.background_surface  = params.get('background_surface') || 'white_marble';
+            if (mode === 'lifestyle') accessoryParams.context_scene        = params.get('context_scene') || 'garden';
+            body = {
+                idempotency_key: crypto.randomUUID(),
+                module: 'accessories',
+                product_type: 'accessory',
+                garment_images: uploadedFiles,
+                accessory_params: accessoryParams,
+                output: { count: 2, resolution: 'high' },
+            };
         } else {
             body = {
                 idempotency_key: crypto.randomUUID(),
@@ -397,7 +473,7 @@
                 alert(msg);
             }
             btn.disabled = false;
-            btn.innerHTML = '<span class="text-lg leading-none">✨</span> Generate 3 Images';
+            btn.innerHTML = '<span class="text-lg leading-none">✨</span> ' + (IS_ACCESSORIES ? 'Generate 2 Images' : 'Generate 3 Images');
         }
 
         try {
@@ -410,7 +486,8 @@
             if (resp.ok) {
                 // Store module and start time for generating/results pages
                 sessionStorage.setItem('genStartTime', String(Date.now()));
-                sessionStorage.setItem('generationModule', IS_CHILDREN ? 'children' : 'adult');
+                var genModule = IS_CHILDREN ? 'children' : (IS_ACCESSORIES ? 'accessories' : 'adult');
+                sessionStorage.setItem('generationModule', genModule);
                 window.location.href = '/generating/' + data.id;
             } else {
                 showErr(data.detail || 'Failed to create generation.');

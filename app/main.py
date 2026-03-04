@@ -238,15 +238,43 @@ async def children_review_page(request: Request):
 
 @app.get("/accessories")
 async def accessories_page(request: Request):
+    from app.config.accessories import ACCESSORY_CATEGORIES
     return templates.TemplateResponse(
-        "coming_soon.html",
+        "accessories/entry.html",
+        _ctx(request, categories=ACCESSORY_CATEGORIES),
+    )
+
+
+@app.get("/accessories/upload")
+async def accessories_upload_page(request: Request, category: str = "necklace"):
+    from app.config.accessories import ACCESSORY_CATEGORIES
+    if category not in ACCESSORY_CATEGORIES:
+        category = "necklace"
+    return templates.TemplateResponse(
+        "accessories/upload.html",
+        _ctx(request, category=category, categories=ACCESSORY_CATEGORIES),
+    )
+
+
+@app.get("/accessories/configure")
+async def accessories_configure_page(request: Request, category: str = "necklace"):
+    from app.config.accessories import ACCESSORY_CATEGORIES, BACKGROUND_SURFACES
+    if category not in ACCESSORY_CATEGORIES:
+        category = "necklace"
+    return templates.TemplateResponse(
+        "accessories/configure.html",
         _ctx(
             request,
-            module_name="Accessories",
-            module_icon="👜",
-            module_description="Showcase jewellery, bags, belts and more in 9 categories × 3 display modes.",
+            category=category,
+            categories=ACCESSORY_CATEGORIES,
+            background_surfaces=BACKGROUND_SURFACES,
         ),
     )
+
+
+@app.get("/accessories/review")
+async def accessories_review_page(request: Request):
+    return templates.TemplateResponse("review.html", _ctx(request, module="accessories"))
 
 
 @app.get("/fiton")

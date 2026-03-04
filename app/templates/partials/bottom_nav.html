@@ -33,11 +33,11 @@
         <span class="text-[9px] font-semibold text-[#6C3CE1] mt-0.5">Create</span>
     </a>
 
-    {# Accessories (coming soon) #}
+    {# Accessories #}
     <a href="/accessories"
        class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] transition-colors
-              {% if p == '/accessories' %}text-[#6C3CE1]{% else %}text-gray-300{% endif %}">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              {% if p == '/accessories' or p.startswith('/accessories/') %}text-[#6C3CE1]{% else %}text-gray-500 hover:text-[#6C3CE1]{% endif %}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="{% if p == '/accessories' or p.startswith('/accessories/') %}2.5{% else %}2{% endif %}" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
         <span class="text-[9px] font-semibold">Accessories</span>

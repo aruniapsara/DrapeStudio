@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import step_indicator %}
+
+{% block title %}Configure — Accessories{% endblock %}
+{% block page_title %}Accessories{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-6"
+     x-data="accessoriesConfig('{{ category }}')"
+     x-init="initFromSession()">
+
+    {# Step indicator — 4 steps for accessories #}
+    {{ step_indicator(["Upload", "Configure", "Review", "Results"], 2) }}
+
+    {# Category tabs — scrollable #}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-1 flex gap-1 overflow-x-auto mb-4">
+        {% set category_short = {
+            'necklace':       'Necklace',
+            'earrings':       'Earrings',
+            'bracelet':       'Bracelet',
+            'ring':           'Ring',
+            'handbag':        'Handbag',
+            'hat':            'Hat',
+            'scarf':          'Scarf',
+            'crochet':        'Crochet',
+            'hair_accessory': 'Hair',
+        } %}
+        {% for key, cat in categories.items() %}
+        <button type="button"
+                @click="changeCategory('{{ key }}')"
+                class="flex-shrink-0 rounded-xl py-2 px-3 text-center text-xs font-semibold transition-all whitespace-nowrap"
+                :class="category === '{{ key }}'
+                    ? 'bg-primary text-white'
+                    : 'text-gray-500 hover:bg-gray-50'">
+            {{ category_short.get(key, cat.label) }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <div class="space-y-3">
+
+        {# ── Display Mode ──────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Display Mode</p>
+            <div class="grid grid-cols-3 gap-3">
+
+                <label @click="displayMode = 'on_model'" class="cursor-pointer">
+                    <div class="rounded-2xl border-2 p-4 text-center transition-all select-none"
+                         :class="displayMode === 'on_model'
+                             ? 'border-primary bg-primary/5 shadow-card-hover'
+                             : 'border-gray-200 hover:border-primary/30'">
+                        <p class="text-2xl mb-1.5">🧑</p>
+                        <p class="text-xs font-bold text-dark">On Model</p>
+                        <p class="text-[9px] text-gray-400 mt-0.5">Worn or held</p>
+                    </div>
+                </label>
+
+                <label @click="displayMode = 'flat_lay'" class="cursor-pointer">
+                    <div class="rounded-2xl border-2 p-4 text-center transition-all select-none"
+                         :class="displayMode === 'flat_lay'
+                             ? 'border-primary bg-primary/5 shadow-card-hover'
+                             : 'border-gray-200 hover:border-primary/30'">
+                        <p class="text-2xl mb-1.5">📐</p>
+                        <p class="text-xs font-bold text-dark">Flat Lay</p>
+                        <p class="text-[9px] text-gray-400 mt-0.5">On a surface</p>
+                    </div>
+                </label>
+
+                <label @click="displayMode = 'lifestyle'" class="cursor-pointer">
+                    <div class="rounded-2xl border-2 p-4 text-center transition-all select-none"
+                         :class="displayMode === 'lifestyle'
+                             ? 'border-primary bg-primary/5 shadow-card-hover'
+                             : 'border-gray-200 hover:border-primary/30'">
+                        <p class="text-2xl mb-1.5">🌿</p>
+                        <p class="text-xs font-bold text-dark">Lifestyle</p>
+                        <p class="text-[9px] text-gray-400 mt-0.5">In context</p>
+                    </div>
+                </label>
+
+            </div>
+        </div>
+
+        {# ── On Model: Skin Tone ────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5"
+             x-show="displayMode === 'on_model'"
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Model Skin Tone</p>
+            <div class="flex gap-4 flex-wrap">
+                <template x-for="tone in skinTones" :key="tone.value">
+                    <label @click="skinTone = tone.value" class="cursor-pointer flex flex-col items-center gap-1">
+                        <div class="w-10 h-10 rounded-full shadow-sm border-[3px] transition-all"
+                             :class="skinTone === tone.value
+                                 ? 'border-primary scale-110 shadow-md'
+                                 : 'border-transparent hover:border-gray-300'"
+                             :style="'background-color:' + tone.hex"></div>
+                        <span class="text-[9px] text-gray-500 font-medium" x-text="tone.label"></span>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+        {# ── Flat Lay: Surface ──────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5"
+             x-show="displayMode === 'flat_lay'"
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Background Surface</p>
+            <div class="grid grid-cols-3 gap-2">
+                <template x-for="surface in surfaces" :key="surface.value">
+                    <label @click="backgroundSurface = surface.value" class="cursor-pointer">
+                        <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
+                             :class="backgroundSurface === surface.value
+                                 ? 'border-primary bg-primary/5'
+                                 : 'border-gray-200 hover:border-primary/30'">
+                            <p class="text-lg mb-0.5" x-text="surface.icon"></p>
+                            <p class="text-[10px] font-semibold text-dark leading-tight" x-text="surface.label"></p>
+                        </div>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+        {# ── Lifestyle: Scene ───────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5"
+             x-show="displayMode === 'lifestyle'"
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Scene</p>
+            <div class="grid grid-cols-3 gap-2">
+                <template x-for="scene in scenes" :key="scene.value">
+                    <label @click="contextScene = scene.value" class="cursor-pointer">
+                        <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
+                             :class="contextScene === scene.value
+                                 ? 'border-primary bg-primary/5'
+                                 : 'border-gray-200 hover:border-primary/30'">
+                            <p class="text-lg mb-0.5" x-text="scene.icon"></p>
+                            <p class="text-[10px] font-semibold text-dark leading-tight" x-text="scene.label"></p>
+                        </div>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+        {# Output preview info #}
+        <div class="bg-primary/5 border border-primary/15 rounded-2xl p-4 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span class="text-lg">📷</span>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-dark">2 images generated</p>
+                <p class="text-xs text-gray-500">
+                    <span x-show="displayMode === 'on_model'">Straight-on + angled view</span>
+                    <span x-show="displayMode === 'flat_lay'">Overhead + 45° angle</span>
+                    <span x-show="displayMode === 'lifestyle'">Wide scene + product-focused</span>
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    {# Actions #}
+    <div class="flex gap-3 mt-4 pb-6">
+        <a :href="'/accessories/upload?category=' + category"
+           class="inline-flex items-center justify-center font-semibold rounded-xl transition-all text-sm px-5 py-3 min-h-[48px]
+                  border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 flex-none">
+            ← Back
+        </a>
+        <button type="button"
+                @click="saveAndProceed()"
+                class="flex-1 inline-flex items-center justify-center font-semibold rounded-xl transition-all text-base px-6 py-3 min-h-[48px]
+                       bg-primary text-white shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50">
+            Next: Review
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/accessories-config.js"></script>
+{% endblock %}

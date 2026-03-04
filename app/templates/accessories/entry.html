@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Accessories — DrapeStudio{% endblock %}
+{% block page_title %}Accessories{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-6"
+     x-data="{ category: 'necklace' }">
+
+    {# Hero banner #}
+    <div class="bg-gradient-to-br from-primary/10 via-teal/5 to-primary/5 rounded-3xl p-6 mb-6 text-center border border-primary/10">
+        <div class="text-5xl mb-3">👜</div>
+        <h2 class="text-xl font-bold text-dark mb-1.5">Accessories Photography</h2>
+        <p class="text-sm text-gray-500 leading-relaxed">On-model, flat-lay or lifestyle shots for 9 accessory categories</p>
+    </div>
+
+    {# Category selection #}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 mb-4">
+        <h3 class="text-sm font-bold text-dark mb-1">Choose Category</h3>
+        <p class="text-xs text-gray-400 mb-4">Select the type of accessory you want to showcase</p>
+
+        <div class="grid grid-cols-3 gap-3">
+
+            {% set category_icons = {
+                'necklace':      '📿',
+                'earrings':      '💎',
+                'bracelet':      '✨',
+                'ring':          '💍',
+                'handbag':       '👜',
+                'hat':           '🎩',
+                'scarf':         '🧣',
+                'crochet':       '🧶',
+                'hair_accessory':'🌸',
+            } %}
+
+            {% for key, cat in categories.items() %}
+            <label @click="category = '{{ key }}'" class="cursor-pointer">
+                <div class="rounded-2xl border-2 p-3 text-center transition-all select-none"
+                     :class="category === '{{ key }}'
+                         ? 'border-primary bg-primary/5 shadow-card-hover'
+                         : 'border-gray-200 hover:border-primary/30'">
+                    <p class="text-2xl mb-1.5">{{ category_icons.get(key, '✨') }}</p>
+                    <p class="text-[11px] font-bold text-dark leading-tight">{{ cat.label }}</p>
+                </div>
+            </label>
+            {% endfor %}
+
+        </div>
+    </div>
+
+    {# Info banner #}
+    <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6">
+        <p class="text-xs font-semibold text-blue-800 mb-2">✨ Three display modes</p>
+        <ul class="text-xs text-blue-700 space-y-1">
+            <li>• <strong>On Model</strong> — worn or held by a model, body-area focused</li>
+            <li>• <strong>Flat Lay</strong> — product on a styled surface, no model</li>
+            <li>• <strong>Lifestyle</strong> — product in a real-world aspirational setting</li>
+        </ul>
+    </div>
+
+    {# Start button #}
+    <a :href="'/accessories/upload?category=' + category"
+       class="w-full inline-flex items-center justify-center gap-2.5 font-semibold rounded-2xl transition-all
+              text-base px-6 py-4 min-h-[56px] bg-primary text-white shadow-sm hover:bg-primary-dark
+              focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50">
+        Start Uploading
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+    </a>
+
+</div>
+{% endblock %}
