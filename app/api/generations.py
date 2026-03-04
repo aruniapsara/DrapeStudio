@@ -77,6 +77,7 @@ def create_generation(
             "child_gender": cp.child_gender,
             "hair_style": cp.hair_style or "",
             "expression": cp.expression or "happy",
+            "skin_tone": cp.skin_tone or "medium",
             "product_type": body.product_type,
         }
         scene_params_dict: dict = {

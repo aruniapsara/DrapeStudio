@@ -1,14 +1,20 @@
 {% extends "base.html" %}
 {% from "components/ui.html" import step_indicator %}
 
+{% set is_children = module is defined and module == 'children' %}
+
 {% block title %}Review — DrapeStudio{% endblock %}
 {% block page_title %}Review & Generate{% endblock %}
 
 {% block content %}
 <div class="max-w-xl mx-auto px-4 py-6">
 
-    {# Step indicator #}
+    {# Step indicator — 4 steps for children, 5 for adult #}
+    {% if is_children %}
+    {{ step_indicator(["Upload", "Configure", "Review", "Results"], 3) }}
+    {% else %}
     {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 3) }}
+    {% endif %}
 
     <div class="space-y-4">
 
@@ -18,7 +24,16 @@
             <div id="review-images" class="flex gap-2 overflow-x-auto pb-1"></div>
         </div>
 
-        {# ── Model Appearance ─────────────────────────────────────────── #}
+        {# ── Children configuration (children module only) ─────────────── #}
+        {% if is_children %}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-3">Child Configuration</h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-child"></dl>
+        </div>
+        {% endif %}
+
+        {# ── Model Appearance (adult module only) ─────────────────────── #}
+        {% if not is_children %}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
             <h3 class="text-sm font-bold text-dark mb-3">Model Appearance</h3>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-model"></dl>
@@ -30,18 +45,23 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        {# ── Scene Settings ───────────────────────────────────────────── #}
+        {# ── Scene Settings (adult module only) ───────────────────────── #}
+        {% if not is_children %}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
             <h3 class="text-sm font-bold text-dark mb-3">Scene Settings</h3>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-scene"></dl>
         </div>
+        {% endif %}
 
-        {# ── Measurements (conditional) ───────────────────────────────── #}
+        {# ── Measurements (adult only, conditional) ───────────────────── #}
+        {% if not is_children %}
         <div id="review-measurements-section" class="hidden bg-white rounded-2xl border border-gray-100 shadow-card p-5">
             <h3 class="text-sm font-bold text-dark mb-3">Measurements</h3>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-measurements"></dl>
         </div>
+        {% endif %}
 
         {# ── Credit indicator ─────────────────────────────────────────── #}
         <div class="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center gap-3">
@@ -56,7 +76,7 @@
 
         {# ── Actions ──────────────────────────────────────────────────── #}
         <div class="flex gap-3 pb-6">
-            <a href="/configure"
+            <a href="{% if is_children %}/children/configure{% else %}/configure{% endif %}"
                class="inline-flex items-center justify-center font-semibold rounded-xl transition-all text-sm px-5 py-3 min-h-[48px]
                       border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 flex-none">
                 ← Edit
@@ -76,6 +96,8 @@
 </div>
 
 <script>
+    const IS_CHILDREN = {{ 'true' if is_children else 'false' }};
+
     const LABELS = {
         product_type:           'Product Type',
         age_range:              'Age Range',
@@ -89,6 +111,12 @@
         environment:            'Environment',
         pose_preset:            'Pose',
         framing:                'Framing',
+        // Children labels
+        age_group:              'Age Group',
+        child_gender:           'Gender',
+        pose_style:             'Pose',
+        background_preset:      'Background',
+        expression:             'Expression',
     };
 
     const VALUE_LABELS = {
@@ -98,10 +126,14 @@
         middle_eastern:  'Middle Eastern',
         african:         'African',
         european:        'European',
-        // Gender
+        // Gender (adult)
         feminine:        'Female (Women)',
         masculine:       'Male (Men)',
         neutral:         'Unisex',
+        // Gender (children)
+        girl:            'Girl',
+        boy:             'Boy',
+        unisex:          'Unisex',
         // Skin tone
         very_light:      'Very Light',
         light:           'Light',
@@ -113,33 +145,31 @@
         average:         'Average',
         athletic:        'Athletic',
         plus_size:       'Plus Size',
-        // Hair styles (feminine)
+        // Hair styles (adult feminine)
         long_straight:   'Long Straight',
         long_wavy:       'Long Wavy',
         medium_layered:  'Med Layered',
         short_bob:       'Short Bob',
         curly:           'Curly',
         braided:         'Braided',
-        // Hair styles (masculine)
+        // Hair styles (adult masculine)
         short_crop:      'Short Crop',
         side_part:       'Side Part',
         slicked_back:    'Slicked Back',
         curly_short:     'Curly Short',
         buzz_cut:        'Buzz Cut',
         long:            'Long',
-        // Hair styles (neutral)
-        short_straight:  'Short Straight',
-        medium_length:   'Medium',
-        shaved:          'Shaved',
-        natural_curly:   'Natural Curly',
-        // Hair color
-        black:           'Black',
-        dark_brown:      'Dark Brown',
-        brown:           'Brown',
-        auburn:          'Auburn',
-        blonde:          'Blonde',
-        gray:            'Gray',
-        white:           'White',
+        // Hair styles (children)
+        none:            'None / Natural',
+        bonnet:          'Bonnet',
+        cap:             'Cap',
+        short:           'Short',
+        medium:          'Medium',
+        ponytail:        'Ponytail',
+        braids:          'Braids',
+        with_bow:        'With Bow',
+        with_clips:      'With Clips',
+        trending:        'Trending',
         // Product types
         casual:          'Casual Wear',
         formal:          'Formal / Office',
@@ -155,7 +185,7 @@
         indoor_office:    'Office',
         coffee_shop:      'Café',
         traditional_room: 'Traditional Room',
-        // Poses
+        // Poses (adult)
         front_standing:   'Standing',
         casual_walking:   'Walking',
         seated:           'Seated',
@@ -164,6 +194,41 @@
         full_body:        'Full Body',
         half_body:        'Half Body',
         close_up:         'Close-Up',
+        // Age groups (children)
+        baby:             'Baby (0–2)',
+        toddler:          'Toddler (2–5)',
+        kid:              'Kid (6–12)',
+        teen:             'Teen (13–17)',
+        // Poses (children)
+        sitting:          'Sitting',
+        lying:            'Lying',
+        held:             'Held',
+        standing:         'Standing',
+        walking:          'Walking',
+        playing:          'Playing',
+        school:           'School',
+        active:           'Active',
+        fashion_standing: 'Fashion',
+        urban:            'Urban',
+        casual:           'Casual',
+        // Backgrounds (children)
+        nursery:          'Nursery',
+        soft_blanket:     'Blanket',
+        pastel_studio:    'Pastel Studio',
+        playground:       'Playground',
+        colorful_studio:  'Colorful Studio',
+        park:             'Park',
+        bedroom:          'Bedroom',
+        campus:           'Campus',
+        outdoor:          'Outdoor',
+        studio:           'Studio',
+        // Expressions
+        happy:            'Happy',
+        neutral:          'Neutral',
+        curious:          'Curious',
+        laughing:         'Laughing',
+        confident:        'Confident',
+        cool:             'Cool',
     };
 
     function fmt(val) {
@@ -195,52 +260,66 @@
         imgContainer.innerHTML = '<p class="text-xs text-gray-400">No images found in session.</p>';
     }
 
-    // ── Model appearance ─────────────────────────────────────────────────────
-    var modelDl = document.getElementById('review-model');
-    ['product_type', 'gender_presentation', 'age_range', 'ethnicity',
-     'skin_tone', 'body_type', 'hair_style', 'hair_color'].forEach(function(f) {
-        addRow(modelDl, LABELS[f] || f.replace(/_/g, ' '), params.get(f));
-    });
-    var addl = params.get('additional_description');
-    if (addl) addRow(modelDl, LABELS['additional_description'], addl);
-
-    // Model photo
-    var modelPhotoUrl = params.get('model_photo_url') || '';
-    if (modelPhotoUrl) {
-        document.getElementById('review-model-photo-img').src =
-            '/v1/files/' + modelPhotoUrl.replace('local://', '');
-        document.getElementById('review-model-photo').classList.remove('hidden');
-    }
-
-    // ── Scene ─────────────────────────────────────────────────────────────────
-    var sceneDl = document.getElementById('review-scene');
-    ['environment', 'pose_preset', 'framing'].forEach(function(f) {
-        addRow(sceneDl, LABELS[f] || f.replace(/_/g, ' '), params.get(f));
-    });
-
-    // ── Measurements ─────────────────────────────────────────────────────────
-    var measureMap = {
-        m_height_cm:     'Height (cm)',
-        m_chest_bust_cm: 'Chest / Bust (cm)',
-        m_waist_cm:      'Waist (cm)',
-        m_hips_cm:       'Hips (cm)',
-    };
-    var measureDl = document.getElementById('review-measurements');
-    var hasMeasurements = false;
-    Object.keys(measureMap).forEach(function(key) {
-        var val = params.get(key);
-        if (val) {
-            hasMeasurements = true;
-            measureDl.innerHTML +=
-                '<dt class="text-xs text-gray-400 font-medium">' + measureMap[key] + '</dt>' +
-                '<dd class="text-xs text-dark font-semibold">' + val + '</dd>';
+    if (IS_CHILDREN) {
+        // ── Children configuration ────────────────────────────────────────────
+        var childDl = document.getElementById('review-child');
+        if (childDl) {
+            addRow(childDl, 'Age Group',    params.get('age_group'));
+            addRow(childDl, 'Gender',       params.get('child_gender'));
+            addRow(childDl, 'Skin Tone',    params.get('skin_tone'));
+            addRow(childDl, 'Pose',         params.get('pose_style'));
+            addRow(childDl, 'Background',   params.get('background_preset'));
+            addRow(childDl, 'Hair',         params.get('hair_style'));
+            addRow(childDl, 'Expression',   params.get('expression'));
         }
-    });
-    if (hasMeasurements) {
-        document.getElementById('review-measurements-section').classList.remove('hidden');
+    } else {
+        // ── Adult: model appearance ───────────────────────────────────────────
+        var modelDl = document.getElementById('review-model');
+        ['product_type', 'gender_presentation', 'age_range', 'ethnicity',
+         'skin_tone', 'body_type', 'hair_style', 'hair_color'].forEach(function(f) {
+            addRow(modelDl, LABELS[f] || f.replace(/_/g, ' '), params.get(f));
+        });
+        var addl = params.get('additional_description');
+        if (addl) addRow(modelDl, LABELS['additional_description'], addl);
+
+        // Model reference photo
+        var modelPhotoUrl = params.get('model_photo_url') || '';
+        if (modelPhotoUrl) {
+            document.getElementById('review-model-photo-img').src =
+                '/v1/files/' + modelPhotoUrl.replace('local://', '');
+            document.getElementById('review-model-photo').classList.remove('hidden');
+        }
+
+        // ── Adult: scene ─────────────────────────────────────────────────────
+        var sceneDl = document.getElementById('review-scene');
+        ['environment', 'pose_preset', 'framing'].forEach(function(f) {
+            addRow(sceneDl, LABELS[f] || f.replace(/_/g, ' '), params.get(f));
+        });
+
+        // ── Adult: measurements ──────────────────────────────────────────────
+        var measureMap = {
+            m_height_cm:     'Height (cm)',
+            m_chest_bust_cm: 'Chest / Bust (cm)',
+            m_waist_cm:      'Waist (cm)',
+            m_hips_cm:       'Hips (cm)',
+        };
+        var measureDl = document.getElementById('review-measurements');
+        var hasMeasurements = false;
+        Object.keys(measureMap).forEach(function(key) {
+            var val = params.get(key);
+            if (val) {
+                hasMeasurements = true;
+                measureDl.innerHTML +=
+                    '<dt class="text-xs text-gray-400 font-medium">' + measureMap[key] + '</dt>' +
+                    '<dd class="text-xs text-dark font-semibold">' + val + '</dd>';
+            }
+        });
+        if (hasMeasurements) {
+            document.getElementById('review-measurements-section').classList.remove('hidden');
+        }
     }
 
-    // ── Measurements helper for API body ─────────────────────────────────────
+    // ── Measurements helper for adult API body ────────────────────────────────
     function buildMeasurements() {
         var schemaMap = {
             m_height_cm:     'height_cm',
@@ -266,30 +345,50 @@
                 '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>' +
             '</svg>Submitting…';
 
-        var body = {
-            idempotency_key: crypto.randomUUID(),
-            product_type: params.get('product_type') || 'casual',
-            garment_images: uploadedFiles,
-            model_params: {
-                age_range:              params.get('age_range'),
-                gender_presentation:    params.get('gender_presentation'),
-                ethnicity:              params.get('ethnicity') || '',
-                skin_tone:              params.get('skin_tone'),
-                body_mode:              'simple',
-                body_type:              params.get('body_type'),
-                hair_style:             params.get('hair_style') || '',
-                hair_color:             params.get('hair_color') || '',
-                additional_description: params.get('additional_description') || '',
-                model_photo_url:        params.get('model_photo_url') || null,
-                measurements:           buildMeasurements(),
-            },
-            scene: {
-                environment:  params.get('environment'),
-                pose_preset:  params.get('pose_preset'),
-                framing:      params.get('framing'),
-            },
-            output: { count: 3, resolution: 'high' },
-        };
+        var body;
+        if (IS_CHILDREN) {
+            body = {
+                idempotency_key: crypto.randomUUID(),
+                module: 'children',
+                product_type: 'clothing',
+                garment_images: uploadedFiles,
+                child_params: {
+                    age_group:         params.get('age_group'),
+                    child_gender:      params.get('child_gender') || 'unisex',
+                    skin_tone:         params.get('skin_tone') || 'medium',
+                    pose_style:        params.get('pose_style'),
+                    background_preset: params.get('background_preset'),
+                    hair_style:        params.get('hair_style') || null,
+                    expression:        params.get('expression') || 'happy',
+                },
+                output: { count: 3, resolution: 'high' },
+            };
+        } else {
+            body = {
+                idempotency_key: crypto.randomUUID(),
+                product_type: params.get('product_type') || 'casual',
+                garment_images: uploadedFiles,
+                model_params: {
+                    age_range:              params.get('age_range'),
+                    gender_presentation:    params.get('gender_presentation'),
+                    ethnicity:              params.get('ethnicity') || '',
+                    skin_tone:              params.get('skin_tone'),
+                    body_mode:              'simple',
+                    body_type:              params.get('body_type'),
+                    hair_style:             params.get('hair_style') || '',
+                    hair_color:             params.get('hair_color') || '',
+                    additional_description: params.get('additional_description') || '',
+                    model_photo_url:        params.get('model_photo_url') || null,
+                    measurements:           buildMeasurements(),
+                },
+                scene: {
+                    environment:  params.get('environment'),
+                    pose_preset:  params.get('pose_preset'),
+                    framing:      params.get('framing'),
+                },
+                output: { count: 3, resolution: 'high' },
+            };
+        }
 
         function showErr(msg) {
             if (window.$toast && typeof window.$toast.addToast === 'function') {
@@ -309,8 +408,9 @@
             });
             var data = await resp.json();
             if (resp.ok) {
-                // Record start time for the progress indicators on generating page
+                // Store module and start time for generating/results pages
                 sessionStorage.setItem('genStartTime', String(Date.now()));
+                sessionStorage.setItem('generationModule', IS_CHILDREN ? 'children' : 'adult');
                 window.location.href = '/generating/' + data.id;
             } else {
                 showErr(data.detail || 'Failed to create generation.');

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% from "components/ui.html" import step_indicator %}
 
+{% set is_children = module is defined and module == 'children' %}
+
 {% block title %}Results — DrapeStudio{% endblock %}
 {% block page_title %}Your Images ✨{% endblock %}
 
@@ -11,8 +13,12 @@
      x-init="init()"
      class="max-w-xl mx-auto px-4 py-6">
 
-    {# Step indicator #}
+    {# Step indicator — 4 steps for children, 5 for adult #}
+    {% if is_children %}
+    {{ step_indicator(["Upload", "Configure", "Review", "Results"], 4) }}
+    {% else %}
     {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 5) }}
+    {% endif %}
 
     {# ── Loading skeleton ──────────────────────────────────────────────────── #}
     <template x-if="!loaded && !failed">
@@ -36,14 +42,16 @@
             <p class="text-sm text-gray-500 mb-2" x-text="errorMessage"></p>
             <p class="text-xs text-gray-400 mb-6">Your credits have <strong>not</strong> been deducted.</p>
             <div class="flex gap-3 justify-center">
-                <a href="/review" class="inline-flex items-center justify-center gap-2 px-5 py-2.5
-                                         bg-primary hover:bg-primary-dark text-white text-sm font-semibold
-                                         rounded-xl transition-colors">
+                <a href="{% if is_children %}/children/review{% else %}/review{% endif %}"
+                   class="inline-flex items-center justify-center gap-2 px-5 py-2.5
+                          bg-primary hover:bg-primary-dark text-white text-sm font-semibold
+                          rounded-xl transition-colors">
                     🔄 Try Again
                 </a>
-                <a href="/upload" class="inline-flex items-center justify-center gap-2 px-5 py-2.5
-                                         border border-gray-200 text-gray-600 bg-white hover:bg-gray-50
-                                         text-sm font-semibold rounded-xl transition-colors">
+                <a href="{% if is_children %}/children{% else %}/upload{% endif %}"
+                   class="inline-flex items-center justify-center gap-2 px-5 py-2.5
+                          border border-gray-200 text-gray-600 bg-white hover:bg-gray-50
+                          text-sm font-semibold rounded-xl transition-colors">
                     🏠 New Upload
                 </a>
             </div>
@@ -96,7 +104,7 @@
                     </svg>
                 </button>
 
-                {# Swipe hint — mobile only, fade out after first swipe #}
+                {# Swipe hint — mobile only #}
                 <div class="sm:hidden absolute bottom-3 inset-x-0 flex justify-center pointer-events-none">
                     <div class="bg-black/30 text-white text-[10px] px-3 py-1 rounded-full">
                         ← Swipe to navigate →
@@ -188,14 +196,17 @@
 
             {# ── Secondary actions ──────────────────────────────────────────── #}
             <div class="flex gap-3 pb-6">
+                {# Regenerate — hidden for children's module #}
+                {% if not is_children %}
                 <a :href="'/generating/' + genId + '?regenerate=1'"
                    class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[48px]
                           border border-gray-200 text-gray-600 bg-white hover:bg-gray-50
                           font-semibold text-sm rounded-xl transition-colors">
                     🔄 Regenerate
                 </a>
-                <a href="/upload"
-                   class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[48px]
+                {% endif %}
+                <a href="{% if is_children %}/children{% else %}/upload{% endif %}"
+                   class="{% if not is_children %}flex-1{% else %}w-full{% endif %} inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[48px]
                           border border-gray-200 text-gray-600 bg-white hover:bg-gray-50
                           font-semibold text-sm rounded-xl transition-colors">
                     🏠 New Upload

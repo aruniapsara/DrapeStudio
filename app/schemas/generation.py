@@ -68,6 +68,7 @@ class ChildParamsCreate(BaseModel):
     background_preset: str = Field(..., description="Background preset (must be valid for age_group)")
     hair_style: Optional[str] = Field(default=None, description="Hair style option")
     expression: Optional[str] = Field(default="happy", description="Facial expression")
+    skin_tone: Optional[str] = Field(default="medium", description="Skin tone preset key")
 
     model_config = {"extra": "forbid"}
 

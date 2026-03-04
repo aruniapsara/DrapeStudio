@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import step_indicator %}
+
+{% block title %}Configure — Kids Clothing{% endblock %}
+{% block page_title %}Configure{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-6"
+     x-data="childrenConfig('{{ age_group }}')"
+     x-init="initFromSession()">
+
+    {# Step indicator — 4 steps for children #}
+    {{ step_indicator(["Upload", "Configure", "Review", "Results"], 2) }}
+
+    {# Age group tabs #}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-1 flex gap-1 mb-4">
+        {% for key, group in age_groups.items() %}
+        <button type="button"
+                @click="changeAgeGroup('{{ key }}')"
+                class="flex-1 rounded-xl py-2.5 text-center text-xs font-semibold transition-all"
+                :class="ageGroup === '{{ key }}'
+                    ? 'bg-primary text-white'
+                    : 'text-gray-500 hover:bg-gray-50'">
+            <span class="hidden sm:inline">{{ group.emoji }} </span>{{ group.label.split('(')[0].strip() }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <div class="space-y-3">
+
+        {# ── Skin Tone ─────────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Skin Tone</p>
+            <div class="flex gap-4 flex-wrap">
+                <template x-for="tone in skinTones" :key="tone.value">
+                    <label @click="skinTone = tone.value" class="cursor-pointer flex flex-col items-center gap-1">
+                        <div class="w-10 h-10 rounded-full shadow-sm border-[3px] transition-all"
+                             :class="skinTone === tone.value
+                                 ? 'border-primary scale-110 shadow-md'
+                                 : 'border-transparent hover:border-gray-300'"
+                             :style="'background-color:' + tone.hex"></div>
+                        <span class="text-[9px] text-gray-500 font-medium" x-text="tone.label"></span>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+        {# ── Pose (age-adaptive) ───────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Pose</p>
+            <div class="grid gap-2"
+                 :class="config.poses.length <= 3 ? 'grid-cols-3' : 'grid-cols-4'">
+                <template x-for="pose in config.poses" :key="pose.id">
+                    <label @click="selectedPose = pose.id" class="cursor-pointer">
+                        <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
+                             :class="selectedPose === pose.id
+                                 ? 'border-primary bg-primary/5'
+                                 : 'border-gray-200 hover:border-primary/30'">
+                            <p class="text-xl mb-0.5" x-text="pose.icon"></p>
+                            <p class="text-[10px] font-semibold text-dark leading-tight" x-text="pose.label"></p>
+                        </div>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+        {# ── Background (age-adaptive) ─────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Background</p>
+            <div class="grid gap-2"
+                 :class="config.backgrounds.length <= 3 ? 'grid-cols-3' : (config.backgrounds.length === 5 ? 'grid-cols-5' : 'grid-cols-4')">
+                <template x-for="bg in config.backgrounds" :key="bg.id">
+                    <label @click="selectedBackground = bg.id" class="cursor-pointer">
+                        <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
+                             :class="selectedBackground === bg.id
+                                 ? 'border-primary bg-primary/5'
+                                 : 'border-gray-200 hover:border-primary/30'">
+                            <p class="text-xl mb-0.5" x-text="bg.icon"></p>
+                            <p class="text-[10px] font-semibold text-dark leading-tight" x-text="bg.label"></p>
+                        </div>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+        {# ── Hair Style / Head Covering (age-adaptive) ─────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Hair Style / Head Covering</p>
+            <div class="flex gap-1.5 flex-wrap">
+                <template x-for="hair in config.hairOptions" :key="hair.id">
+                    <label @click="selectedHair = hair.id" class="cursor-pointer">
+                        <div class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border min-h-[36px] flex items-center gap-1"
+                             :class="selectedHair === hair.id
+                                 ? 'bg-primary text-white border-primary'
+                                 : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40'">
+                            <span x-text="hair.icon"></span>
+                            <span x-text="hair.label"></span>
+                        </div>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+        {# ── Expression (age-adaptive) ─────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Expression</p>
+            <div class="flex gap-1.5 flex-wrap">
+                <template x-for="expr in config.expressions" :key="expr.id">
+                    <label @click="selectedExpression = expr.id" class="cursor-pointer">
+                        <div class="px-3 py-2 rounded-xl text-xs font-semibold transition-all border min-h-[36px] flex items-center gap-1"
+                             :class="selectedExpression === expr.id
+                                 ? 'bg-primary text-white border-primary'
+                                 : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary/40'">
+                            <span x-text="expr.icon"></span>
+                            <span x-text="expr.label"></span>
+                        </div>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+    </div>
+
+    {# Actions #}
+    <div class="flex gap-3 mt-4 pb-6">
+        <a :href="'/children/upload?age_group=' + ageGroup"
+           class="inline-flex items-center justify-center font-semibold rounded-xl transition-all text-sm px-5 py-3 min-h-[48px]
+                  border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 flex-none">
+            ← Back
+        </a>
+        <button type="button"
+                @click="saveAndProceed()"
+                class="flex-1 inline-flex items-center justify-center font-semibold rounded-xl transition-all text-base px-6 py-3 min-h-[48px]
+                       bg-primary text-white shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50">
+            Next: Review
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/children-config.js"></script>
+{% endblock %}

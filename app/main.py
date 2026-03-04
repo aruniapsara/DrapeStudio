@@ -160,7 +160,7 @@ async def configure_page(request: Request):
 
 @app.get("/review")
 async def review_page(request: Request):
-    return templates.TemplateResponse("review.html", _ctx(request))
+    return templates.TemplateResponse("review.html", _ctx(request, module="adult"))
 
 
 @app.get("/generating/{gen_id}")
@@ -172,10 +172,10 @@ async def generating_page(request: Request, gen_id: str):
 
 
 @app.get("/results/{gen_id}")
-async def results_page(request: Request, gen_id: str):
+async def results_page(request: Request, gen_id: str, module: str = "adult"):
     return templates.TemplateResponse(
         "results.html",
-        _ctx(request, gen_id=gen_id),
+        _ctx(request, gen_id=gen_id, module=module),
     )
 
 
@@ -202,15 +202,38 @@ async def profile_page(request: Request):
 
 @app.get("/children")
 async def children_page(request: Request):
+    from app.children_config import AGE_GROUPS
     return templates.TemplateResponse(
-        "coming_soon.html",
-        _ctx(
-            request,
-            module_name="Children's Clothing",
-            module_icon="👕",
-            module_description="Age-appropriate AI model images for kids' clothing across 4 age groups.",
-        ),
+        "children/entry.html",
+        _ctx(request, age_groups=AGE_GROUPS),
     )
+
+
+@app.get("/children/upload")
+async def children_upload_page(request: Request, age_group: str = "kid"):
+    from app.children_config import AGE_GROUPS
+    if age_group not in AGE_GROUPS:
+        age_group = "kid"
+    return templates.TemplateResponse(
+        "children/upload.html",
+        _ctx(request, age_group=age_group, age_groups=AGE_GROUPS),
+    )
+
+
+@app.get("/children/configure")
+async def children_configure_page(request: Request, age_group: str = "kid"):
+    from app.children_config import AGE_GROUPS
+    if age_group not in AGE_GROUPS:
+        age_group = "kid"
+    return templates.TemplateResponse(
+        "children/configure.html",
+        _ctx(request, age_group=age_group, age_groups=AGE_GROUPS),
+    )
+
+
+@app.get("/children/review")
+async def children_review_page(request: Request):
+    return templates.TemplateResponse("review.html", _ctx(request, module="children"))
 
 
 @app.get("/accessories")

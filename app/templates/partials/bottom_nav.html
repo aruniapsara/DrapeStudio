@@ -12,11 +12,11 @@
         <span class="text-[9px] font-semibold">Home</span>
     </a>
 
-    {# Kids (coming soon) #}
+    {# Kids #}
     <a href="/children"
        class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] transition-colors
-              {% if p == '/children' %}text-[#6C3CE1]{% else %}text-gray-300{% endif %}">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              {% if p == '/children' or p.startswith('/children/') %}text-[#6C3CE1]{% else %}text-gray-500 hover:text-[#6C3CE1]{% endif %}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="{% if p == '/children' or p.startswith('/children/') %}2.5{% else %}2{% endif %}" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="8" r="3"/><path d="M6 20v-1a6 6 0 0112 0v1"/>
         </svg>
         <span class="text-[9px] font-semibold">Kids</span>
