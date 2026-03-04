@@ -11,6 +11,7 @@ from app.children_config import (
     get_allowed_poses,
     get_allowed_backgrounds,
 )
+from app.config.accessories import VALID_ACCESSORY_CATEGORIES, VALID_DISPLAY_MODES
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +98,52 @@ class ChildParamsCreate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Request schemas — Accessories module
+# ---------------------------------------------------------------------------
+
+class AccessoryParamsCreate(BaseModel):
+    """Parameters for accessories generation.
+
+    Validates that display-mode-specific required fields are present:
+    - on_model  → model_skin_tone required
+    - flat_lay  → background_surface required
+    - lifestyle → context_scene recommended but not required
+    """
+
+    accessory_category: Literal[
+        "necklace", "earrings", "bracelet", "ring",
+        "handbag", "hat", "scarf", "crochet", "hair_accessory"
+    ] = Field(..., description="Accessory subcategory")
+    display_mode: Literal["on_model", "flat_lay", "lifestyle"] = Field(
+        ..., description="How the accessory is displayed in the image"
+    )
+    context_scene: Optional[str] = Field(
+        default=None, description="Lifestyle context scene key"
+    )
+    model_skin_tone: Optional[str] = Field(
+        default=None, description="Skin tone preset; required when display_mode=on_model"
+    )
+    background_surface: Optional[str] = Field(
+        default=None, description="Surface material; required when display_mode=flat_lay"
+    )
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def validate_display_mode_requirements(self) -> "AccessoryParamsCreate":
+        """Enforce required fields for each display mode."""
+        if self.display_mode == "on_model" and not self.model_skin_tone:
+            raise ValueError(
+                "model_skin_tone is required when display_mode='on_model'"
+            )
+        if self.display_mode == "flat_lay" and not self.background_surface:
+            raise ValueError(
+                "background_surface is required when display_mode='flat_lay'"
+            )
+        return self
+
+
+# ---------------------------------------------------------------------------
 # Main create request
 # ---------------------------------------------------------------------------
 
@@ -104,7 +151,7 @@ class CreateGenerationRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
 
     idempotency_key: str | None = None
-    module: Literal["adult", "children"] = Field(
+    module: Literal["adult", "children", "accessories"] = Field(
         default="adult",
         description="Which DrapeStudio module to use"
     )
@@ -122,6 +169,10 @@ class CreateGenerationRequest(BaseModel):
         default=None,
         description="Required when module=children"
     )
+    accessory_params: AccessoryParamsCreate | None = Field(
+        default=None,
+        description="Required when module=accessories"
+    )
     output: OutputParams = OutputParams()
 
     @model_validator(mode="after")
@@ -135,6 +186,9 @@ class CreateGenerationRequest(BaseModel):
         elif self.module == "children":
             if self.child_params is None:
                 raise ValueError("child_params is required when module='children'")
+        elif self.module == "accessories":
+            if self.accessory_params is None:
+                raise ValueError("accessory_params is required when module='accessories'")
         return self
 
 

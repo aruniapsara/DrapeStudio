@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_or_create_session_id
-from app.models.db import ChildParams, GenerationRequest, GenerationOutput, generate_gen_id, generate_ulid
+from app.models.db import AccessoryParams, ChildParams, GenerationRequest, GenerationOutput, generate_gen_id, generate_ulid
 from app.schemas.generation import (
     CreateGenerationRequest,
     GenerationCreatedResponse,
@@ -51,9 +51,26 @@ def create_generation(
     if len(body.garment_images) == 0:
         raise HTTPException(status_code=400, detail="At least one garment image is required.")
 
-    # ── Children's module safety validation ───────────────────────────────────
-    if body.module == "children" and body.child_params is not None:
-        cp = body.child_params
+    # ── Build canonical params dicts (used for idempotency and DB storage) ────
+    if body.module == "accessories":
+        ap = body.accessory_params  # type: ignore[assignment]
+        model_params_dict: dict = {
+            "module": "accessories",
+            "accessory_category": ap.accessory_category,
+            "display_mode": ap.display_mode,
+            "context_scene": ap.context_scene or "",
+            "model_skin_tone": ap.model_skin_tone or "",
+            "background_surface": ap.background_surface or "",
+            "product_type": body.product_type,
+        }
+        scene_params_dict: dict = {
+            "display_mode": ap.display_mode,
+            "accessory_category": ap.accessory_category,
+        }
+
+    elif body.module == "children":
+        # ── Children's module safety validation ────────────────────────────
+        cp = body.child_params  # type: ignore[assignment]
         is_valid, error_msg = ChildSafetyValidator.validate_child_params(
             cp.age_group,
             {
@@ -66,12 +83,9 @@ def create_generation(
         if not is_valid:
             raise HTTPException(status_code=422, detail=error_msg)
 
-    # ── Build canonical params dicts (used for idempotency and DB storage) ────
-    if body.module == "children":
         # For the children module, model_params stores child config
         # and scene_params stores background + pose info for prompt assembly.
-        cp = body.child_params  # type: ignore[assignment]
-        model_params_dict: dict = {
+        model_params_dict = {
             "module": "children",
             "age_group": cp.age_group,
             "child_gender": cp.child_gender,
@@ -80,10 +94,11 @@ def create_generation(
             "skin_tone": cp.skin_tone or "medium",
             "product_type": body.product_type,
         }
-        scene_params_dict: dict = {
+        scene_params_dict = {
             "pose_style": cp.pose_style,
             "background_preset": cp.background_preset,
         }
+
     else:
         # Adult module — original behaviour
         model_params_dict = body.model_params.model_dump()  # type: ignore[union-attr]
@@ -152,6 +167,20 @@ def create_generation(
             expression=cp.expression or "happy",
         )
         db.add(child_record)
+
+    # ── Create AccessoryParams record (accessories module only) ───────────────
+    elif body.module == "accessories" and body.accessory_params is not None:
+        ap = body.accessory_params
+        accessory_record = AccessoryParams(
+            id=generate_ulid(),
+            generation_request_id=gen_id,
+            accessory_category=ap.accessory_category,
+            display_mode=ap.display_mode,
+            context_scene=ap.context_scene,
+            model_skin_tone=ap.model_skin_tone,
+            background_surface=ap.background_surface,
+        )
+        db.add(accessory_record)
 
     db.commit()
     db.refresh(gen_request)

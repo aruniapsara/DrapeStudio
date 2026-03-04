@@ -56,6 +56,9 @@ class GenerationRequest(Base):
     child_params = relationship(
         "ChildParams", back_populates="generation_request", uselist=False
     )
+    accessory_params = relationship(
+        "AccessoryParams", back_populates="generation_request", uselist=False
+    )
 
 
 class GenerationOutput(Base):
@@ -94,6 +97,28 @@ class UsageCost(Base):
     recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     request = relationship("GenerationRequest", back_populates="usage")
+
+
+class AccessoryParams(Base):
+    __tablename__ = "accessory_params"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    generation_request_id = Column(
+        String(26),
+        ForeignKey("generation_request.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    accessory_category = Column(String(30), nullable=False)   # necklace | earrings | ...
+    display_mode = Column(String(20), nullable=False)          # on_model | flat_lay | lifestyle
+    context_scene = Column(String(30), nullable=True)
+    model_skin_tone = Column(String(20), nullable=True)        # only for on_model
+    background_surface = Column(String(30), nullable=True)     # only for flat_lay
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    generation_request = relationship(
+        "GenerationRequest", back_populates="accessory_params"
+    )
 
 
 class ChildParams(Base):
