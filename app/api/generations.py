@@ -59,6 +59,8 @@ def create_generation(
             "customer_photo_url": fp.customer_photo_url,
             "customer_measurements": fp.customer_measurements.model_dump(),
             "fit_preference": fp.fit_preference,
+            "garment_type": fp.garment_type,
+            "garment_description": fp.garment_description or {},
         }
         scene_params_dict: dict = {
             "garment_measurements": fp.garment_measurements.model_dump() if fp.garment_measurements else None,

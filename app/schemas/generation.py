@@ -111,6 +111,8 @@ class CustomerMeasurements(BaseModel):
     shoulder_width_cm: float | None = Field(
         default=None, ge=30.0, le=60.0, description="Shoulder width in cm (optional)"
     )
+    skin_tone: str = Field(default="medium", description="Skin tone preset key (e.g. fair, medium, deep)")
+    gender: str = Field(default="female", description="Customer gender: female | male")
 
     model_config = {"extra": "forbid"}
 
@@ -149,6 +151,14 @@ class FitonParamsCreate(BaseModel):
     fit_preference: Literal["loose", "regular", "slim"] = Field(
         default="regular",
         description="Customer's preferred fit style: slim | regular | loose",
+    )
+    garment_type: Literal["dress", "top", "saree", "bottom", "full_outfit"] = Field(
+        default="dress",
+        description="Type of garment being tried on",
+    )
+    garment_description: dict | None = Field(
+        default=None,
+        description="Optional garment visual attributes: color, material, details",
     )
 
     model_config = {"extra": "forbid"}

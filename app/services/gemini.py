@@ -123,7 +123,7 @@ def _call_openrouter(
     the real person's appearance.
 
     Args:
-        module:       "adult", "children", or "accessories".
+        module:       "adult", "children", "accessories", or "fiton".
         display_mode: For module="accessories" — "on_model", "flat_lay", or "lifestyle".
                       The camera angle is already injected into the prompt text by the
                       accessories prompt assembler, so this is informational only here.
@@ -134,6 +134,10 @@ def _call_openrouter(
     if module == "accessories":
         # Camera angle text is already embedded in prompt_text by assemble_accessories_prompt().
         # No additional view instruction needed.
+        view_instruction = ""
+    elif module == "fiton":
+        # Fit-on generates exactly one image; no camera-angle rotation.
+        # The pose is determined by the customer reference photo.
         view_instruction = ""
     elif module == "children":
         views = CHILDREN_VARIATION_VIEWS
@@ -254,8 +258,8 @@ def generate_garment_images(
         model_photo_bytes: Optional bytes of a real-person model reference photo.
                            When provided, it is prepended to the image list so the
                            AI can replicate the person's appearance.
-        module: "adult", "children", or "accessories".
-        output_count: Number of image variations to generate (2 for accessories, 3 otherwise).
+        module: "adult", "children", "accessories", or "fiton".
+        output_count: Number of image variations to generate (1 for fiton, 2 for accessories, 3 otherwise).
         display_mode: For module="accessories" — "on_model", "flat_lay", or "lifestyle".
         prompt_texts: Optional per-variation prompt list. When provided,
                       ``prompt_texts[i]`` is used for variation i instead of

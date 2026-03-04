@@ -100,11 +100,13 @@ def generate_images(generation_request_id: str) -> None:
         # Step 4 & 5: Load template and assemble prompt (module-aware)
         module = gen.module or "adult"
 
-        # Determine output image count: accessories → 2, others → stored value (default 3)
+        # Determine output image count: accessories → 2, fiton → 1, others → stored value (default 3)
         display_mode = ""
         if module == "accessories":
             output_count = 2
             display_mode = gen.scene_params.get("display_mode", "on_model")
+        elif module == "fiton":
+            output_count = 1
         else:
             output_count = gen.output_count or 3
 
@@ -177,6 +179,40 @@ def generate_images(generation_request_id: str) -> None:
                     len(prompt_text),
                 )
 
+            elif module == "fiton":
+                # Fiton module: build prompt via FitonPromptBuilder
+                from app.services.fiton_prompt import FitonPromptBuilder
+                from app.models.db import FitonRequest as FitonRequestModel
+
+                garment_type = gen.model_params.get("garment_type", "dress")
+                customer_measurements = gen.model_params.get("customer_measurements", {})
+                fit_preference = gen.model_params.get("fit_preference", "regular")
+                garment_description = gen.model_params.get("garment_description") or {}
+
+                # Load fit_details from the FitonRequest record (computed at API time)
+                fiton_record = (
+                    db.query(FitonRequestModel)
+                    .filter(FitonRequestModel.generation_request_id == gen.id)
+                    .first()
+                )
+                fit_details = fiton_record.fit_details if fiton_record else {}
+
+                builder = FitonPromptBuilder()
+                prompt_data = builder.build_prompt(
+                    garment_type=garment_type,
+                    customer_measurements=customer_measurements,
+                    fit_preference=fit_preference,
+                    fit_details=fit_details,
+                    garment_description=garment_description,
+                )
+                prompt_text = prompt_data["prompt"]
+                logger.info(
+                    "Generation %s (fiton/%s): prompt assembled (%d chars)",
+                    generation_request_id,
+                    garment_type,
+                    len(prompt_text),
+                )
+
             else:
                 prompt_text = assemble_prompt(
                     model_params=gen.model_params,
@@ -187,22 +223,28 @@ def generate_images(generation_request_id: str) -> None:
             _fail_generation(db, gen, f"Prompt assembly failed: {e}")
             return
 
-        # Load model reference photo (optional — adult module only)
+        # Load reference photo:
+        #   - adult module: optional model reference photo (model_photo_url)
+        #   - fiton module: customer photo to preserve appearance (customer_photo_url)
         model_photo_bytes = None
-        model_photo_url = gen.model_params.get("model_photo_url")
-        if model_photo_url:
+        if module == "fiton":
+            photo_url = gen.model_params.get("customer_photo_url")
+        else:
+            photo_url = gen.model_params.get("model_photo_url")
+
+        if photo_url:
             try:
-                model_photo_bytes = storage.load(model_photo_url)
+                model_photo_bytes = storage.load(photo_url)
                 logger.info(
-                    "Generation %s: loaded model photo from %s",
+                    "Generation %s: loaded reference photo from %s",
                     generation_request_id,
-                    model_photo_url,
+                    photo_url,
                 )
             except FileNotFoundError:
                 logger.warning(
-                    "Generation %s: model photo not found at %s — proceeding without it",
+                    "Generation %s: reference photo not found at %s — proceeding without it",
                     generation_request_id,
-                    model_photo_url,
+                    photo_url,
                 )
 
         logger.info(

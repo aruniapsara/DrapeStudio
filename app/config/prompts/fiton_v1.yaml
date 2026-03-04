@@ -1,0 +1,72 @@
+fiton:
+  version: "1.0"
+  description: "Virtual fit-on: show garment on customer's body"
+
+  system_context: >
+    You are a fashion visualization AI. Given a customer photo and a garment photo,
+    generate a realistic image of the customer wearing that garment. Preserve the
+    customer's face, skin tone, hair, and body proportions exactly. Only change
+    the clothing. Maintain the same pose as the customer photo.
+
+  garment_types:
+    dress:
+      prompt_template: >
+        Photo of {customer_description} wearing the exact dress shown in the reference image.
+        The dress fits {fit_description} on the body.
+        Customer's face, skin tone, hair, and body shape are preserved exactly.
+        Professional catalogue photo, natural lighting, clean background.
+        {garment_extra}
+
+    top:
+      prompt_template: >
+        Photo of {customer_description} wearing the exact top/blouse shown in the reference image.
+        The top fits {fit_description} on the body.
+        Customer wears their own bottoms. Face and body preserved exactly.
+        Professional photo, natural lighting.
+
+    saree:
+      prompt_template: >
+        Photo of {customer_description} wearing the exact saree shown in the reference image.
+        The saree is draped in traditional Sri Lankan style.
+        Customer's face, skin tone, and body proportions preserved exactly.
+        Elegant pose, professional studio lighting.
+
+    bottom:
+      prompt_template: >
+        Photo of {customer_description} wearing the exact pants/skirt shown in the reference image.
+        The bottom fits {fit_description}. Customer wears their own top.
+        Face and body preserved exactly.
+        Professional photo, natural lighting.
+
+    full_outfit:
+      prompt_template: >
+        Photo of {customer_description} wearing the complete outfit shown in the reference image.
+        Both top and bottom garments transferred to customer.
+        Customer's face, skin tone, hair preserved exactly.
+        Professional catalogue photo, clean background.
+
+  fit_descriptions:
+    tight: "snugly, close to the body"
+    regular: "comfortably, with a standard fit"
+    loose: "loosely, with relaxed draping"
+
+  negative_prompt: >
+    distorted face, different person, changed skin tone, warped body proportions,
+    unrealistic anatomy, blurry, low quality, watermark, text overlay,
+    different hairstyle, changed facial features, nudity, revealing
+
+  customer_description_template: >
+    a {gender} person with {skin_tone} skin, {build} build,
+    approximately {height_desc} height
+
+  safety:
+    min_customer_age: 18
+    blocked_terms:
+      - "child"
+      - "minor"
+      - "kid"
+      - "teen"
+      - "underage"
+    modesty_constraints: >
+      All generated images must show the garment covering appropriately.
+      No revealing, sheer, or inappropriately fitted garments.
