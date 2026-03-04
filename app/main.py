@@ -278,15 +278,25 @@ async def accessories_review_page(request: Request):
 
 
 @app.get("/fiton")
-async def fiton_page(request: Request):
+async def fiton_index_page(request: Request):
+    return templates.TemplateResponse("fiton/index.html", _ctx(request))
+
+
+@app.get("/fiton/upload")
+async def fiton_upload_page(request: Request):
+    return templates.TemplateResponse("fiton/upload_garment.html", _ctx(request))
+
+
+@app.get("/fiton/customer")
+async def fiton_customer_page(request: Request):
+    return templates.TemplateResponse("fiton/customer_details.html", _ctx(request))
+
+
+@app.get("/fiton/results/{gen_id}")
+async def fiton_results_page(request: Request, gen_id: str):
     return templates.TemplateResponse(
-        "coming_soon.html",
-        _ctx(
-            request,
-            module_name="Virtual Fit-On",
-            module_icon="🪞",
-            module_description="Try garments on a body-measurement-matched virtual model for the perfect fit.",
-        ),
+        "fiton/results.html",
+        _ctx(request, gen_id=gen_id),
     )
 
 

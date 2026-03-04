@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import step_indicator %}
+
+{% block title %}Fit-On Results — DrapeStudio{% endblock %}
+{% block page_title %}Fit-On Preview ✨{% endblock %}
+
+{% block content %}
+<div id="fiton-results-root"
+     data-gen-id="{{ gen_id }}"
+     x-data="fitonResults()"
+     x-init="init()"
+     class="max-w-xl mx-auto px-4 py-6">
+
+    {{ step_indicator(["Garment", "Customer", "Preview"], 3) }}
+
+    {# ── Loading skeleton ─────────────────────────────────────────────── #}
+    <template x-if="!loaded && !failed">
+        <div>
+            <div class="bg-white rounded-3xl shadow-card overflow-hidden animate-pulse mb-4">
+                <div class="aspect-[3/4] bg-gray-200"></div>
+            </div>
+            <div class="h-24 bg-gray-100 rounded-2xl animate-pulse mb-3"></div>
+            <div class="h-32 bg-gray-100 rounded-2xl animate-pulse mb-3"></div>
+        </div>
+    </template>
+
+    {# ── Error state ──────────────────────────────────────────────────── #}
+    <template x-if="failed">
+        <div class="bg-white rounded-3xl border border-red-100 shadow-card p-8 text-center mb-6">
+            <div class="text-5xl mb-4">❌</div>
+            <h3 class="text-lg font-bold text-dark mb-2">Generation Failed</h3>
+            <p class="text-sm text-gray-500 mb-2" x-text="errorMessage"></p>
+            <p class="text-xs text-gray-400 mb-6">Your credits have <strong>not</strong> been deducted.</p>
+            <div class="flex gap-3 justify-center">
+                <a href="/fiton/customer"
+                   class="inline-flex items-center justify-center gap-2 px-5 py-2.5
+                          bg-primary hover:bg-primary-dark text-white text-sm font-semibold
+                          rounded-xl transition-colors">
+                    🔄 Try Again
+                </a>
+                <a href="/fiton"
+                   class="inline-flex items-center justify-center gap-2 px-5 py-2.5
+                          border border-gray-200 text-gray-600 bg-white hover:bg-gray-50
+                          text-sm font-semibold rounded-xl transition-colors">
+                    🪞 New Fit-On
+                </a>
+            </div>
+        </div>
+    </template>
+
+    {# ── Success state ─────────────────────────────────────────────────── #}
+    <template x-if="loaded && !failed">
+        <div class="space-y-4">
+
+            {# ── Before/After image toggle ──────────────────────────────── #}
+            <div class="bg-white rounded-3xl shadow-card overflow-hidden">
+
+                {# Toggle pills #}
+                <div class="flex gap-1 p-2 bg-gray-50 border-b border-gray-100" x-show="customerPhotoUrl">
+                    <button @click="showFitted = true"
+                            :class="showFitted ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'"
+                            class="flex-1 py-2 rounded-xl text-xs font-semibold transition-all">
+                        ✨ Fitted Preview
+                    </button>
+                    <button @click="showFitted = false"
+                            :class="!showFitted ? 'bg-primary text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'"
+                            class="flex-1 py-2 rounded-xl text-xs font-semibold transition-all">
+                        📸 Original Photo
+                    </button>
+                </div>
+
+                {# Fitted image #}
+                <div x-show="showFitted" class="relative">
+                    <img :src="fittedImageUrl" alt="Fitted preview"
+                         class="w-full aspect-[3/4] object-cover">
+                    <div class="absolute top-3 left-3">
+                        <span class="bg-primary/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+                            ✨ AI Fitted Preview
+                        </span>
+                    </div>
+                </div>
+
+                {# Customer original photo #}
+                <div x-show="!showFitted && customerPhotoUrl">
+                    <img :src="customerPhotoUrl" alt="Customer original photo"
+                         class="w-full aspect-[3/4] object-cover">
+                    <div class="absolute top-3 left-3">
+                        <span class="bg-gray-700/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+                            📸 Original
+                        </span>
+                    </div>
+                </div>
+
+                {# Download button #}
+                <div class="p-4 border-t border-gray-50 flex gap-3">
+                    <a :href="fittedImageUrl" :download="'fiton-preview-' + genId + '.jpg'"
+                       class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4
+                              bg-gray-100 hover:bg-gray-200 text-dark text-xs font-semibold
+                              rounded-xl transition-colors min-h-[44px]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download
+                    </a>
+                    <button @click="shareWhatsApp()"
+                            class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4
+                                   bg-[#25D366] hover:bg-[#20B954] text-white text-xs font-semibold
+                                   rounded-xl transition-colors min-h-[44px]">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                        Share via WhatsApp
+                    </button>
+                </div>
+            </div>
+
+            {# ── Size recommendation card ───────────────────────────────── #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-dark">Size Recommendation</h3>
+                        <p class="text-xs text-gray-400 mt-0.5">Based on measurements &amp; Sri Lankan size charts</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-3xl font-black text-primary" x-text="recommendedSize || '—'"></p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wide">Recommended</p>
+                    </div>
+                </div>
+
+                {# Confidence bar #}
+                <div class="mb-3">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs font-semibold text-gray-700">Fit Confidence</span>
+                        <span class="text-xs font-bold text-primary" x-text="Math.round(fitConfidence) + '%'"></span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500"
+                             :style="'width:' + fitConfidence + '%'"
+                             :class="fitConfidence >= 80 ? 'bg-teal' : fitConfidence >= 60 ? 'bg-[#F59E0B]' : 'bg-[#FF6B35]'">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                    <span class="text-sm">
+                        <template x-if="fitPreference === 'slim'">✂️</template>
+                        <template x-if="fitPreference === 'regular'">👗</template>
+                        <template x-if="fitPreference === 'loose'">🌊</template>
+                    </span>
+                    <span class="text-xs font-semibold text-gray-700 capitalize" x-text="fitPreference + ' fit applied'"></span>
+                </div>
+            </div>
+
+            {# ── Per-measurement fit details ────────────────────────────── #}
+            <template x-if="Object.keys(fitDetails).length > 0">
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+                    <h3 class="text-sm font-bold text-dark mb-3">Fit Breakdown</h3>
+                    <div class="space-y-2">
+                        <template x-for="[area, status] in Object.entries(fitDetails)" :key="area">
+                            <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                                <span class="text-xs font-semibold text-dark capitalize" x-text="area"></span>
+                                <span class="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                                      :class="{
+                                          'bg-teal/10 text-teal':          status === 'good',
+                                          'bg-amber-100 text-amber-700':   status === 'slightly loose',
+                                          'bg-red-100 text-red-600':       status === 'tight',
+                                          'bg-blue-100 text-blue-600':     status === 'loose',
+                                      }"
+                                      x-text="status === 'good' ? '✓ Good fit' :
+                                               status === 'tight' ? '⚠ Slightly tight' :
+                                               status === 'slightly loose' ? '↕ Slightly loose' : '↕ Loose'">
+                                </span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            {# ── Try another size ──────────────────────────────────────── #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+                <h3 class="text-sm font-bold text-dark mb-3">Want to Try Another Size?</h3>
+                <p class="text-xs text-gray-400 mb-3">Use the form above to regenerate with a different size label or adjusted measurements.</p>
+                <a href="/fiton/customer"
+                   class="w-full inline-flex items-center justify-center gap-2 py-3 px-5
+                          border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10
+                          text-sm font-semibold rounded-xl transition-colors min-h-[48px]">
+                    🔄 Try Different Size / Measurements
+                </a>
+            </div>
+
+            {# ── Actions row ───────────────────────────────────────────── #}
+            <div class="flex gap-3 pb-6">
+                <a href="/fiton"
+                   class="flex-1 inline-flex items-center justify-center gap-2 py-3 px-5
+                          border border-gray-200 text-gray-600 bg-white hover:bg-gray-50
+                          text-sm font-semibold rounded-xl transition-colors min-h-[48px]">
+                    🪞 New Fit-On
+                </a>
+                <a href="/history"
+                   class="flex-1 inline-flex items-center justify-center gap-2 py-3 px-5
+                          bg-primary hover:bg-primary-dark text-white
+                          text-sm font-semibold rounded-xl transition-colors min-h-[48px]">
+                    📚 History
+                </a>
+            </div>
+
+        </div>
+    </template>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fitonResults() {
+    return {
+        genId: document.getElementById('fiton-results-root').dataset.genId,
+        loaded: false,
+        failed: false,
+        errorMessage: '',
+        fittedImageUrl: '',
+        customerPhotoUrl: '',
+        showFitted: true,
+        recommendedSize: '',
+        fitConfidence: 0,
+        fitPreference: 'regular',
+        fitDetails: {},
+        garmentType: 'dress',
+
+        async init() {
+            try {
+                // Fetch outputs and fiton details in parallel
+                var [outputsResp, fitonResp] = await Promise.all([
+                    fetch('/v1/generations/' + this.genId + '/outputs'),
+                    fetch('/v1/generations/' + this.genId + '/fiton-details'),
+                ]);
+
+                if (!outputsResp.ok) throw new Error('Failed to load results');
+                var outputs = await outputsResp.json();
+
+                if (outputs.status === 'failed') {
+                    this.failed = true;
+                    this.errorMessage = outputs.error_message || 'Generation failed.';
+                    return;
+                }
+
+                if (outputs.outputs && outputs.outputs.length > 0) {
+                    this.fittedImageUrl = outputs.outputs[0].image_url;
+                }
+
+                if (fitonResp.ok) {
+                    var fitonData = await fitonResp.json();
+                    this.recommendedSize = fitonData.recommended_size || '';
+                    this.fitConfidence   = fitonData.fit_confidence || 0;
+                    this.fitPreference   = fitonData.fit_preference || 'regular';
+                    this.fitDetails      = fitonData.fit_details || {};
+                    this.garmentType     = fitonData.garment_type || 'dress';
+                    this.customerPhotoUrl= fitonData.customer_photo_url || '';
+                }
+
+                this.loaded = true;
+            } catch (err) {
+                this.failed = true;
+                this.errorMessage = err.message || 'Failed to load results.';
+            }
+        },
+
+        shareWhatsApp() {
+            var garmentName = {
+                dress: 'dress', top: 'top', saree: 'saree', bottom: 'bottom / skirt', full_outfit: 'outfit'
+            }[this.garmentType] || 'garment';
+            var size       = this.recommendedSize || 'M';
+            var confidence = Math.round(this.fitConfidence);
+            var link       = window.location.href;
+
+            var message =
+                'Hi! Here\'s how the ' + garmentName + ' would look on you 👗\n\n' +
+                '✅ Recommended size: ' + size + '\n' +
+                '📏 Fit confidence: '  + confidence + '%\n\n' +
+                'View your fit-on preview: ' + link + '\n\n' +
+                '— Sent via DrapeStudio';
+
+            var url = 'https://wa.me/?text=' + encodeURIComponent(message);
+            window.open(url, '_blank', 'noopener,noreferrer');
+        },
+    };
+}
+</script>
+{% endblock %}

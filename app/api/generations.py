@@ -386,3 +386,40 @@ def download_zip(gen_id: str, db: Session = Depends(get_db)):
             "Content-Length": str(len(zip_bytes)),
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/generations/{id}/fiton-details  (Virtual Fit-On module only)
+# ---------------------------------------------------------------------------
+@router.get("/generations/{gen_id}/fiton-details")
+def get_fiton_details(gen_id: str, db: Session = Depends(get_db)):
+    """Return size recommendation and fit details for a Virtual Fit-On generation."""
+    gen = db.query(GenerationRequest).filter(GenerationRequest.id == gen_id).first()
+    if not gen or gen.module != "fiton":
+        raise HTTPException(status_code=404, detail="Fit-on generation not found.")
+
+    fiton = (
+        db.query(FitonRequest)
+        .filter(FitonRequest.generation_request_id == gen_id)
+        .first()
+    )
+    if not fiton:
+        raise HTTPException(status_code=404, detail="Fit-on details not found.")
+
+    customer_photo_signed = None
+    if fiton.customer_photo_url:
+        try:
+            customer_photo_signed = storage.signed_download_url(
+                fiton.customer_photo_url, settings.OUTPUT_URL_EXPIRY_SECONDS
+            )
+        except Exception:
+            customer_photo_signed = None
+
+    return {
+        "recommended_size":  fiton.recommended_size,
+        "fit_confidence":    float(fiton.fit_confidence) if fiton.fit_confidence is not None else 0.0,
+        "fit_preference":    gen.model_params.get("fit_preference", "regular"),
+        "fit_details":       fiton.fit_details or {},
+        "garment_type":      gen.model_params.get("garment_type", "dress"),
+        "customer_photo_url": customer_photo_signed,
+    }
