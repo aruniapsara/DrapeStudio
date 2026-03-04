@@ -16,7 +16,13 @@ from app.models.db import (
     generate_ulid,
 )
 from app.services.gemini import GeminiError, generate_garment_images
-from app.services.prompt import assemble_prompt, assemble_children_prompt, load_children_template
+from app.services.prompt import (
+    assemble_prompt,
+    assemble_children_prompt,
+    assemble_accessories_prompt,
+    load_children_template,
+    load_accessories_template,
+)
 from app.services.storage import storage
 
 logger = logging.getLogger(__name__)
@@ -93,8 +99,61 @@ def generate_images(generation_request_id: str) -> None:
 
         # Step 4 & 5: Load template and assemble prompt (module-aware)
         module = gen.module or "adult"
+
+        # Determine output image count: accessories → 2, others → stored value (default 3)
+        display_mode = ""
+        if module == "accessories":
+            output_count = 2
+            display_mode = gen.scene_params.get("display_mode", "on_model")
+        else:
+            output_count = gen.output_count or 3
+
         try:
-            if module == "children":
+            if module == "accessories":
+                # Accessories module: rebuild accessory_params dict from stored JSON
+                accessory_params_for_prompt = {
+                    "accessory_category": gen.model_params.get("accessory_category", "necklace"),
+                    "display_mode":       display_mode,
+                    "model_skin_tone":    gen.model_params.get("model_skin_tone", ""),
+                    "background_surface": gen.model_params.get("background_surface", ""),
+                    "context_scene":      gen.model_params.get("context_scene", ""),
+                }
+                # Generate two prompts (variation 0 and 1) — they differ by camera angle
+                # For simplicity, assemble with variation_index=0 and let generate_garment_images
+                # iterate over both angles via variation_index inside _call_openrouter.
+                # We pass variation_index=0 for the base prompt; the camera angle instructions
+                # are embedded per-variation by passing the right index to the assembler.
+                # We store prompt_text as a base; the gemini service calls assemble dynamically.
+                # Simplest approach: assemble a single prompt (angle is part of the per-call text)
+                accessories_template = load_accessories_template()
+
+                # We produce one prompt per variation by pre-assembling both.
+                # However, the current gemini service takes a single prompt_text.
+                # Use variation_index=0 as the base; store template for later.
+                # The camera angle is already in the YAML and the service will use variation_index.
+                # To get the right camera angle per variation, we pass the template to generate_garment_images.
+                # For backward compatibility, we assemble with index=0 (angle 1) and let the service
+                # append camera instructions. Since accessories embed angle in prompt, we call the
+                # assembler here for each variation and store both in a list.
+                accessory_prompts = [
+                    assemble_accessories_prompt(
+                        template=accessories_template,
+                        accessory_params=accessory_params_for_prompt,
+                        variation_index=i,
+                    )
+                    for i in range(output_count)
+                ]
+                # Use variation 0 as the "base" prompt_text for the service call
+                prompt_text = accessory_prompts[0]
+                logger.info(
+                    "Generation %s (accessories/%s/%s): prompt assembled (%d chars)",
+                    generation_request_id,
+                    accessory_params_for_prompt.get("accessory_category"),
+                    display_mode,
+                    len(prompt_text),
+                )
+
+            elif module == "children":
                 # Children's module: combine model_params + scene_params into
                 # a single child_params dict for the children's prompt assembler
                 child_params_for_prompt = {
@@ -117,6 +176,7 @@ def generate_images(generation_request_id: str) -> None:
                     child_params_for_prompt.get("age_group"),
                     len(prompt_text),
                 )
+
             else:
                 prompt_text = assemble_prompt(
                     model_params=gen.model_params,
@@ -154,13 +214,22 @@ def generate_images(generation_request_id: str) -> None:
             len(prompt_text),
         )
 
-        # Step 6: Call Gemini API (pass module for camera angle selection)
+        # Step 6: Call Gemini API (pass module + output_count + display_mode)
         try:
+            extra_kwargs = {}
+            if module == "accessories":
+                # Pass both prompts (one per camera angle) so each variation
+                # gets the correct angle instruction embedded in its prompt text.
+                extra_kwargs["prompt_texts"] = accessory_prompts
+                extra_kwargs["display_mode"] = display_mode
+
             result = generate_garment_images(
                 garment_image_bytes=garment_image_bytes_list,
                 prompt_text=prompt_text,
                 model_photo_bytes=model_photo_bytes,
                 module=module,
+                output_count=output_count,
+                **extra_kwargs,
             )
         except GeminiError as e:
             _fail_generation(db, gen, f"Gemini API error: {e}")

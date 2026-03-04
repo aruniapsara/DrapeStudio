@@ -10,11 +10,12 @@ PROMPTS_DIR = Path(__file__).resolve().parent.parent.parent / "prompts"
 # Template file map — keyed by module or version string
 _TEMPLATE_FILES: dict[str, str] = {
     # Version-keyed (legacy adult templates)
-    "v0.1":       "v0_1.yaml",
-    "v0_1":       "v0_1.yaml",
+    "v0.1":         "v0_1.yaml",
+    "v0_1":         "v0_1.yaml",
     # Module-keyed
-    "adult":      "v0_1.yaml",
-    "children":   "children_v1.yaml",
+    "adult":        "v0_1.yaml",
+    "children":     "children_v1.yaml",
+    "accessories":  "accessories_v1.yaml",
 }
 
 # In-process template cache
@@ -54,6 +55,11 @@ def load_template(version: str = "v0.1") -> dict:
 def load_children_template() -> dict:
     """Load the children's prompt template (children_v1.yaml)."""
     return load_template("children")
+
+
+def load_accessories_template() -> dict:
+    """Load the accessories prompt template (accessories_v1.yaml)."""
+    return load_template("accessories")
 
 
 # ---------------------------------------------------------------------------
@@ -294,5 +300,160 @@ OUTPUT REQUIREMENTS:
 
 NEGATIVE (avoid ALL of these — mandatory for children's content):
 {safety_negative}"""
+
+    return prompt.strip()
+
+
+# ---------------------------------------------------------------------------
+# Accessories prompt assembly
+# ---------------------------------------------------------------------------
+
+def assemble_accessories_prompt(
+    template: dict,
+    accessory_params: dict,
+    variation_index: int = 0,
+) -> str:
+    """Assemble a prompt string for accessories image generation.
+
+    Args:
+        template:          Loaded accessories_v1.yaml template dict.
+        accessory_params:  Dict with keys: accessory_category, display_mode,
+                           model_skin_tone (on_model), background_surface (flat_lay),
+                           context_scene (lifestyle, optional).
+        variation_index:   0 for first image, 1 for second image.
+                           Controls which camera angle description is injected.
+
+    Returns:
+        Full prompt string ready for the Gemini/OpenRouter API.
+
+    Raises:
+        ValueError: If accessory_category or display_mode is not found in template.
+    """
+    category_key = accessory_params.get("accessory_category", "")
+    display_mode = accessory_params.get("display_mode", "on_model")
+
+    # Resolve category configuration
+    categories = template.get("categories", {})
+    if category_key not in categories:
+        raise ValueError(
+            f"Unknown accessory category '{category_key}'. "
+            f"Available: {list(categories.keys())}"
+        )
+    category_config = categories[category_key]
+    category_label = category_config.get("label", category_key)
+
+    # Resolve mode-specific config
+    if display_mode not in ("on_model", "flat_lay", "lifestyle"):
+        raise ValueError(
+            f"Unknown display_mode '{display_mode}'. "
+            "Must be one of: on_model, flat_lay, lifestyle."
+        )
+    mode_config = category_config.get(display_mode, {})
+
+    # Camera angle for this variation (wraps if variation_index > len)
+    camera_angles_list = template.get("camera_angles", {}).get(display_mode, [])
+    if camera_angles_list:
+        camera_angle = camera_angles_list[variation_index % len(camera_angles_list)].strip()
+    else:
+        camera_angle = ""
+
+    # Shared quality/output/negative blocks
+    quality = template.get("quality", "").strip()
+    output_instructions = template.get("output", "").strip()
+    negative = template.get("negative", "").strip()
+
+    # --- Build display-mode specific prompt ---
+
+    if display_mode == "on_model":
+        skin_tone_key = accessory_params.get("model_skin_tone") or "medium"
+        skin_tone_desc = template.get("skin_tones", {}).get(skin_tone_key, "medium skin tone")
+        body_area = mode_config.get("body_area", "relevant body area")
+        framing = mode_config.get("framing", "close-up")
+        model_needs = mode_config.get("model_needs", "")
+
+        prompt = f"""Professional product photography of a {category_label} worn by a model.
+
+SUBJECT: The {category_label} is the focal point. Show {body_area} — {framing}.
+
+MODEL: A professional model with {skin_tone_desc}. {model_needs}
+
+PRODUCT INSTRUCTION: The {category_label} must be sharp, clearly visible, and the hero of \
+the image. Show its texture, colour, craftsmanship, and fine detail with precision.
+
+{camera_angle}
+
+QUALITY REQUIREMENTS:
+{quality}
+
+OUTPUT REQUIREMENTS:
+{output_instructions}
+
+NEGATIVE (avoid these):
+{negative}"""
+
+    elif display_mode == "flat_lay":
+        surface_key = accessory_params.get("background_surface") or "white_marble"
+        surface_desc = template.get("surfaces", {}).get(surface_key, surface_key.replace("_", " "))
+        arrangement = mode_config.get("arrangement", "arranged on a surface")
+
+        prompt = f"""Professional flat-lay product photography of a {category_label}.
+
+SUBJECT: The {category_label} is the sole subject — {arrangement}.
+
+SURFACE: {surface_desc}.
+
+LIGHTING: Soft, diffused studio lighting with a subtle directional shadow to convey depth \
+and texture. No harsh shadows.
+
+PRODUCT INSTRUCTION: Photograph the {category_label} to highlight its texture, colour, \
+craftsmanship, and fine detail. Macro-level sharpness on the product. No model, no hands.
+
+STYLE: Clean, minimalist composition. Commercial product photography aesthetic.
+
+{camera_angle}
+
+QUALITY REQUIREMENTS:
+{quality}
+
+OUTPUT REQUIREMENTS:
+{output_instructions}
+
+NEGATIVE (avoid these):
+{negative}"""
+
+    else:  # lifestyle
+        context_scene_key = (accessory_params.get("context_scene") or "").strip()
+        if context_scene_key:
+            scene_desc = template.get("lifestyle_scenes", {}).get(
+                context_scene_key, context_scene_key.replace("_", " ")
+            )
+        else:
+            # Fallback to the category's own lifestyle context
+            scene_desc = mode_config.get("context", "natural lifestyle setting")
+
+        lifestyle_context = mode_config.get("context", "lifestyle moment")
+
+        prompt = f"""Lifestyle product photography featuring a {category_label}.
+
+SUBJECT: The {category_label} is the hero product in the scene.
+
+SCENE: {scene_desc}. {lifestyle_context}.
+
+PRODUCT INSTRUCTION: The {category_label} must be clearly visible and recognisable as the \
+focal point. The lifestyle context enhances the product's appeal without overshadowing it. \
+The product must be sharp even if the background has a slight bokeh.
+
+MOOD: Natural, aspirational, warm. Real people in real moments.
+
+{camera_angle}
+
+QUALITY REQUIREMENTS:
+{quality}
+
+OUTPUT REQUIREMENTS:
+{output_instructions}
+
+NEGATIVE (avoid these):
+{negative}"""
 
     return prompt.strip()
