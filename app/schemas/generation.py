@@ -98,6 +98,72 @@ class ChildParamsCreate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Request schemas — Fiton module
+# ---------------------------------------------------------------------------
+
+class CustomerMeasurements(BaseModel):
+    """Customer body measurements (cm) for virtual fit-on."""
+
+    bust_cm: float = Field(..., ge=60.0, le=150.0, description="Chest / bust in cm")
+    waist_cm: float = Field(..., ge=50.0, le=130.0, description="Waist in cm")
+    hips_cm: float = Field(..., ge=70.0, le=160.0, description="Hips in cm")
+    height_cm: float = Field(default=160.0, ge=100.0, le=220.0, description="Height in cm")
+    shoulder_width_cm: float | None = Field(
+        default=None, ge=30.0, le=60.0, description="Shoulder width in cm (optional)"
+    )
+
+    model_config = {"extra": "forbid"}
+
+
+class GarmentMeasurements(BaseModel):
+    """Actual garment dimensions (cm) — optional alternative to size label."""
+
+    bust_cm: float | None = Field(default=None, ge=60.0, le=200.0, description="Garment chest / bust in cm")
+    waist_cm: float | None = Field(default=None, ge=50.0, le=180.0, description="Garment waist in cm")
+    hips_cm: float | None = Field(default=None, ge=70.0, le=200.0, description="Garment hips in cm")
+    length_cm: float | None = Field(default=None, ge=30.0, le=200.0, description="Garment length in cm")
+    shoulder_width_cm: float | None = Field(
+        default=None, ge=30.0, le=80.0, description="Garment shoulder width in cm"
+    )
+
+    model_config = {"extra": "forbid"}
+
+
+class FitonParamsCreate(BaseModel):
+    """Parameters for the Virtual Fit-On module.
+
+    Requires either garment_measurements OR garment_size_label (or both).
+    """
+
+    customer_photo_url: str = Field(..., description="Storage path of the uploaded customer photo")
+    customer_measurements: CustomerMeasurements = Field(
+        ..., description="Customer body measurements in cm"
+    )
+    garment_measurements: GarmentMeasurements | None = Field(
+        default=None, description="Actual garment dimensions; preferred over size label"
+    )
+    garment_size_label: Literal["XS", "S", "M", "L", "XL", "XXL", "3XL"] | None = Field(
+        default=None,
+        description="Labelled size — used for size-chart lookup when garment_measurements not provided",
+    )
+    fit_preference: Literal["loose", "regular", "slim"] = Field(
+        default="regular",
+        description="Customer's preferred fit style: slim | regular | loose",
+    )
+
+    model_config = {"extra": "forbid"}
+
+    @model_validator(mode="after")
+    def require_measurements_or_size(self) -> "FitonParamsCreate":
+        """Either garment_measurements or garment_size_label must be provided."""
+        if self.garment_measurements is None and self.garment_size_label is None:
+            raise ValueError(
+                "Either garment_measurements or garment_size_label must be provided."
+            )
+        return self
+
+
+# ---------------------------------------------------------------------------
 # Request schemas — Accessories module
 # ---------------------------------------------------------------------------
 
@@ -151,7 +217,7 @@ class CreateGenerationRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
 
     idempotency_key: str | None = None
-    module: Literal["adult", "children", "accessories"] = Field(
+    module: Literal["adult", "children", "accessories", "fiton"] = Field(
         default="adult",
         description="Which DrapeStudio module to use"
     )
@@ -173,6 +239,10 @@ class CreateGenerationRequest(BaseModel):
         default=None,
         description="Required when module=accessories"
     )
+    fiton_params: FitonParamsCreate | None = Field(
+        default=None,
+        description="Required when module=fiton"
+    )
     output: OutputParams = OutputParams()
 
     @model_validator(mode="after")
@@ -189,6 +259,9 @@ class CreateGenerationRequest(BaseModel):
         elif self.module == "accessories":
             if self.accessory_params is None:
                 raise ValueError("accessory_params is required when module='accessories'")
+        elif self.module == "fiton":
+            if self.fiton_params is None:
+                raise ValueError("fiton_params is required when module='fiton'")
         return self
 
 

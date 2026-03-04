@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import (
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     JSON,
@@ -58,6 +59,9 @@ class GenerationRequest(Base):
     )
     accessory_params = relationship(
         "AccessoryParams", back_populates="generation_request", uselist=False
+    )
+    fiton_request = relationship(
+        "FitonRequest", back_populates="generation_request", uselist=False
     )
 
 
@@ -141,4 +145,38 @@ class ChildParams(Base):
 
     generation_request = relationship(
         "GenerationRequest", back_populates="child_params"
+    )
+
+
+class FitonRequest(Base):
+    """Virtual Fit-On request parameters and size recommendation outputs."""
+
+    __tablename__ = "fiton_request"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    generation_request_id = Column(
+        String(26),
+        ForeignKey("generation_request.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    # Customer inputs
+    customer_photo_url = Column(String(500), nullable=False)
+    customer_measurements = Column(JSON, nullable=False)
+    # {bust_cm, waist_cm, hips_cm, height_cm, shoulder_width_cm}
+    garment_measurements = Column(JSON, nullable=True)
+    # {bust_cm, waist_cm, hips_cm, length_cm, shoulder_width_cm}
+    garment_size_label = Column(String(10), nullable=True)  # XS, S, M, L, XL, XXL, 3XL
+    fit_preference = Column(String(10), nullable=True)      # loose | regular | slim
+
+    # Computed outputs (filled in by worker after size recommendation runs)
+    recommended_size = Column(String(10), nullable=True)
+    fit_confidence = Column(Float, nullable=True)            # 0–100%
+    fit_details = Column(JSON, nullable=True)
+    # {bust: "good", waist: "tight", hips: "perfect", length: "-2cm short"}
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    generation_request = relationship(
+        "GenerationRequest", back_populates="fiton_request"
     )

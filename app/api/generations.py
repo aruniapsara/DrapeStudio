@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_or_create_session_id
-from app.models.db import AccessoryParams, ChildParams, GenerationRequest, GenerationOutput, generate_gen_id, generate_ulid
+from app.models.db import AccessoryParams, ChildParams, FitonRequest, GenerationRequest, GenerationOutput, generate_gen_id, generate_ulid
 from app.schemas.generation import (
     CreateGenerationRequest,
     GenerationCreatedResponse,
@@ -52,7 +52,20 @@ def create_generation(
         raise HTTPException(status_code=400, detail="At least one garment image is required.")
 
     # ── Build canonical params dicts (used for idempotency and DB storage) ────
-    if body.module == "accessories":
+    if body.module == "fiton":
+        fp = body.fiton_params  # type: ignore[assignment]
+        model_params_dict: dict = {
+            "module": "fiton",
+            "customer_photo_url": fp.customer_photo_url,
+            "customer_measurements": fp.customer_measurements.model_dump(),
+            "fit_preference": fp.fit_preference,
+        }
+        scene_params_dict: dict = {
+            "garment_measurements": fp.garment_measurements.model_dump() if fp.garment_measurements else None,
+            "garment_size_label": fp.garment_size_label,
+        }
+
+    elif body.module == "accessories":
         ap = body.accessory_params  # type: ignore[assignment]
         model_params_dict: dict = {
             "module": "accessories",
@@ -181,6 +194,36 @@ def create_generation(
             background_surface=ap.background_surface,
         )
         db.add(accessory_record)
+
+    # ── Create FitonRequest record (fiton module only) ────────────────────────
+    elif body.module == "fiton" and body.fiton_params is not None:
+        from app.services.sizing import sizing_service
+
+        fp = body.fiton_params
+        cm = fp.customer_measurements
+        gm = fp.garment_measurements
+
+        # Run size recommendation immediately so recommended_size is stored
+        result = sizing_service.recommend_size(
+            customer_measurements=cm.model_dump(),
+            garment_measurements=gm.model_dump() if gm else None,
+            garment_size_label=fp.garment_size_label,
+            fit_preference=fp.fit_preference,
+        )
+
+        fiton_record = FitonRequest(
+            id=generate_ulid(),
+            generation_request_id=gen_id,
+            customer_photo_url=fp.customer_photo_url,
+            customer_measurements=cm.model_dump(),
+            garment_measurements=gm.model_dump() if gm else None,
+            garment_size_label=fp.garment_size_label,
+            fit_preference=fp.fit_preference,
+            recommended_size=result.recommended_size,
+            fit_confidence=result.fit_confidence,
+            fit_details=result.fit_details,
+        )
+        db.add(fiton_record)
 
     db.commit()
     db.refresh(gen_request)
