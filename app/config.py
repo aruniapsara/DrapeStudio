@@ -39,6 +39,17 @@ class Settings(BaseSettings):
     UPLOAD_URL_EXPIRY_SECONDS: int = 900
     OUTPUT_URL_EXPIRY_SECONDS: int = 3600
 
+    # JWT authentication
+    JWT_SECRET: str = "change-me-jwt-secret-please"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440   # 24 hours
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    # Notify.lk SMS (Sri Lanka)
+    NOTIFY_LK_USER_ID: str = ""
+    NOTIFY_LK_API_KEY: str = ""
+    NOTIFY_LK_SENDER_ID: str = "NotifyDEMO"
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

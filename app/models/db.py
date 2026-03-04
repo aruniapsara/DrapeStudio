@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     Float,
@@ -29,11 +30,42 @@ def generate_gen_id() -> str:
     return "gen_" + str(ULID())
 
 
+class User(Base):
+    """Registered user (phone-OTP auth)."""
+
+    __tablename__ = "user"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    phone = Column(String(20), unique=True, nullable=False, index=True)
+    display_name = Column(String(100), nullable=True)
+    role = Column(String(20), nullable=False, default="user")
+    credits_remaining = Column(Integer, nullable=False, default=3)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    last_login_at = Column(DateTime, nullable=True)
+
+    generation_requests = relationship("GenerationRequest", back_populates="user")
+
+
+class OTPRequest(Base):
+    """One-time password requests for phone verification."""
+
+    __tablename__ = "otp_request"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    phone = Column(String(20), nullable=False, index=True)
+    otp_hash = Column(String(64), nullable=False)    # SHA-256 hex
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, nullable=False, default=0)
+    verified = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 class GenerationRequest(Base):
     __tablename__ = "generation_request"
 
     id = Column(String, primary_key=True, default=generate_gen_id)
     session_id = Column(String, nullable=False, index=True)
+    user_id = Column(String(26), ForeignKey("user.id"), nullable=True, index=True)
     status = Column(String, nullable=False, default="queued")
     # status values: queued | running | succeeded | failed
     module = Column(String(20), nullable=True, default="adult")
@@ -54,6 +86,7 @@ class GenerationRequest(Base):
 
     outputs = relationship("GenerationOutput", back_populates="request")
     usage = relationship("UsageCost", back_populates="request", uselist=False)
+    user = relationship("User", back_populates="generation_requests")
     child_params = relationship(
         "ChildParams", back_populates="generation_request", uselist=False
     )

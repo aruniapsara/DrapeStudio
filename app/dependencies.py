@@ -8,6 +8,8 @@ from fastapi import HTTPException, Request, Response
 
 # ---------------------------------------------------------------------------
 # Hardcoded users (password stored as SHA-256 hex digest)
+# Legacy auth — kept for backward compatibility during JWT migration.
+# Admin/test accounts bypass phone-OTP for easier development.
 # ---------------------------------------------------------------------------
 def _sha256(s: str) -> str:
     return hashlib.sha256(s.encode()).hexdigest()
@@ -41,11 +43,36 @@ def get_or_create_session_id(request: Request, response: Response) -> str:
 # Auth helpers
 # ---------------------------------------------------------------------------
 def get_current_user(request: Request) -> dict | None:
-    """Return {"username": str, "role": str} if logged in, else None."""
+    """
+    Return a user dict if the request is authenticated, else None.
+
+    Priority:
+    1. JWT access_token cookie  → {"user_id", "phone", "role", "username", "auth_type": "jwt"}
+    2. Legacy username/role cookies → {"username", "role", "auth_type": "legacy"}
+    """
+    # 1. JWT
+    access_token = request.cookies.get("access_token")
+    if access_token:
+        try:
+            from app.services.auth import AuthService
+            payload = AuthService.verify_access_token(access_token)
+            if payload:
+                return {
+                    "user_id": payload["sub"],
+                    "phone": payload.get("phone", ""),
+                    "username": payload.get("phone", ""),  # compat alias
+                    "role": payload.get("role", "user"),
+                    "auth_type": "jwt",
+                }
+        except Exception:
+            pass
+
+    # 2. Legacy cookie fallback
     username = request.cookies.get("username")
     role = request.cookies.get("role")
     if username and role and username in USERS:
-        return {"username": username, "role": role}
+        return {"username": username, "role": role, "auth_type": "legacy"}
+
     return None
 
 

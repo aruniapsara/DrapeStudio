@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.dependencies import get_current_user, verify_credentials
+from app.middleware.auth import AuthMiddleware, get_request_user
 
 # Base directories
 BASE_DIR = Path(__file__).resolve().parent
@@ -28,40 +29,10 @@ app = FastAPI(
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Routes that don't require authentication
-PUBLIC_PATHS = {"/login", "/static"}
-
-
 # ---------------------------------------------------------------------------
-# Auth + Session middleware
+# Auth middleware (JWT + legacy cookie fallback)
 # ---------------------------------------------------------------------------
-@app.middleware("http")
-async def auth_session_middleware(request: Request, call_next):
-    path = request.url.path
-
-    # Allow public paths (login page, static files)
-    is_public = path == "/login" or path.startswith("/static/")
-
-    if not is_public:
-        user = get_current_user(request)
-        if not user:
-            return RedirectResponse(url="/login", status_code=302)
-
-    response = await call_next(request)
-
-    # Assign session_id cookie if missing
-    session_id = request.cookies.get("session_id")
-    if not session_id:
-        session_id = str(uuid.uuid4())
-        response.set_cookie(
-            "session_id",
-            session_id,
-            httponly=True,
-            samesite="lax",
-            max_age=86400 * 30,  # 30 days
-        )
-
-    return response
+app.add_middleware(AuthMiddleware)
 
 
 # ---------------------------------------------------------------------------
@@ -69,8 +40,8 @@ async def auth_session_middleware(request: Request, call_next):
 # ---------------------------------------------------------------------------
 @app.get("/login")
 async def login_page(request: Request, error: str = ""):
-    # If already logged in, redirect to home
-    user = get_current_user(request)
+    # If already logged in (JWT or legacy cookie), redirect to home
+    user = get_request_user(request)
     if user:
         return RedirectResponse(url="/", status_code=302)
     return templates.TemplateResponse(
@@ -84,6 +55,7 @@ async def login_submit(
     username: str = Form(...),
     password: str = Form(...),
 ):
+    """Legacy username/password login — kept for admin/test access during migration."""
     user = verify_credentials(username, password)
     if not user:
         return templates.TemplateResponse(
@@ -101,6 +73,9 @@ async def login_submit(
 @app.get("/logout")
 async def logout():
     response = RedirectResponse(url="/login", status_code=302)
+    # Clear both JWT and legacy cookies
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
     response.delete_cookie("username")
     response.delete_cookie("role")
     return response
@@ -113,7 +88,9 @@ from app.api.uploads import router as uploads_router  # noqa: E402
 from app.api.generations import router as generations_router  # noqa: E402
 from app.api.history import router as history_router  # noqa: E402
 from app.api.admin import router as admin_router  # noqa: E402
+from app.api.auth import router as auth_router  # noqa: E402
 
+app.include_router(auth_router)           # prefix is already /api/v1/auth
 app.include_router(uploads_router, prefix="/v1")
 app.include_router(generations_router, prefix="/v1")
 app.include_router(history_router, prefix="/v1")
@@ -124,7 +101,8 @@ app.include_router(admin_router, prefix="/v1")
 # Helper: build template context with user info
 # ---------------------------------------------------------------------------
 def _ctx(request: Request, **extra) -> dict:
-    user = get_current_user(request)
+    # get_request_user checks JWT first, then falls back to legacy cookies
+    user = get_request_user(request)
     return {"request": request, "user": user, **extra}
 
 
@@ -186,7 +164,7 @@ async def history_page(request: Request):
 
 @app.get("/admin/usage")
 async def admin_usage_page(request: Request):
-    user = get_current_user(request)
+    user = get_request_user(request)
     if not user or user["role"] != "admin":
         return RedirectResponse(url="/", status_code=302)
     return templates.TemplateResponse(
