@@ -56,6 +56,12 @@ class Settings(BaseSettings):
     NOTIFY_LK_API_KEY: str = ""
     NOTIFY_LK_SENDER_ID: str = "NotifyDEMO"
 
+    # PayHere payment gateway (Sri Lanka)
+    PAYHERE_MERCHANT_ID: str = ""
+    PAYHERE_MERCHANT_SECRET: str = ""
+    PAYHERE_SANDBOX: bool = True   # True = sandbox, False = production
+    BASE_URL: str = "http://localhost:8888"  # Used for PayHere callback URLs
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

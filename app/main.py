@@ -89,8 +89,10 @@ from app.api.generations import router as generations_router  # noqa: E402
 from app.api.history import router as history_router  # noqa: E402
 from app.api.admin import router as admin_router  # noqa: E402
 from app.api.auth import router as auth_router  # noqa: E402
+from app.api.billing import router as billing_router  # noqa: E402
 
 app.include_router(auth_router)           # prefix is already /api/v1/auth
+app.include_router(billing_router)        # prefix is already /api/v1/billing
 app.include_router(uploads_router, prefix="/v1")
 app.include_router(generations_router, prefix="/v1")
 app.include_router(history_router, prefix="/v1")
@@ -275,6 +277,34 @@ async def fiton_results_page(request: Request, gen_id: str):
     return templates.TemplateResponse(
         "fiton/results.html",
         _ctx(request, gen_id=gen_id),
+    )
+
+
+@app.get("/pricing")
+async def pricing_page(request: Request):
+    return templates.TemplateResponse("pricing.html", _ctx(request))
+
+
+@app.get("/billing/history")
+async def billing_history_page(request: Request):
+    return templates.TemplateResponse("billing/history.html", _ctx(request))
+
+
+@app.get("/billing/success")
+async def billing_success_page(request: Request):
+    """PayHere return URL after successful payment."""
+    return templates.TemplateResponse(
+        "billing/history.html",
+        _ctx(request, success_message="Payment successful! Your subscription has been activated."),
+    )
+
+
+@app.get("/billing/cancel")
+async def billing_cancel_page(request: Request):
+    """PayHere cancel URL — user cancelled checkout."""
+    return templates.TemplateResponse(
+        "pricing.html",
+        _ctx(request, info_message="Checkout cancelled. No charges were made."),
     )
 
 

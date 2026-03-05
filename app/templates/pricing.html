@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+
+{% block title %}Pricing — DrapeStudio{% endblock %}
+{% block page_title %}Choose Your Plan{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6 space-y-8"
+     x-data="pricingPage()"
+     x-init="init()">
+
+    {# ── Header ──────────────────────────────────────────────────────────── #}
+    <div class="text-center space-y-2">
+        <p class="text-gray-500 text-sm">All prices in Sri Lankan Rupees (LKR) · Cancel anytime</p>
+        <div x-show="currentPlan" class="inline-flex items-center gap-2 bg-primary/10 text-primary text-sm font-medium px-3 py-1 rounded-full">
+            <span>Your current plan:</span>
+            <span x-text="currentPlanName" class="font-bold"></span>
+        </div>
+    </div>
+
+    {# ── Plan cards ──────────────────────────────────────────────────────── #}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {# Free #}
+        <div class="bg-white rounded-3xl border-2 shadow-card p-6 flex flex-col"
+             :class="currentPlan === 'free' ? 'border-primary' : 'border-gray-100'">
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-lg font-bold text-dark">Free</h3>
+                    <template x-if="currentPlan === 'free'">
+                        <span class="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Current</span>
+                    </template>
+                </div>
+                <div class="flex items-baseline gap-1">
+                    <span class="text-3xl font-bold text-dark">Rs. 0</span>
+                    <span class="text-sm text-gray-400">/month</span>
+                </div>
+            </div>
+            <ul class="space-y-2 flex-1 mb-6">
+                <li class="flex items-center gap-2 text-sm text-gray-600">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    3 images per day
+                </li>
+                <li class="flex items-center gap-2 text-sm text-gray-600">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Adult, Kids &amp; Accessories
+                </li>
+                <li class="flex items-center gap-2 text-sm text-gray-400">
+                    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Watermark on images
+                </li>
+                <li class="flex items-center gap-2 text-sm text-gray-400">
+                    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Virtual Fit-On
+                </li>
+            </ul>
+            <button disabled
+                    class="w-full py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed">
+                Always free
+            </button>
+        </div>
+
+        {# Basic #}
+        <div class="bg-white rounded-3xl border-2 shadow-card p-6 flex flex-col relative"
+             :class="currentPlan === 'basic' ? 'border-primary' : 'border-primary/30'">
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span class="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow">Popular</span>
+            </div>
+            <div class="mb-4 mt-2">
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-lg font-bold text-dark">Basic</h3>
+                    <template x-if="currentPlan === 'basic'">
+                        <span class="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Current</span>
+                    </template>
+                </div>
+                <div class="flex items-baseline gap-1">
+                    <span class="text-3xl font-bold text-dark">Rs. 990</span>
+                    <span class="text-sm text-gray-400">/month</span>
+                </div>
+            </div>
+            <ul class="space-y-2 flex-1 mb-6">
+                <li class="flex items-center gap-2 text-sm text-gray-600">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    150 images per month
+                </li>
+                <li class="flex items-center gap-2 text-sm text-gray-600">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    No watermark
+                </li>
+                <li class="flex items-center gap-2 text-sm text-gray-600">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Virtual Fit-On (3/day)
+                </li>
+                <li class="flex items-center gap-2 text-sm text-gray-600">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    All modules
+                </li>
+            </ul>
+            <template x-if="currentPlan !== 'basic'">
+                <button @click="startCheckout('basic')"
+                        :disabled="checkoutLoading"
+                        class="w-full py-2.5 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-dark active:scale-95 transition-all disabled:opacity-60">
+                    <span x-show="!checkoutLoading">Upgrade to Basic</span>
+                    <span x-show="checkoutLoading">Redirecting…</span>
+                </button>
+            </template>
+            <template x-if="currentPlan === 'basic'">
+                <button @click="cancelSubscription()"
+                        class="w-full py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all">
+                    Cancel plan
+                </button>
+            </template>
+        </div>
+
+        {# Pro #}
+        <div class="bg-gradient-to-br from-primary to-[#9B6DFF] rounded-3xl shadow-card p-6 flex flex-col text-white"
+             :class="currentPlan === 'pro' ? 'ring-4 ring-accent' : ''">
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-lg font-bold">Pro</h3>
+                    <template x-if="currentPlan === 'pro'">
+                        <span class="text-xs font-semibold text-white/80 bg-white/20 px-2 py-0.5 rounded-full">Current</span>
+                    </template>
+                </div>
+                <div class="flex items-baseline gap-1">
+                    <span class="text-3xl font-bold">Rs. 2,490</span>
+                    <span class="text-sm text-white/60">/month</span>
+                </div>
+            </div>
+            <ul class="space-y-2 flex-1 mb-6">
+                <li class="flex items-center gap-2 text-sm text-white/90">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    500 images per month
+                </li>
+                <li class="flex items-center gap-2 text-sm text-white/90">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    No watermark
+                </li>
+                <li class="flex items-center gap-2 text-sm text-white/90">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Unlimited Virtual Fit-On
+                </li>
+                <li class="flex items-center gap-2 text-sm text-white/90">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Priority queue (2× faster)
+                </li>
+                <li class="flex items-center gap-2 text-sm text-white/90">
+                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    WhatsApp share templates
+                </li>
+            </ul>
+            <template x-if="currentPlan !== 'pro'">
+                <button @click="startCheckout('pro')"
+                        :disabled="checkoutLoading"
+                        class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white text-primary hover:bg-surface active:scale-95 transition-all disabled:opacity-60">
+                    <span x-show="!checkoutLoading">Upgrade to Pro</span>
+                    <span x-show="checkoutLoading">Redirecting…</span>
+                </button>
+            </template>
+            <template x-if="currentPlan === 'pro'">
+                <button @click="cancelSubscription()"
+                        class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white/20 text-white hover:bg-white/30 transition-all">
+                    Cancel plan
+                </button>
+            </template>
+        </div>
+    </div>
+
+    {# ── FAQ accordion ───────────────────────────────────────────────────── #}
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-6 space-y-4"
+         x-data="{ open: null }">
+        <h3 class="text-base font-bold text-dark">Frequently Asked Questions</h3>
+
+        <template x-for="(faq, i) in faqs" :key="i">
+            <div class="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
+                <button class="w-full flex items-center justify-between text-left gap-4"
+                        @click="open = open === i ? null : i">
+                    <span class="text-sm font-semibold text-dark" x-text="faq.q"></span>
+                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" :class="open===i?'rotate-180':''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <p x-show="open === i" x-transition class="text-sm text-gray-500 mt-2" x-text="faq.a"></p>
+            </div>
+        </template>
+    </div>
+
+    {# Hidden PayHere checkout form (dynamically populated) #}
+    <form id="payhere-form" method="POST" class="hidden">
+        <template x-for="(val, key) in checkoutFields" :key="key">
+            <input type="hidden" :name="key" :value="val">
+        </template>
+    </form>
+</div>
+
+{% block scripts %}
+<script>
+function pricingPage() {
+    return {
+        currentPlan: null,
+        currentPlanName: 'Free',
+        checkoutLoading: false,
+        checkoutFields: {},
+        faqs: [
+            {
+                q: 'What payment methods are accepted?',
+                a: 'We accept Visa, Mastercard, Amex, and Sri Lankan bank cards via PayHere. USSD and eZ Cash payments are also available.'
+            },
+            {
+                q: 'Can I cancel anytime?',
+                a: 'Yes. Cancel from your billing page and you keep access until the end of your billing period. No refunds for the current month.'
+            },
+            {
+                q: 'Do unused credits roll over?',
+                a: 'Credits reset on your monthly billing date. Unused credits do not carry over to the next month.'
+            },
+            {
+                q: 'What is the watermark?',
+                a: 'Free plan images include a small DrapeStudio watermark. Paid plans produce clean, watermark-free images ready for your product listings.'
+            },
+            {
+                q: 'Is my payment secure?',
+                a: 'Yes. All payments are processed by PayHere, a PCI-DSS compliant Sri Lankan payment gateway. DrapeStudio never stores card details.'
+            },
+        ],
+
+        async init() {
+            try {
+                const res = await fetch('/api/v1/billing/usage');
+                if (res.ok) {
+                    const data = await res.json();
+                    this.currentPlan = data.plan || 'free';
+                    this.currentPlanName = data.plan_name || 'Free';
+                }
+            } catch (e) {
+                this.currentPlan = 'free';
+            }
+        },
+
+        async startCheckout(plan) {
+            this.checkoutLoading = true;
+            try {
+                const res = await fetch(`/api/v1/billing/subscribe/${plan}`, { method: 'POST' });
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.detail || 'Checkout failed. Please try again.');
+                    return;
+                }
+                const data = await res.json();
+                const checkoutUrl = data._checkout_url;
+                // Remove internal meta fields
+                delete data._plan_key;
+                delete data._checkout_url;
+                this.checkoutFields = data;
+
+                // Submit PayHere form
+                await this.$nextTick();
+                const form = document.getElementById('payhere-form');
+                form.action = checkoutUrl;
+                form.submit();
+            } catch (e) {
+                alert('Network error. Please try again.');
+            } finally {
+                this.checkoutLoading = false;
+            }
+        },
+
+        async cancelSubscription() {
+            if (!confirm('Cancel your subscription? You keep access until the end of the current billing period.')) return;
+            try {
+                const res = await fetch('/api/v1/billing/cancel', { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    alert('Subscription cancelled. Access continues until ' + (data.expires_at ? data.expires_at.split('T')[0] : 'period end') + '.');
+                    this.currentPlan = 'free';
+                    this.currentPlanName = 'Free';
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || 'Cancellation failed.');
+                }
+            } catch (e) {
+                alert('Network error.');
+            }
+        },
+    };
+}
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,9 +1,12 @@
 """Generation endpoints — create, poll, outputs, download, regenerate."""
 
 import json
+import logging
 from datetime import datetime
 from io import BytesIO
 from zipfile import ZipFile
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -12,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_or_create_session_id
+from app.middleware.auth import get_request_user
 from app.models.db import AccessoryParams, ChildParams, FitonRequest, GenerationRequest, GenerationOutput, generate_gen_id, generate_ulid
 from app.schemas.generation import (
     CreateGenerationRequest,
@@ -119,6 +123,29 @@ def create_generation(
         model_params_dict = body.model_params.model_dump()  # type: ignore[union-attr]
         model_params_dict["product_type"] = body.product_type
         scene_params_dict = body.scene.model_dump()  # type: ignore[union-attr]
+
+    # ── Credit / usage enforcement (JWT users only) ───────────────────────────
+    request_user = get_request_user(request)
+    generation_user_id: str | None = None
+    if request_user and request_user.get("auth_type") == "jwt":
+        generation_user_id = request_user["user_id"]
+        from app.services.billing import BillingService
+        can_generate, reason = BillingService.check_can_generate(
+            generation_user_id, body.module or "adult", db
+        )
+        if not can_generate:
+            templates_ = _get_templates()
+            usage_summary = BillingService.get_usage_summary(generation_user_id, db)
+            return templates_.TemplateResponse(
+                "usage_limit.html",
+                {
+                    "request": request,
+                    "user": request_user,
+                    "reason": reason,
+                    "usage": usage_summary,
+                },
+                status_code=402,
+            )
 
     # ── Idempotency check ─────────────────────────────────────────────────────
     if body.idempotency_key:
@@ -245,6 +272,16 @@ def create_generation(
     except Exception:
         # If Redis is not available, the job stays queued
         pass
+
+    # ── Deduct credit (after successful enqueue) ──────────────────────────────
+    if generation_user_id:
+        try:
+            from app.services.billing import BillingService
+            BillingService.deduct_credit(
+                generation_user_id, gen_id, body.module or "adult", db
+            )
+        except Exception as exc:
+            logger.warning("Credit deduction failed for %s: %s", gen_id, exc)
 
     return GenerationCreatedResponse(id=gen_id, status="queued")
 

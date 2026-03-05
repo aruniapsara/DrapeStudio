@@ -44,6 +44,9 @@ class User(Base):
     last_login_at = Column(DateTime, nullable=True)
 
     generation_requests = relationship("GenerationRequest", back_populates="user")
+    subscriptions = relationship("Subscription", back_populates="user")
+    payments = relationship("Payment", back_populates="user")
+    credit_transactions = relationship("CreditTransaction", back_populates="user")
 
 
 class OTPRequest(Base):
@@ -213,3 +216,67 @@ class FitonRequest(Base):
     generation_request = relationship(
         "GenerationRequest", back_populates="fiton_request"
     )
+
+
+# ── Billing models ────────────────────────────────────────────────────────────
+
+class Subscription(Base):
+    """User's subscription to a paid plan."""
+
+    __tablename__ = "subscription"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    user_id = Column(
+        String(26), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    plan = Column(String(20), nullable=False)     # free | basic | pro
+    status = Column(String(20), nullable=False)   # active | cancelled | expired | past_due
+    credits_total = Column(Integer, nullable=False)
+    credits_used = Column(Integer, nullable=False, default=0)
+    credits_reset_date = Column(DateTime, nullable=True)
+    payhere_subscription_id = Column(String(100), nullable=True)
+    started_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)
+    cancelled_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="subscriptions")
+    payments = relationship("Payment", back_populates="subscription")
+
+
+class Payment(Base):
+    """PayHere payment record."""
+
+    __tablename__ = "payment"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    user_id = Column(String(26), ForeignKey("user.id"), nullable=False, index=True)
+    subscription_id = Column(String(26), ForeignKey("subscription.id"), nullable=True)
+    amount_lkr = Column(Float, nullable=False)
+    currency = Column(String(3), nullable=False, default="LKR")
+    status = Column(String(20), nullable=False)   # pending | completed | failed | refunded
+    payhere_payment_id = Column(String(100), nullable=True)
+    payment_method = Column(String(50), nullable=True)
+    description = Column(String(200), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="payments")
+    subscription = relationship("Subscription", back_populates="payments")
+
+
+class CreditTransaction(Base):
+    """Credit ledger — every deduction and grant is recorded here."""
+
+    __tablename__ = "credit_transaction"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    user_id = Column(String(26), ForeignKey("user.id"), nullable=False, index=True)
+    amount = Column(Integer, nullable=False)         # +ve = credit, -ve = debit
+    balance_after = Column(Integer, nullable=False)
+    transaction_type = Column(String(30), nullable=False)
+    # generation | subscription_credit | daily_free | refund | admin_grant
+    reference_id = Column(String(26), nullable=True)  # generation_request.id
+    description = Column(String(200), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="credit_transactions")
