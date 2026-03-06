@@ -283,34 +283,33 @@ class TestPayHereService:
 
     def test_verify_notification_valid_signature(self):
         """Test that correct signature passes verification."""
-        import os
-        os.environ.setdefault("PAYHERE_MERCHANT_ID", "TEST_MERCHANT")
-        os.environ.setdefault("PAYHERE_MERCHANT_SECRET", "TEST_SECRET")
-
+        from unittest.mock import patch
         from app.config import settings
 
-        service = PayHereService()
-        merchant_id = settings.PAYHERE_MERCHANT_ID or "TEST_MERCHANT"
-        secret = settings.PAYHERE_MERCHANT_SECRET or "TEST_SECRET"
-        order_id = "ORD001"
-        amount = "990.00"
-        currency = "LKR"
-        status_code = "2"
+        with patch.object(settings, "PAYHERE_MERCHANT_ID", "TEST_MERCHANT"), \
+             patch.object(settings, "PAYHERE_MERCHANT_SECRET", "TEST_SECRET"):
+            service = PayHereService()
+            merchant_id = "TEST_MERCHANT"
+            secret = "TEST_SECRET"
+            order_id = "ORD001"
+            amount = "990.00"
+            currency = "LKR"
+            status_code = "2"
 
-        secret_hash = hashlib.md5(secret.encode()).hexdigest().upper()
-        sig = hashlib.md5(
-            f"{merchant_id}{order_id}{amount}{currency}{status_code}{secret_hash}".encode()
-        ).hexdigest().upper()
+            secret_hash = hashlib.md5(secret.encode()).hexdigest().upper()
+            sig = hashlib.md5(
+                f"{merchant_id}{order_id}{amount}{currency}{status_code}{secret_hash}".encode()
+            ).hexdigest().upper()
 
-        params = {
-            "merchant_id": merchant_id,
-            "order_id": order_id,
-            "payhere_amount": amount,
-            "payhere_currency": currency,
-            "status_code": status_code,
-            "md5sig": sig,
-        }
-        assert service.verify_notification(params) is True
+            params = {
+                "merchant_id": merchant_id,
+                "order_id": order_id,
+                "payhere_amount": amount,
+                "payhere_currency": currency,
+                "status_code": status_code,
+                "md5sig": sig,
+            }
+            assert service.verify_notification(params) is True
 
     def test_verify_notification_invalid_signature(self):
         service = PayHereService()

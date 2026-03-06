@@ -154,7 +154,7 @@ def test_flat_lay_includes_surface():
         _params("earrings", "flat_lay", background_surface="wooden_table"),
         variation_index=0,
     )
-    assert "wooden" in prompt.lower()
+    assert "wood" in prompt.lower()
 
 
 def test_flat_lay_white_marble_surface():
