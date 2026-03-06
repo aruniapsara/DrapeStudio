@@ -40,6 +40,7 @@ class User(Base):
     display_name = Column(String(100), nullable=True)
     role = Column(String(20), nullable=False, default="user")
     credits_remaining = Column(Integer, nullable=False, default=3)
+    language_preference = Column(String(5), nullable=False, default="en")
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     last_login_at = Column(DateTime, nullable=True)
 

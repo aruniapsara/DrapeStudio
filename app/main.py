@@ -34,6 +34,12 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 # ---------------------------------------------------------------------------
 app.add_middleware(AuthMiddleware)
 
+# ---------------------------------------------------------------------------
+# i18n: register translation helpers in Jinja2 + language detection middleware
+# ---------------------------------------------------------------------------
+from app.i18n.helpers import setup_i18n  # noqa: E402
+setup_i18n(app, templates)
+
 
 # ---------------------------------------------------------------------------
 # Login / Logout routes
@@ -78,6 +84,38 @@ async def logout():
     response.delete_cookie("refresh_token")
     response.delete_cookie("username")
     response.delete_cookie("role")
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Language selection
+# ---------------------------------------------------------------------------
+@app.get("/api/v1/set-language/{lang}")
+async def set_language(lang: str, request: Request):
+    """Set language preference via cookie. Redirects back to referrer."""
+    from app.i18n import SUPPORTED_LANGUAGES
+    from app.database import get_db as _get_db
+
+    if lang not in SUPPORTED_LANGUAGES:
+        lang = "en"
+
+    referrer = request.headers.get("Referer", "/")
+    response = RedirectResponse(url=referrer, status_code=302)
+    response.set_cookie("lang", lang, max_age=86400 * 365, samesite="lax")
+
+    # Also persist to DB if the user is JWT-authenticated
+    user_info = get_request_user(request)
+    if user_info and user_info.get("auth_type") == "jwt":
+        try:
+            db = next(_get_db())
+            from app.models.db import User
+            db_user = db.query(User).filter(User.id == user_info["user_id"]).first()
+            if db_user:
+                db_user.language_preference = lang
+                db.commit()
+        except Exception:
+            pass
+
     return response
 
 
