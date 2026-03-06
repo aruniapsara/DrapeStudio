@@ -41,6 +41,8 @@ class User(Base):
     role = Column(String(20), nullable=False, default="user")
     credits_remaining = Column(Integer, nullable=False, default=3)
     language_preference = Column(String(5), nullable=False, default="en")
+    sms_notifications_enabled = Column(Boolean, nullable=False, default=False)
+    push_notifications_enabled = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     last_login_at = Column(DateTime, nullable=True)
 
@@ -48,6 +50,7 @@ class User(Base):
     subscriptions = relationship("Subscription", back_populates="user")
     payments = relationship("Payment", back_populates="user")
     credit_transactions = relationship("CreditTransaction", back_populates="user")
+    push_subscriptions = relationship("PushSubscription", back_populates="user")
 
 
 class OTPRequest(Base):
@@ -281,3 +284,20 @@ class CreditTransaction(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     user = relationship("User", back_populates="credit_transactions")
+
+
+class PushSubscription(Base):
+    """Web Push API subscription stored per user device."""
+
+    __tablename__ = "push_subscription"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    user_id = Column(
+        String(26), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    endpoint = Column(String(500), nullable=False, unique=True)
+    keys_p256dh = Column(String(200), nullable=False)
+    keys_auth = Column(String(200), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="push_subscriptions")

@@ -329,6 +329,21 @@ def generate_images(generation_request_id: str) -> None:
             result.duration_ms,
         )
 
+        # Step 11: Send completion notifications (push + SMS)
+        if gen.user_id:
+            try:
+                from app.models.db import User
+                from app.services.notification import notification_service
+                user_obj = db.query(User).filter_by(id=gen.user_id).first()
+                notification_service.notify_generation_complete(
+                    user=user_obj,
+                    generation_id=generation_request_id,
+                    module=gen.module or "adult",
+                    db=db,
+                )
+            except Exception as exc:
+                logger.warning("Notification step failed for %s: %s", generation_request_id, exc)
+
     except Exception as e:
         logger.exception("Unhandled error in generate_images job: %s", e)
         try:

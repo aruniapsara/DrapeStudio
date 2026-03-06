@@ -128,9 +128,11 @@ from app.api.history import router as history_router  # noqa: E402
 from app.api.admin import router as admin_router  # noqa: E402
 from app.api.auth import router as auth_router  # noqa: E402
 from app.api.billing import router as billing_router  # noqa: E402
+from app.api.notifications import router as notifications_router  # noqa: E402
 
-app.include_router(auth_router)           # prefix is already /api/v1/auth
-app.include_router(billing_router)        # prefix is already /api/v1/billing
+app.include_router(auth_router)               # prefix is already /api/v1/auth
+app.include_router(billing_router)            # prefix is already /api/v1/billing
+app.include_router(notifications_router)      # prefix is already /api/v1/notifications
 app.include_router(uploads_router, prefix="/v1")
 app.include_router(generations_router, prefix="/v1")
 app.include_router(history_router, prefix="/v1")
@@ -143,7 +145,12 @@ app.include_router(admin_router, prefix="/v1")
 def _ctx(request: Request, **extra) -> dict:
     # get_request_user checks JWT first, then falls back to legacy cookies
     user = get_request_user(request)
-    return {"request": request, "user": user, **extra}
+    return {
+        "request": request,
+        "user": user,
+        "VAPID_PUBLIC_KEY": settings.VAPID_PUBLIC_KEY,
+        **extra,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -344,6 +351,12 @@ async def billing_cancel_page(request: Request):
         "pricing.html",
         _ctx(request, info_message="Checkout cancelled. No charges were made."),
     )
+
+
+@app.get("/offline.html")
+async def offline_page(request: Request):
+    """Served by the service worker when the user is offline."""
+    return templates.TemplateResponse("offline.html", {"request": request})
 
 
 @app.get("/dev/components")

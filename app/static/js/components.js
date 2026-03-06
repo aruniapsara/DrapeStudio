@@ -217,3 +217,41 @@ window.DS = {
         }
     },
 };
+
+// ── Push subscription helper ──────────────────────────────────────────────────
+
+/**
+ * Subscribe the current browser to Web Push notifications.
+ * Reads the VAPID public key from <meta name="vapid-public-key">.
+ * Sends the subscription to /api/v1/notifications/subscribe.
+ */
+async function subscribeToPush() {
+    if (!('serviceWorker' in navigator && 'PushManager' in window)) return false;
+
+    const vapidKey = document.querySelector('meta[name="vapid-public-key"]')?.content;
+    if (!vapidKey) return false;
+
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return false;
+
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlBase64ToUint8Array(vapidKey),
+    });
+
+    const subJson = subscription.toJSON();
+    const resp = await fetch('/api/v1/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
+    });
+    return resp.ok;
+}
+
+function _urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = window.atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}

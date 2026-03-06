@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     PAYHERE_SANDBOX: bool = True   # True = sandbox, False = production
     BASE_URL: str = "http://localhost:8888"  # Used for PayHere callback URLs
 
+    # Web Push / VAPID keys (generate with: py -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); print(v.private_pem().decode()); print(v.public_key.decode())")
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_EMAIL: str = "admin@drapestudio.lk"
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
