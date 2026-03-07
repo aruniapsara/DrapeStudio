@@ -3,14 +3,29 @@
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+import sentry_sdk
+from fastapi import FastAPI, Form, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.config import settings
 from app.dependencies import get_current_user, verify_credentials
 from app.middleware.auth import AuthMiddleware, get_request_user
+
+# ── Sentry: init before app so all requests are instrumented ────────────────
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=0.1,
+        environment=settings.APP_ENV,
+        release=f"drapestudio@{settings.APP_VERSION}",
+    )
 
 # Base directories
 BASE_DIR = Path(__file__).resolve().parent
@@ -20,19 +35,78 @@ STATIC_DIR = BASE_DIR / "static"
 # Jinja2 templates
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
+# Expose settings that are needed in every template as Jinja2 globals.
+# This avoids having to pass them in every individual _ctx() call and also
+# covers pages (login, offline) that build context dicts without _ctx().
+templates.env.globals.update(
+    GA4_MEASUREMENT_ID=settings.GA4_MEASUREMENT_ID,
+    SENTRY_DSN_JS=settings.SENTRY_DSN_JS,
+    APP_VERSION=settings.APP_VERSION,
+)
+
+# Rate limiter (keyed by remote IP)
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="DrapeStudio",
     description="AI-powered garment model image generator",
-    version="0.1.0",
+    version=settings.APP_VERSION,
 )
+
+# Expose rate limiter on the app state so slowapi can access it
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # ---------------------------------------------------------------------------
-# Auth middleware (JWT + legacy cookie fallback)
+# Middleware stack (applied in reverse order — last added = outermost)
 # ---------------------------------------------------------------------------
+
+# Gzip compression for responses > 1 KB
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# CORS — restrict to the configured base URL in production
+_allowed_origins = (
+    ["*"]
+    if settings.APP_ENV == "development"
+    else [settings.BASE_URL]
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
+
+# Auth middleware (JWT + legacy cookie fallback)
 app.add_middleware(AuthMiddleware)
+
+
+# ---------------------------------------------------------------------------
+# Security headers middleware
+# ---------------------------------------------------------------------------
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response: Response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # Permissions policy: disable browser features that aren't needed
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
+
+# ---------------------------------------------------------------------------
+# HTTPS redirect in production
+# ---------------------------------------------------------------------------
+if settings.APP_ENV == "production":
+    from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+    app.add_middleware(HTTPSRedirectMiddleware)
+
 
 # ---------------------------------------------------------------------------
 # i18n: register translation helpers in Jinja2 + language detection middleware
@@ -129,10 +203,12 @@ from app.api.admin import router as admin_router  # noqa: E402
 from app.api.auth import router as auth_router  # noqa: E402
 from app.api.billing import router as billing_router  # noqa: E402
 from app.api.notifications import router as notifications_router  # noqa: E402
+from app.api.health import router as health_router  # noqa: E402
 
 app.include_router(auth_router)               # prefix is already /api/v1/auth
 app.include_router(billing_router)            # prefix is already /api/v1/billing
 app.include_router(notifications_router)      # prefix is already /api/v1/notifications
+app.include_router(health_router)             # /health, /health/detailed, /metrics
 app.include_router(uploads_router, prefix="/v1")
 app.include_router(generations_router, prefix="/v1")
 app.include_router(history_router, prefix="/v1")
@@ -149,8 +225,31 @@ def _ctx(request: Request, **extra) -> dict:
         "request": request,
         "user": user,
         "VAPID_PUBLIC_KEY": settings.VAPID_PUBLIC_KEY,
+        "GA4_MEASUREMENT_ID": settings.GA4_MEASUREMENT_ID,
+        "SENTRY_DSN_JS": settings.SENTRY_DSN_JS,
+        "APP_VERSION": settings.APP_VERSION,
         **extra,
     }
+
+
+# ---------------------------------------------------------------------------
+# Sitemap
+# ---------------------------------------------------------------------------
+_SITEMAP_URLS = ["/", "/pricing", "/children", "/accessories", "/fiton"]
+
+
+@app.get("/sitemap.xml", response_class=HTMLResponse)
+async def sitemap(request: Request):
+    base = str(request.base_url).rstrip("/")
+    items = "\n".join(
+        f"  <url><loc>{base}{path}</loc></url>"
+        for path in _SITEMAP_URLS
+    )
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{items}
+</urlset>"""
+    return HTMLResponse(content=xml, media_type="application/xml")
 
 
 # ---------------------------------------------------------------------------

@@ -6,6 +6,8 @@ from datetime import datetime
 from io import BytesIO
 from zipfile import ZipFile
 
+from PIL import Image
+
 logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -460,3 +462,38 @@ def get_fiton_details(gen_id: str, db: Session = Depends(get_db)):
         "garment_type":      gen.model_params.get("garment_type", "dress"),
         "customer_photo_url": customer_photo_signed,
     }
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/outputs/{output_id}/thumb  — 200 px wide WebP thumbnail
+# ---------------------------------------------------------------------------
+@router.get("/outputs/{output_id}/thumb")
+def get_output_thumb(output_id: str, width: int = 200, db: Session = Depends(get_db)):
+    """Return a WebP thumbnail (default 200 px wide) for a generation output image."""
+    output = db.query(GenerationOutput).filter(GenerationOutput.id == output_id).first()
+    if not output:
+        raise HTTPException(status_code=404, detail="Output not found.")
+
+    try:
+        image_bytes = storage.load(output.image_url)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail="Image data not found.") from exc
+
+    # Resize while preserving aspect ratio, then encode as WebP
+    img = Image.open(BytesIO(image_bytes)).convert("RGB")
+    aspect = img.height / img.width
+    thumb_h = int(width * aspect)
+    img = img.resize((width, thumb_h), Image.LANCZOS)
+
+    buf = BytesIO()
+    img.save(buf, format="WEBP", quality=75)
+    buf.seek(0)
+
+    return Response(
+        content=buf.read(),
+        media_type="image/webp",
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "Content-Disposition": f'inline; filename="thumb_{output_id}.webp"',
+        },
+    )

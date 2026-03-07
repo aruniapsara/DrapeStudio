@@ -22,7 +22,16 @@ _PUBLIC_PREFIXES = (
     "/api/v1/auth/",  # auth endpoints
     "/v1/files/",     # file serving
 )
-_PUBLIC_EXACT = {"/login", "/health", "/favicon.ico", "/offline.html"}
+_PUBLIC_EXACT = {
+    "/login",
+    "/health",
+    "/health/detailed",
+    "/metrics",
+    "/sitemap.xml",
+    "/robots.txt",
+    "/favicon.ico",
+    "/offline.html",
+}
 
 
 def _is_public(path: str) -> bool:

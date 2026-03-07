@@ -3,7 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{% block title %}DrapeStudio{% endblock %}</title>
+
+    {# ── SEO meta tags ───────────────────────────────────────────────── #}
+    <title>{% block title %}DrapeStudio — AI Product Photography for Sri Lankan Businesses{% endblock %}</title>
+    <meta name="description" content="{% block description %}Professional catalogue images without models or studios. AI-powered product photography for clothing, accessories, and virtual fit-on.{% endblock %}">
+
+    {# Open Graph — pages can override {% block og_tags %} for custom sharing previews #}
+    {% block og_tags %}
+    <meta property="og:title" content="DrapeStudio">
+    <meta property="og:description" content="AI Product Photography for Your Business">
+    <meta property="og:image" content="{{ request.url_for('static', path='og-image.png') }}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="en_LK">
+    <meta property="og:site_name" content="DrapeStudio">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="DrapeStudio">
+    <meta name="twitter:description" content="AI Product Photography">
+    <meta name="twitter:image" content="{{ request.url_for('static', path='og-image.png') }}">
+    {% endblock %}
+
+    {# Sri Lankan local SEO #}
+    <meta name="geo.region" content="LK">
+    <meta name="geo.placename" content="Sri Lanka">
+
+    {# Schema.org structured data — pages can override for richer schema #}
+    {% block schema %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "DrapeStudio",
+      "applicationCategory": "PhotographyApplication",
+      "operatingSystem": "Web",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "LKR" },
+      "description": "AI-powered product photography for Sri Lankan businesses",
+      "availableLanguage": ["English", "Sinhala", "Tamil"]
+    }
+    </script>
+    {% endblock %}
+
     <link rel="icon" type="image/png" href="/static/icon.png">
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#6C3CE1">
@@ -11,12 +50,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     {% if VAPID_PUBLIC_KEY %}<meta name="vapid-public-key" content="{{ VAPID_PUBLIC_KEY }}">{% endif %}
 
-    <!-- Google Fonts -->
+    {# ── Sentry Browser SDK (client-side error tracking) ─────────────── #}
+    {% if SENTRY_DSN_JS %}
+    <script src="https://browser.sentry-cdn.com/8.x/bundle.tracing.min.js" crossorigin="anonymous"></script>
+    <script>
+      Sentry.init({ dsn: '{{ SENTRY_DSN_JS }}', tracesSampleRate: 0.1 });
+    </script>
+    {% endif %}
+
+    {# ── Google Analytics 4 ───────────────────────────────────────────── #}
+    {% if GA4_MEASUREMENT_ID %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_MEASUREMENT_ID }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ GA4_MEASUREMENT_ID }}');
+    </script>
+    {% endif %}
+
+    {# ── Google Fonts — async load to avoid render-blocking ──────────── #}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
 
-    <!-- Tailwind CDN -->
+    {# ── Tailwind CDN ─────────────────────────────────────────────────── #}
     <script>
         tailwind.config = {
             corePlugins: { preflight: false },
@@ -48,15 +108,15 @@
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Alpine.js -->
+    {# ── Alpine.js ─────────────────────────────────────────────────────── #}
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 
-    <!-- HTMX -->
+    {# ── HTMX ──────────────────────────────────────────────────────────── #}
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 
-    <!-- Legacy CSS (phase-1 pages) + Tailwind overrides -->
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/tailwind-overrides.css">
+    {# ── Stylesheets — cache-busted by APP_VERSION ────────────────────── #}
+    <link rel="stylesheet" href="/static/css/style.css?v={{ APP_VERSION }}">
+    <link rel="stylesheet" href="/static/css/tailwind-overrides.css?v={{ APP_VERSION }}">
 
     {% block head %}{% endblock %}
 </head>
@@ -65,7 +125,7 @@
     {# ── Mobile: Top header bar ──────────────────────────────────────── #}
     <header class="lg:hidden fixed top-0 inset-x-0 z-40 h-14 bg-white/95 backdrop-blur-sm border-b border-gray-100 flex items-center justify-between px-4 safe-top">
         <a href="/" class="flex items-center gap-2">
-            <img src="/static/logo.png" alt="DrapeStudio" class="h-8 w-auto">
+            <img src="/static/logo.png" alt="DrapeStudio" class="h-8 w-auto" loading="eager">
         </a>
         <div class="flex items-center gap-2">
             {# Language selector #}
@@ -181,8 +241,8 @@
         </button>
     </div>
 
-    <!-- Alpine.js components + PWA service worker -->
-    <script src="/static/js/components.js"></script>
+    {# ── Components + PWA service worker — cache-busted by APP_VERSION ── #}
+    <script src="/static/js/components.js?v={{ APP_VERSION }}"></script>
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {

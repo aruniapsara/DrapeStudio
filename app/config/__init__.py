@@ -67,6 +67,16 @@ class Settings(BaseSettings):
     VAPID_PUBLIC_KEY: str = ""
     VAPID_EMAIL: str = "admin@drapestudio.lk"
 
+    # Google Analytics 4
+    GA4_MEASUREMENT_ID: str = ""  # e.g. G-XXXXXXXXXX
+
+    # Sentry error tracking
+    SENTRY_DSN: str = ""           # Server-side DSN
+    SENTRY_DSN_JS: str = ""        # Client-side DSN (can be same as server DSN)
+
+    # App versioning (used in Sentry release tag and cache-busting)
+    APP_VERSION: str = "2.0.0"
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

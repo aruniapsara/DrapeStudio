@@ -5,6 +5,26 @@
 
 'use strict';
 
+// ── Analytics Helper ──────────────────────────────────────────────────────────
+/**
+ * Track a custom GA4 event.
+ * Safe to call even if GA4 is not configured.
+ *
+ * @param {string} action   - e.g. 'generation_start'
+ * @param {string} category - e.g. 'generation'
+ * @param {string} label    - e.g. 'adult'
+ * @param {number} [value]  - optional numeric value
+ */
+function trackEvent(action, category, label, value) {
+    if (typeof gtag !== 'undefined') {
+        gtag('event', action, {
+            event_category: category,
+            event_label: label,
+            value: value,
+        });
+    }
+}
+
 // ── Toast Store ──────────────────────────────────────────────────────────────
 function toastStore() {
     return {
