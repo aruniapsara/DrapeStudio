@@ -44,7 +44,7 @@ class TestHealthEndpoints:
         assert "checks" in data
         assert "database" in data["checks"]
         assert "redis" in data["checks"]
-        assert "openrouter" in data["checks"]
+        assert "gemini" in data["checks"]
 
     def test_health_detailed_has_uptime(self):
         resp = self.tc.get("/health/detailed")

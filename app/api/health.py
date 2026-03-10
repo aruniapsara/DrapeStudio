@@ -47,8 +47,8 @@ async def detailed_health(db: Session = Depends(get_db)):
     except Exception:
         checks["redis"] = "error"
 
-    # OpenRouter API key
-    checks["openrouter"] = "ok" if settings.OPENROUTER_API_KEY else "not_configured"
+    # Google Gemini API key
+    checks["gemini"] = "ok" if settings.GOOGLE_API_KEY else "not_configured"
 
     all_ok = all(v == "ok" for v in checks.values())
     return {

@@ -122,7 +122,7 @@ def generate_images(generation_request_id: str) -> None:
                 }
                 # Generate two prompts (variation 0 and 1) — they differ by camera angle
                 # For simplicity, assemble with variation_index=0 and let generate_garment_images
-                # iterate over both angles via variation_index inside _call_openrouter.
+                # iterate over both angles via variation_index inside _call_gemini.
                 # We pass variation_index=0 for the base prompt; the camera angle instructions
                 # are embedded per-variation by passing the right index to the assembler.
                 # We store prompt_text as a base; the gemini service calls assemble dynamically.
