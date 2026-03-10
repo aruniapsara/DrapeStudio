@@ -206,26 +206,20 @@ async def auth_google(request: Request):
     google = oauth.create_client("google")
     redirect_uri = settings.GOOGLE_REDIRECT_URI
 
-    # prompt=select_account is the default; use prompt=none to skip
-    # the account chooser when the user has an active Google session.
-    # If prompt=none fails (user not signed in to Google), Google
-    # returns an error and we retry with the account chooser.
-    prompt = request.query_params.get("prompt", "none")
-    return await google.authorize_redirect(
-        request, redirect_uri, state=state, prompt=prompt
-    )
+    # Don't pass prompt param — let Google decide:
+    # - If user has one account signed in → auto-selects it (no chooser)
+    # - If user has multiple accounts → shows account chooser
+    return await google.authorize_redirect(request, redirect_uri, state=state)
 
 
 @app.get("/auth/callback")
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
     """Handle Google OAuth callback, issue JWT cookies, redirect."""
-    # If prompt=none failed, Google redirects back with an error param.
-    # Retry with the account chooser (select_account).
+    # If Google returned an error (e.g. user denied consent), go back to login
     error_param = request.query_params.get("error")
-    if error_param in ("interaction_required", "login_required", "consent_required"):
-        return RedirectResponse(
-            url="/auth/google?prompt=select_account", status_code=302
-        )
+    if error_param:
+        logger.warning("Google OAuth error: %s", error_param)
+        return RedirectResponse(url="/login?error=oauth_failed", status_code=302)
 
     try:
         google = oauth.create_client("google")
