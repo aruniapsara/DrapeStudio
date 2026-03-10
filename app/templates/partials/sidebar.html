@@ -49,28 +49,31 @@
             {{ t("home.categories.adults", request.state.lang) }}
         </a>
 
-        <a href="/children" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-white/5 transition-colors text-sm font-medium">
+        <a href="/children"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p == '/children' or p.startswith('/children/') %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="8" r="3"/><path d="M6 20v-1a6 6 0 0112 0v1"/>
             </svg>
             {{ t("home.categories.kids", request.state.lang) }}
-            <span class="ml-auto text-[10px] bg-[#FF6B35]/20 text-[#FF6B35] px-1.5 py-0.5 rounded-full font-semibold">{{ t("common.coming_soon", request.state.lang) }}</span>
         </a>
 
-        <a href="/accessories" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-white/5 transition-colors text-sm font-medium">
+        <a href="/accessories"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p == '/accessories' or p.startswith('/accessories/') %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
             {{ t("nav.accessories", request.state.lang) }}
-            <span class="ml-auto text-[10px] bg-[#FF6B35]/20 text-[#FF6B35] px-1.5 py-0.5 rounded-full font-semibold">{{ t("common.coming_soon", request.state.lang) }}</span>
         </a>
 
-        <a href="/fiton" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-white/5 transition-colors text-sm font-medium">
+        <a href="/fiton"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p == '/fiton' or p.startswith('/fiton/') %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
             </svg>
             {{ t("home.categories.fiton", request.state.lang) }}
-            <span class="ml-auto text-[10px] bg-[#FF6B35]/20 text-[#FF6B35] px-1.5 py-0.5 rounded-full font-semibold">{{ t("common.coming_soon", request.state.lang) }}</span>
         </a>
 
         {# ── Admin section ─ #}

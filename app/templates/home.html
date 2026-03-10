@@ -51,25 +51,27 @@
                 </div>
             </a>
 
-            {# Kids — Coming Soon #}
+            {# Kids — Active #}
             <a href="/children"
-               class="group relative bg-white rounded-2xl border border-gray-100 shadow-card p-5 flex flex-col items-start opacity-80">
+               class="group relative bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:border-primary/20 p-5 flex flex-col items-start transition-all">
                 <div class="text-3xl mb-3">👕</div>
                 <h3 class="text-sm font-bold text-dark">{{ t("home.categories.kids", request.state.lang) }}</h3>
                 <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ t("home.categories.kids_desc", request.state.lang) }}</p>
-                <div class="mt-3">
-                    <span class="text-[10px] font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">{{ t("common.coming_soon", request.state.lang) }}</span>
+                <div class="mt-3 flex items-center justify-between w-full">
+                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Active</span>
+                    <svg class="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </div>
             </a>
 
-            {# Accessories — Coming Soon #}
+            {# Accessories — Active #}
             <a href="/accessories"
-               class="group relative bg-white rounded-2xl border border-gray-100 shadow-card p-5 flex flex-col items-start opacity-80">
+               class="group relative bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:border-primary/20 p-5 flex flex-col items-start transition-all">
                 <div class="text-3xl mb-3">👜</div>
                 <h3 class="text-sm font-bold text-dark">{{ t("home.categories.accessories", request.state.lang) }}</h3>
                 <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ t("home.categories.accessories_desc", request.state.lang) }}</p>
-                <div class="mt-3">
-                    <span class="text-[10px] font-semibold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">{{ t("common.coming_soon", request.state.lang) }}</span>
+                <div class="mt-3 flex items-center justify-between w-full">
+                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Active</span>
+                    <svg class="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </div>
             </a>
 
