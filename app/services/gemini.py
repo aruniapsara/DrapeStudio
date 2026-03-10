@@ -155,6 +155,14 @@ def _call_gemini(
     # Create the Gemini client
     client = genai.Client(api_key=settings.GOOGLE_API_KEY)
 
+    # Determine aspect ratio per module
+    # - adult/children/fiton: 3:4 portrait (ideal for fashion catalogue)
+    # - accessories: 1:1 square (product-focused)
+    if module == "accessories":
+        aspect_ratio = "1:1"
+    else:
+        aspect_ratio = "3:4"
+
     # Call the API with image generation config
     try:
         response = client.models.generate_content(
@@ -162,6 +170,9 @@ def _call_gemini(
             contents=contents,
             config=types.GenerateContentConfig(
                 response_modalities=["TEXT", "IMAGE"],
+                image_generation_config=types.ImageGenerationConfig(
+                    aspect_ratio=aspect_ratio,
+                ),
             ),
         )
     except Exception as exc:
