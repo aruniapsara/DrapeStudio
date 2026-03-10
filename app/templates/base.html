@@ -161,7 +161,9 @@
     </header>
 
     {# ── Desktop: Sidebar ────────────────────────────────────────────── #}
-    {% include "partials/sidebar.html" %}
+    <aside class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col bg-dark">
+        {% include "partials/sidebar.html" %}
+    </aside>
 
     {# ── Main content wrapper ────────────────────────────────────────── #}
     <div class="lg:pl-64 flex flex-col min-h-full">
@@ -176,7 +178,9 @@
     </div>
 
     {# ── Mobile: Bottom navigation ───────────────────────────────────── #}
-    {% include "partials/bottom_nav.html" %}
+    <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 shadow-bottom-nav">
+        {% include "partials/bottom_nav.html" %}
+    </nav>
 
     {# ── WhatsApp floating button ────────────────────────────────────── #}
     <a href="https://wa.me/94XXXXXXXXX" target="_blank" rel="noopener"
