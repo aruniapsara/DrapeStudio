@@ -19,12 +19,19 @@ class AuthService:
 
     # ── Token creation ────────────────────────────────────────────────────
     @classmethod
-    def create_access_token(cls, user_id: str, phone: str, role: str = "user") -> str:
+    def create_access_token(
+        cls,
+        user_id: str,
+        phone: str = "",
+        role: str = "user",
+        email: str = "",
+    ) -> str:
         """Create a signed 24-hour JWT access token."""
         now = datetime.now(timezone.utc)
         payload = {
             "sub": user_id,
             "phone": phone,
+            "email": email,
             "role": role,
             "type": "access",
             "iat": now,

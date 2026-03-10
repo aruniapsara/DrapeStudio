@@ -57,10 +57,13 @@ def get_current_user(request: Request) -> dict | None:
             from app.services.auth import AuthService
             payload = AuthService.verify_access_token(access_token)
             if payload:
+                email = payload.get("email", "")
+                phone = payload.get("phone", "")
                 return {
                     "user_id": payload["sub"],
-                    "phone": payload.get("phone", ""),
-                    "username": payload.get("phone", ""),  # compat alias
+                    "phone": phone,
+                    "email": email,
+                    "username": email or phone or "",  # compat alias
                     "role": payload.get("role", "user"),
                     "auth_type": "jwt",
                 }

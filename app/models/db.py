@@ -31,12 +31,15 @@ def generate_gen_id() -> str:
 
 
 class User(Base):
-    """Registered user (phone-OTP auth)."""
+    """Registered user (Google OAuth or legacy phone-OTP auth)."""
 
     __tablename__ = "user"
 
     id = Column(String(26), primary_key=True, default=generate_ulid)
-    phone = Column(String(20), unique=True, nullable=False, index=True)
+    phone = Column(String(20), unique=True, nullable=True, index=True)
+    email = Column(String(255), unique=True, nullable=True, index=True)
+    google_id = Column(String(255), unique=True, nullable=True, index=True)
+    avatar_url = Column(String(500), nullable=True)
     display_name = Column(String(100), nullable=True)
     role = Column(String(20), nullable=False, default="user")
     credits_remaining = Column(Integer, nullable=False, default=3)

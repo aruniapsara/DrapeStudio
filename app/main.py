@@ -1,10 +1,11 @@
 """FastAPI app creation, router includes, lifespan, and session middleware."""
 
+import logging
 import uuid
 from pathlib import Path
 
 import sentry_sdk
-from fastapi import FastAPI, Form, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -13,10 +14,14 @@ from fastapi.templating import Jinja2Templates
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.database import get_db
 from app.dependencies import get_current_user, verify_credentials
 from app.middleware.auth import AuthMiddleware, get_request_user
+
+logger = logging.getLogger(__name__)
 
 # ── Sentry: init before app so all requests are instrumented ────────────────
 if settings.SENTRY_DSN:
@@ -81,6 +86,10 @@ app.add_middleware(
     allow_credentials=True,
 )
 
+# Session middleware (required by authlib for OAuth state)
+from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
+app.add_middleware(SessionMiddleware, secret_key=settings.JWT_SECRET)
+
 # Auth middleware (JWT + legacy cookie fallback)
 app.add_middleware(AuthMiddleware)
 
@@ -125,7 +134,12 @@ async def login_page(request: Request, error: str = ""):
     if user:
         return RedirectResponse(url="/", status_code=302)
     return templates.TemplateResponse(
-        "login.html", {"request": request, "error": error}
+        "login.html",
+        {
+            "request": request,
+            "error": error,
+            "google_enabled": bool(settings.GOOGLE_CLIENT_ID),
+        },
     )
 
 
@@ -158,6 +172,136 @@ async def logout():
     response.delete_cookie("refresh_token")
     response.delete_cookie("username")
     response.delete_cookie("role")
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Google OAuth routes
+# ---------------------------------------------------------------------------
+from app.services.google_auth import (  # noqa: E402
+    oauth,
+    create_state_token,
+    verify_state_token,
+    fetch_google_user_info,
+    get_or_create_google_user,
+)
+from app.services.auth import AuthService  # noqa: E402
+
+_COOKIE_OPTS: dict = {
+    "httponly": True,
+    "samesite": "lax",
+    "secure": False,
+}
+
+
+@app.get("/auth/google")
+async def auth_google(request: Request):
+    """Redirect to Google OAuth consent screen."""
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=503, detail="Google OAuth not configured.")
+
+    next_url = request.query_params.get("next", "/")
+    state = create_state_token(next_url)
+
+    google = oauth.create_client("google")
+    redirect_uri = settings.GOOGLE_REDIRECT_URI
+    return await google.authorize_redirect(request, redirect_uri, state=state)
+
+
+@app.get("/auth/callback")
+async def auth_callback(request: Request, db: Session = Depends(get_db)):
+    """Handle Google OAuth callback, issue JWT cookies, redirect."""
+    try:
+        google = oauth.create_client("google")
+        token_data = await google.authorize_access_token(request)
+    except Exception as exc:
+        logger.error("Google OAuth token exchange failed: %s", exc)
+        return RedirectResponse(url="/login?error=oauth_failed", status_code=302)
+
+    # Extract user info from the ID token or fetch from userinfo endpoint
+    user_info = token_data.get("userinfo")
+    if not user_info:
+        access_token = token_data.get("access_token", "")
+        user_info = await fetch_google_user_info(access_token)
+
+    if not user_info or not user_info.get("email"):
+        logger.error("Google OAuth: no email in user info")
+        return RedirectResponse(url="/login?error=no_email", status_code=302)
+
+    google_id = user_info.get("sub", "")
+    email = user_info["email"]
+    name = user_info.get("name", "")
+    picture = user_info.get("picture", "")
+
+    # Find or create user in DB
+    user, is_new = get_or_create_google_user(google_id, email, name, picture, db)
+
+    # Issue JWT cookies
+    access_token = AuthService.create_access_token(
+        user.id, phone=user.phone or "", role=user.role, email=user.email or ""
+    )
+    refresh_token = AuthService.create_refresh_token(user.id)
+
+    # Determine redirect target
+    state_token = request.query_params.get("state", "")
+    state_data = verify_state_token(state_token) if state_token else None
+    next_url = state_data.get("next", "/") if state_data else "/"
+
+    # First-time users go to profile for onboarding
+    if is_new:
+        next_url = "/profile?onboarding=1"
+
+    response = RedirectResponse(url=next_url, status_code=302)
+    response.set_cookie(
+        "access_token",
+        access_token,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        **_COOKIE_OPTS,
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        **_COOKIE_OPTS,
+    )
+    return response
+
+
+@app.get("/auth/dev-login")
+async def dev_login(request: Request, db: Session = Depends(get_db)):
+    """Dev bypass: auto-create a test user when Google OAuth is not configured."""
+    if settings.GOOGLE_CLIENT_ID:
+        # OAuth is configured — don't allow dev bypass
+        return RedirectResponse(url="/auth/google", status_code=302)
+
+    # Create or get a dev test user
+    user, is_new = get_or_create_google_user(
+        google_id="dev-local-user",
+        email="dev@drapestudio.local",
+        name="Dev User",
+        picture="",
+        db=db,
+    )
+
+    access_token = AuthService.create_access_token(
+        user.id, phone="", role=user.role, email=user.email or ""
+    )
+    refresh_token = AuthService.create_refresh_token(user.id)
+
+    next_url = "/profile?onboarding=1" if is_new else "/"
+    response = RedirectResponse(url=next_url, status_code=302)
+    response.set_cookie(
+        "access_token",
+        access_token,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        **_COOKIE_OPTS,
+    )
+    response.set_cookie(
+        "refresh_token",
+        refresh_token,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        **_COOKIE_OPTS,
+    )
     return response
 
 
@@ -221,6 +365,21 @@ app.include_router(admin_router, prefix="/v1")
 def _ctx(request: Request, **extra) -> dict:
     # get_request_user checks JWT first, then falls back to legacy cookies
     user = get_request_user(request)
+
+    # Enrich JWT user dict with avatar_url + display_name from DB (for sidebar)
+    if user and user.get("auth_type") == "jwt" and user.get("user_id"):
+        try:
+            from app.models.db import User as UserModel
+            db_session = next(get_db())
+            db_user = db_session.query(UserModel).filter(
+                UserModel.id == user["user_id"]
+            ).first()
+            if db_user:
+                user["avatar_url"] = db_user.avatar_url or ""
+                user["display_name"] = db_user.display_name or ""
+        except Exception:
+            pass
+
     return {
         "request": request,
         "user": user,

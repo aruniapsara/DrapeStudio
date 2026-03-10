@@ -152,7 +152,9 @@ async def refresh_token(
     if not user:
         raise HTTPException(status_code=401, detail="User not found.")
 
-    access_token = AuthService.create_access_token(user.id, user.phone, user.role)
+    access_token = AuthService.create_access_token(
+        user.id, phone=user.phone or "", role=user.role, email=user.email or ""
+    )
     response.set_cookie(
         "access_token",
         access_token,
@@ -197,8 +199,10 @@ async def get_me(request: Request, db: Session = Depends(get_db)):
 
     return {
         "user_id": user.id,
-        "phone": user.phone,
-        "display_name": user.display_name,
+        "phone": user.phone or "",
+        "email": user.email or "",
+        "avatar_url": user.avatar_url or "",
+        "display_name": user.display_name or "",
         "role": user.role,
         "credits_remaining": user.credits_remaining,
         "total_generations": total_gens,

@@ -33,40 +33,17 @@
         .gradient-bg {
             background: linear-gradient(135deg, #1A1A2E 0%, #2D1B69 50%, #1A1A2E 100%);
         }
-        /* OTP digit boxes */
-        .otp-box {
-            width: 2.75rem;
-            height: 3.25rem;
-            text-align: center;
-            font-size: 1.25rem;
-            font-weight: 700;
-            border: 2px solid #E5E7EB;
-            border-radius: 0.75rem;
-            outline: none;
-            transition: border-color 0.15s, box-shadow 0.15s;
-            background: #F8F7FF;
-            color: #1A1A2E;
-        }
-        .otp-box:focus {
-            border-color: #6C3CE1;
-            box-shadow: 0 0 0 3px rgba(108,60,225,0.15);
-            background: #fff;
-        }
-        .otp-box.filled {
-            border-color: #6C3CE1;
-            background: #fff;
-        }
         [x-cloak] { display: none !important; }
     </style>
 </head>
 <body class="h-full gradient-bg flex items-center justify-center p-4 min-h-screen">
 
-<div class="w-full max-w-sm" x-data="otpLogin()" x-cloak>
+<div class="w-full max-w-sm" x-data="loginPage()" x-cloak>
 
     {# ── Logo ──────────────────────────────────────────────────────────── #}
     <div class="text-center mb-8">
         <img src="/static/logo.png" alt="DrapeStudio" class="h-14 w-auto mx-auto mb-3">
-        <p class="text-white/60 text-sm">AI-powered garment model images</p>
+        <p class="text-white/60 text-sm">{{ t("home.hero_tagline", request.state.lang) }}</p>
     </div>
 
     {# ── Card ──────────────────────────────────────────────────────────── #}
@@ -84,131 +61,103 @@
             </div>
         </template>
 
-        {# ── STEP 1: Phone entry ───────────────────────────────────────── #}
-        <template x-if="step === 'phone'">
+        {# ── Main login view ────────────────────────────────────────── #}
+        <template x-if="view === 'main'">
             <div>
-                <h1 class="text-xl font-bold text-[#1A1A2E] mb-1">Welcome to DrapeStudio</h1>
-                <p class="text-gray-500 text-sm mb-6">Enter your phone number to receive a verification code.</p>
+                <h1 class="text-xl font-bold text-[#1A1A2E] mb-1">{{ t("auth.login_title", request.state.lang) }}</h1>
+                <p class="text-gray-500 text-sm mb-6">{{ t("auth.login_subtitle", request.state.lang) }}</p>
 
-                <form @submit.prevent="requestOtp" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1.5">
-                            Mobile Number
-                        </label>
-                        <div class="flex gap-2 items-center">
-                            {# Country code prefix — fixed to Sri Lanka #}
-                            <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-700 select-none flex-shrink-0">
-                                <span class="text-base leading-none">&#x1F1F1;&#x1F1F0;</span>
-                                <span>+94</span>
-                            </div>
-                            <input
-                                type="tel"
-                                x-model="localPhone"
-                                @input="localPhone = localPhone.replace(/\D/g, '').slice(0, 9)"
-                                placeholder="7X XXX XXXX"
-                                inputmode="numeric"
-                                maxlength="9"
-                                required
-                                autofocus
-                                class="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C3CE1]/30 focus:border-[#6C3CE1] transition-colors"
-                            >
-                        </div>
-                        <p class="mt-1.5 text-[11px] text-gray-400">Sri Lanka numbers only. Format: 7X XXX XXXX</p>
+                {# ── Sign in with Google button ─────────────────────── #}
+                {% if google_enabled %}
+                <a href="/auth/google"
+                   class="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all text-sm shadow-sm">
+                    {# Google "G" logo SVG #}
+                    <svg width="20" height="20" viewBox="0 0 48 48">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                        <path fill="none" d="M0 0h48v48H0z"/>
+                    </svg>
+                    <span>Sign in with Google</span>
+                </a>
+                {% endif %}
+
+                {# ── Dev Login button (only when Google OAuth is not configured) #}
+                {% if not google_enabled %}
+                <a href="/auth/dev-login"
+                   class="w-full flex items-center justify-center gap-3 bg-[#6C3CE1] hover:bg-[#5A2FBF] text-white font-semibold py-3 px-4 rounded-xl transition-colors text-sm shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                    </svg>
+                    <span>Dev Login (No OAuth)</span>
+                </a>
+                <p class="text-xs text-gray-400 text-center mt-2">
+                    GOOGLE_CLIENT_ID not set — using dev bypass
+                </p>
+                {% endif %}
+
+                {# ── Divider ───────────────────────────────────────── #}
+                <div class="relative my-6">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-200"></div>
                     </div>
+                    <div class="relative flex justify-center text-xs">
+                        <span class="bg-white px-3 text-gray-400">or</span>
+                    </div>
+                </div>
 
-                    <button
-                        type="submit"
-                        :disabled="loading || localPhone.length < 9"
-                        class="w-full bg-[#6C3CE1] hover:bg-[#5A2FBF] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors text-sm shadow-sm mt-2 flex items-center justify-center gap-2"
-                    >
-                        <template x-if="loading">
-                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                            </svg>
-                        </template>
-                        <span x-text="loading ? 'Sending\u2026' : 'Send Verification Code'"></span>
-                    </button>
-                </form>
+                {# ── Admin login link ──────────────────────────────── #}
+                <button
+                    @click="view = 'admin'"
+                    class="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
+                >
+                    Admin login
+                </button>
             </div>
         </template>
 
-        {# ── STEP 2: OTP entry ────────────────────────────────────────── #}
-        <template x-if="step === 'otp'">
+        {# ── Admin login form (legacy username/password) ────────────── #}
+        <template x-if="view === 'admin'">
             <div>
-                <button @click="step = 'phone'; error = ''" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-4 transition-colors">
+                <button @click="view = 'main'; error = ''" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-4 transition-colors">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                         <polyline points="15 18 9 12 15 6"/>
                     </svg>
-                    Change number
+                    Back
                 </button>
 
-                <template x-if="isNewUser">
-                    <div class="mb-4 flex items-start gap-2.5 bg-primary/5 border border-primary/20 text-primary rounded-xl px-4 py-3 text-sm">
-                        <span class="text-base leading-none">&#x1F389;</span>
-                        <span>Welcome! We've created your DrapeStudio account.</span>
+                <h1 class="text-xl font-bold text-[#1A1A2E] mb-1">Admin Login</h1>
+                <p class="text-gray-500 text-sm mb-6">Enter your admin credentials.</p>
+
+                <form method="POST" action="/login" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+                        <input
+                            type="text"
+                            name="username"
+                            required
+                            autofocus
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C3CE1]/30 focus:border-[#6C3CE1] transition-colors"
+                            placeholder="Username"
+                        >
                     </div>
-                </template>
-
-                <h1 class="text-xl font-bold text-[#1A1A2E] mb-1">Enter Verification Code</h1>
-                <p class="text-gray-500 text-sm mb-1">
-                    We sent a 6-digit code to
-                    <span class="font-semibold text-dark" x-text="'+94 ' + localPhone"></span>
-                </p>
-                <p class="text-xs text-gray-400 mb-6">The code expires in 5 minutes.</p>
-
-                <form @submit.prevent="verifyOtp" class="space-y-5">
-                    {# 6-box OTP input #}
-                    <div class="flex justify-center gap-2" id="otp-boxes">
-                        <template x-for="(digit, idx) in otp" :key="idx">
-                            <input
-                                type="text"
-                                inputmode="numeric"
-                                maxlength="1"
-                                :id="'otp-' + idx"
-                                :value="digit"
-                                @input="handleOtpInput(idx, $event)"
-                                @keydown="handleOtpKey(idx, $event)"
-                                @paste.prevent="handleOtpPaste($event)"
-                                :class="digit ? 'otp-box filled' : 'otp-box'"
-                                autocomplete="one-time-code"
-                            >
-                        </template>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                        <input
+                            type="password"
+                            name="password"
+                            required
+                            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C3CE1]/30 focus:border-[#6C3CE1] transition-colors"
+                            placeholder="Password"
+                        >
                     </div>
-
                     <button
                         type="submit"
-                        :disabled="loading || otpString.length < 6"
-                        class="w-full bg-[#6C3CE1] hover:bg-[#5A2FBF] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors text-sm shadow-sm flex items-center justify-center gap-2"
+                        class="w-full bg-[#6C3CE1] hover:bg-[#5A2FBF] text-white font-semibold py-3 rounded-xl transition-colors text-sm shadow-sm mt-2"
                     >
-                        <template x-if="loading">
-                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                            </svg>
-                        </template>
-                        <span x-text="loading ? 'Verifying\u2026' : 'Verify &amp; Sign In'"></span>
+                        Sign In
                     </button>
-
-                    {# Resend row #}
-                    <div class="text-center">
-                        <template x-if="resendCountdown > 0">
-                            <p class="text-xs text-gray-400">
-                                Resend available in
-                                <span class="font-semibold text-primary" x-text="resendCountdown + 's'"></span>
-                            </p>
-                        </template>
-                        <template x-if="resendCountdown === 0">
-                            <button
-                                type="button"
-                                @click="resendOtp"
-                                :disabled="loading"
-                                class="text-xs font-semibold text-primary hover:text-[#5A2FBF] disabled:opacity-50 transition-colors"
-                            >
-                                Resend code
-                            </button>
-                        </template>
-                    </div>
                 </form>
             </div>
         </template>
@@ -219,167 +168,28 @@
 </div>
 
 <script>
-function otpLogin() {
+function loginPage() {
     return {
-        step: 'phone',
-        localPhone: '',
-        otp: ['', '', '', '', '', ''],
-        loading: false,
+        view: 'main',
         error: '',
-        isNewUser: false,
-        resendCountdown: 0,
-        _resendTimer: null,
 
-        get fullPhone() {
-            return '+94' + this.localPhone;
-        },
+        init() {
+            // Check for OAuth error in URL params
+            const params = new URLSearchParams(window.location.search);
+            const err = params.get('error');
+            if (err === 'oauth_failed') {
+                this.error = 'Google sign-in failed. Please try again.';
+            } else if (err === 'no_email') {
+                this.error = 'Could not retrieve your email from Google. Please try again.';
+            } else if (err) {
+                this.error = 'Sign-in error. Please try again.';
+            }
 
-        get otpString() {
-            return this.otp.join('');
-        },
-
-        // ── Step 1: request OTP ──────────────────────────────────────────
-        async requestOtp() {
-            this.error = '';
-            if (this.localPhone.length !== 9) {
-                this.error = 'Please enter a valid 9-digit Sri Lankan mobile number.';
-                return;
-            }
-            this.loading = true;
-            try {
-                const resp = await fetch('/api/v1/auth/request-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: this.fullPhone }),
-                });
-                const data = await resp.json();
-                if (!resp.ok) {
-                    this.error = data.detail || 'Failed to send OTP. Please try again.';
-                    return;
-                }
-                this.step = 'otp';
-                this.otp = ['', '', '', '', '', ''];
-                this.startResendTimer(60);
-                this.$nextTick(() => {
-                    const first = document.getElementById('otp-0');
-                    if (first) first.focus();
-                });
-            } catch (e) {
-                this.error = 'Network error. Please check your connection.';
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        // ── Step 2: verify OTP ───────────────────────────────────────────
-        async verifyOtp() {
-            this.error = '';
-            if (this.otpString.length !== 6) return;
-            this.loading = true;
-            try {
-                const resp = await fetch('/api/v1/auth/verify-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: this.fullPhone, otp: this.otpString }),
-                });
-                const data = await resp.json();
-                if (!resp.ok) {
-                    this.error = data.detail || 'Invalid code. Please try again.';
-                    this.otp = ['', '', '', '', '', ''];
-                    this.$nextTick(() => {
-                        const first = document.getElementById('otp-0');
-                        if (first) first.focus();
-                    });
-                    return;
-                }
-                this.isNewUser = data.is_new_user;
-                // Small pause so the user sees the new-user banner
-                await new Promise(r => setTimeout(r, data.is_new_user ? 800 : 0));
-                const params = new URLSearchParams(window.location.search);
-                window.location.href = params.get('next') || '/';
-            } catch (e) {
-                this.error = 'Network error. Please check your connection.';
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        // ── Resend ───────────────────────────────────────────────────────
-        startResendTimer(seconds) {
-            this.resendCountdown = seconds;
-            clearInterval(this._resendTimer);
-            this._resendTimer = setInterval(() => {
-                if (this.resendCountdown > 0) {
-                    this.resendCountdown--;
-                } else {
-                    clearInterval(this._resendTimer);
-                }
-            }, 1000);
-        },
-
-        async resendOtp() {
-            this.error = '';
-            this.otp = ['', '', '', '', '', ''];
-            await this.requestOtp();
-        },
-
-        // ── OTP box keyboard handling ────────────────────────────────────
-        handleOtpInput(idx, event) {
-            const raw = event.target.value.replace(/\D/g, '');
-            if (raw.length > 1) {
-                this.fillOtpFrom(raw, idx);
-                return;
-            }
-            this.otp[idx] = raw;
-            event.target.value = raw;
-            if (raw && idx < 5) {
-                this.$nextTick(() => {
-                    document.getElementById('otp-' + (idx + 1))?.focus();
-                });
-            }
-            if (this.otpString.length === 6 && !this.loading) {
-                this.$nextTick(() => this.verifyOtp());
-            }
-        },
-
-        handleOtpKey(idx, event) {
-            if (event.key === 'Backspace') {
-                if (!this.otp[idx] && idx > 0) {
-                    this.otp[idx - 1] = '';
-                    this.$nextTick(() => {
-                        document.getElementById('otp-' + (idx - 1))?.focus();
-                    });
-                } else {
-                    this.otp[idx] = '';
-                }
-            }
-            if (event.key === 'ArrowLeft' && idx > 0) {
-                document.getElementById('otp-' + (idx - 1))?.focus();
-            }
-            if (event.key === 'ArrowRight' && idx < 5) {
-                document.getElementById('otp-' + (idx + 1))?.focus();
-            }
-        },
-
-        handleOtpPaste(event) {
-            const text = (event.clipboardData || window.clipboardData)
-                .getData('text').replace(/\D/g, '');
-            this.fillOtpFrom(text, 0);
-        },
-
-        fillOtpFrom(digits, startIdx) {
-            for (let i = 0; i < 6 && i < digits.length; i++) {
-                const boxIdx = startIdx + i;
-                if (boxIdx < 6) this.otp[boxIdx] = digits[i];
-            }
-            const focusIdx = Math.min(startIdx + digits.length, 5);
-            this.$nextTick(() => {
-                document.getElementById('otp-' + focusIdx)?.focus();
-                if (this.otpString.length === 6 && !this.loading) {
-                    this.$nextTick(() => this.verifyOtp());
-                }
-            });
-        },
+            // Check for legacy login error passed via template
+            {% if error %}
+            this.error = {{ error | tojson }};
+            {% endif %}
+        }
     };
 }
 </script>

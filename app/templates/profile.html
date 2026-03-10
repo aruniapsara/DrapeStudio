@@ -9,27 +9,53 @@
      x-data="profilePage()"
      x-init="init()">
 
+    {# ── Onboarding banner (first-time Google sign-in) ────────────── #}
+    {% if request.query_params.get('onboarding') == '1' %}
+    <div class="bg-gradient-to-r from-primary/10 to-[#9B6DFF]/10 border border-primary/20 rounded-2xl p-5"
+         x-data="{ show: true }" x-show="show" x-transition>
+        <div class="flex items-start gap-3">
+            <span class="text-2xl">🎉</span>
+            <div class="flex-1">
+                <h3 class="font-bold text-dark text-sm mb-1">Welcome to DrapeStudio!</h3>
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    Your account is ready. You have <strong class="text-primary">3 free credits</strong> to create stunning garment images.
+                    Set your display name below to get started!
+                </p>
+            </div>
+            <button @click="show = false" class="text-gray-400 hover:text-gray-600 flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
     {# ── User info card ──────────────────────────────────────────────── #}
     <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-6">
         <div class="flex items-center gap-4 mb-6">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-[#9B6DFF] flex items-center justify-center text-white text-2xl font-bold shadow-md">
-                {% if user %}
-                    {% if user.get('display_name') %}{{ user.display_name[0].upper() }}
-                    {% elif user.get('phone') %}{{ user.phone[-4:] }}
-                    {% else %}{{ user.get('username','U')[0].upper() }}
-                    {% endif %}
-                {% else %}U{% endif %}
-            </div>
+            {# Avatar: Google profile picture or initial letter #}
+            <template x-if="avatarUrl">
+                <img :src="avatarUrl" :alt="displayName"
+                     class="w-16 h-16 rounded-2xl object-cover shadow-md"
+                     referrerpolicy="no-referrer">
+            </template>
+            <template x-if="!avatarUrl">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-[#9B6DFF] flex items-center justify-center text-white text-2xl font-bold shadow-md">
+                    <span x-text="(displayName || email || 'U')[0].toUpperCase()"></span>
+                </div>
+            </template>
             <div class="flex-1 min-w-0">
                 <h2 class="text-lg font-bold text-dark truncate">
-                    <span x-text="displayName || '{{ user.get('phone', user.get('username', 'User')) if user else 'User' }}'"></span>
+                    <span x-text="displayName || email || 'User'"></span>
                 </h2>
-                <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full
+                <p class="text-xs text-gray-400 truncate" x-show="email" x-text="email"></p>
+                <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full mt-1
                              {% if user and user.get('role') == 'admin' %}bg-primary/10 text-primary{% else %}bg-gray-100 text-gray-500{% endif %}">
                     {% if user and user.get('role') == 'admin' %}
-                    ⚡ Administrator
+                    Admin
                     {% else %}
-                    👤 Standard User
+                    Standard User
                     {% endif %}
                 </span>
             </div>
@@ -52,9 +78,13 @@
         {# ── Profile fields / edit form ─────────────────────────────── #}
         <template x-if="!editing">
             <dl class="space-y-3">
-                <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                <div class="flex items-center justify-between py-2 border-b border-gray-50" x-show="email">
+                    <dt class="text-sm text-gray-500">Email</dt>
+                    <dd class="text-sm font-medium text-dark" x-text="email"></dd>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-gray-50" x-show="phone">
                     <dt class="text-sm text-gray-500">Mobile Number</dt>
-                    <dd class="text-sm font-medium text-dark" x-text="phone || '{{ user.get('phone', '—') if user else '—' }}'"></dd>
+                    <dd class="text-sm font-medium text-dark" x-text="phone"></dd>
                 </div>
                 <div class="flex items-center justify-between py-2 border-b border-gray-50">
                     <dt class="text-sm text-gray-500">Display Name</dt>
@@ -217,6 +247,8 @@
 function profilePage() {
     return {
         phone: '',
+        email: '',
+        avatarUrl: '',
         displayName: '',
         displayNameEdit: '',
         creditsRemaining: null,
@@ -231,8 +263,10 @@ function profilePage() {
                 const resp = await fetch('/api/v1/auth/me');
                 if (resp.ok) {
                     const data = await resp.json();
-                    this.phone          = data.phone || '';
-                    this.displayName    = data.display_name || '';
+                    this.phone           = data.phone || '';
+                    this.email           = data.email || '';
+                    this.avatarUrl       = data.avatar_url || '';
+                    this.displayName     = data.display_name || '';
                     this.displayNameEdit = data.display_name || '';
                     this.creditsRemaining = data.credits_remaining ?? null;
                     this.totalGenerations = data.total_generations ?? null;

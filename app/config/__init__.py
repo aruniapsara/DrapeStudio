@@ -51,7 +51,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440   # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
-    # Notify.lk SMS (Sri Lanka)
+    # Google OAuth (Sign in with Google)
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8888/auth/callback"
+
+    # Notify.lk SMS (Sri Lanka) — legacy, kept for backward compat
     NOTIFY_LK_USER_ID: str = ""
     NOTIFY_LK_API_KEY: str = ""
     NOTIFY_LK_SENDER_ID: str = "NotifyDEMO"

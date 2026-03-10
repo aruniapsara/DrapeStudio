@@ -21,6 +21,7 @@ _PUBLIC_PREFIXES = (
     "/static/",
     "/api/v1/auth/",  # auth endpoints
     "/v1/files/",     # file serving
+    "/auth/",         # Google OAuth routes
 )
 _PUBLIC_EXACT = {
     "/login",
@@ -62,11 +63,14 @@ def get_request_user(request: Request) -> dict | None:
     if access_token:
         payload = AuthService.verify_access_token(access_token)
         if payload:
+            email = payload.get("email", "")
+            phone = payload.get("phone", "")
             return {
                 "user_id": payload["sub"],
-                "phone": payload.get("phone", ""),
-                # username alias so templates work with either auth system
-                "username": payload.get("phone", ""),
+                "phone": phone,
+                "email": email,
+                # username alias: prefer email, fall back to phone
+                "username": email or phone or "",
                 "role": payload.get("role", "user"),
                 "auth_type": "jwt",
             }
