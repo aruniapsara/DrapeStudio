@@ -24,13 +24,15 @@ def upgrade() -> None:
     op.create_index("ix_user_google_id", "user", ["google_id"], unique=True)
     op.create_index("ix_user_email", "user", ["email"], unique=True)
 
-    # SQLite does not support ALTER COLUMN, so we skip making phone nullable
-    # in SQLite.  The ORM model already marks it nullable=True and new rows
-    # will work correctly.  For PostgreSQL production, uncomment below:
-    # op.alter_column("user", "phone", nullable=True)
+    # Make phone nullable — use batch mode for SQLite compatibility
+    # (SQLite doesn't support ALTER COLUMN, batch_alter_table recreates the table)
+    with op.batch_alter_table("user") as batch_op:
+        batch_op.alter_column("phone", existing_type=sa.String(20), nullable=True)
 
 
 def downgrade() -> None:
+    with op.batch_alter_table("user") as batch_op:
+        batch_op.alter_column("phone", existing_type=sa.String(20), nullable=False)
     op.drop_index("ix_user_email", table_name="user")
     op.drop_index("ix_user_google_id", table_name="user")
     op.drop_column("user", "avatar_url")
