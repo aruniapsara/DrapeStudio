@@ -11,7 +11,7 @@
     <section class="px-4 pt-6 pb-2">
         <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1A1A2E] via-[#2D1B69] to-[#6C3CE1] px-6 py-10 text-white">
             <div class="relative z-10">
-                <p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-3">✨ AI-Powered Photography</p>
+                <p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-3">{{ t("home.hero_tagline", request.state.lang) }}</p>
                 <h1 class="text-2xl sm:text-3xl font-bold leading-tight mb-3">
                     {{ t("home.hero_title", request.state.lang) }}
                 </h1>
@@ -36,7 +36,7 @@
 
     {# ── Module Cards ─────────────────────────────────────────────── #}
     <section class="px-4 py-5">
-        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Modules</h2>
+        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">{{ t("home.modules_heading", request.state.lang) }}</h2>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
             {# Adult Fashion — Active #}
@@ -46,7 +46,7 @@
                 <h3 class="text-sm font-bold text-dark">{{ t("home.categories.adults", request.state.lang) }}</h3>
                 <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ t("home.categories.adults_desc", request.state.lang) }}</p>
                 <div class="mt-3 flex items-center justify-between w-full">
-                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Active</span>
+                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{{ t("home.active_badge", request.state.lang) }}</span>
                     <svg class="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </div>
             </a>
@@ -58,7 +58,7 @@
                 <h3 class="text-sm font-bold text-dark">{{ t("home.categories.kids", request.state.lang) }}</h3>
                 <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ t("home.categories.kids_desc", request.state.lang) }}</p>
                 <div class="mt-3 flex items-center justify-between w-full">
-                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Active</span>
+                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{{ t("home.active_badge", request.state.lang) }}</span>
                     <svg class="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </div>
             </a>
@@ -70,7 +70,7 @@
                 <h3 class="text-sm font-bold text-dark">{{ t("home.categories.accessories", request.state.lang) }}</h3>
                 <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ t("home.categories.accessories_desc", request.state.lang) }}</p>
                 <div class="mt-3 flex items-center justify-between w-full">
-                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Active</span>
+                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{{ t("home.active_badge", request.state.lang) }}</span>
                     <svg class="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </div>
             </a>
@@ -82,7 +82,7 @@
                 <h3 class="text-sm font-bold text-dark">{{ t("home.categories.fiton", request.state.lang) }}</h3>
                 <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ t("home.categories.fiton_desc", request.state.lang) }}</p>
                 <div class="mt-3 flex items-center justify-between w-full">
-                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">Active</span>
+                    <span class="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{{ t("home.active_badge", request.state.lang) }}</span>
                     <svg class="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </div>
             </a>
@@ -128,16 +128,16 @@
     {# ── Sample Gallery ────────────────────────────────────────────── #}
     <section class="px-4 py-5">
         <div class="flex items-baseline justify-between mb-3">
-            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">See What DrapeStudio Creates</h2>
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">{{ t("home.gallery.section_title", request.state.lang) }}</h2>
         </div>
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
             {% set gallery = [
-                ("#6C3CE1", "#9B6DFF", "Adult Dress", "👗"),
-                ("#00C9A7", "#00E5C4", "Kids Outfit", "👕"),
-                ("#FF6B35", "#FF9A6C", "Necklace",   "📿"),
-                ("#1A1A2E", "#2D1B69", "Handbag",    "👜"),
-                ("#F59E0B", "#FCD34D", "Saree",      "🥻"),
-                ("#6C3CE1", "#FF6B35", "Virtual Fit", "🪞"),
+                ("#6C3CE1", "#9B6DFF", t("home.gallery.adult_dress", request.state.lang), "👗"),
+                ("#00C9A7", "#00E5C4", t("home.gallery.kids_outfit", request.state.lang), "👕"),
+                ("#FF6B35", "#FF9A6C", t("home.gallery.necklace", request.state.lang),   "📿"),
+                ("#1A1A2E", "#2D1B69", t("home.gallery.handbag", request.state.lang),    "👜"),
+                ("#F59E0B", "#FCD34D", t("home.gallery.saree", request.state.lang),      "🥻"),
+                ("#6C3CE1", "#FF6B35", t("home.gallery.virtual_fit", request.state.lang), "🪞"),
             ] %}
             {% for from_c, to_c, label, emoji in gallery %}
             <div class="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-card bg-gradient-to-br"
@@ -153,25 +153,25 @@
             </div>
             {% endfor %}
         </div>
-        <p class="text-xs text-center text-gray-400 mt-3">Sample gallery — real generated images coming soon</p>
+        <p class="text-xs text-center text-gray-400 mt-3">{{ t("home.gallery.sample_note", request.state.lang) }}</p>
     </section>
 
     {# ── Pricing ──────────────────────────────────────────────────── #}
     <section class="px-4 py-5">
-        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Simple, Affordable Pricing</h2>
-        <p class="text-xs text-gray-400 mb-4">All prices in LKR · No hidden fees · Cancel anytime</p>
+        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">{{ t("home.pricing_heading", request.state.lang) }}</h2>
+        <p class="text-xs text-gray-400 mb-4">{{ t("home.pricing_subtitle", request.state.lang) }}</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {% set plans = [
-                ("Free",  "Rs. 0",     "/month",  "3 images/day",      ["3 generations/day", "3 images each",  "Watermark",          "All modules"],        False),
-                ("Basic", "Rs. 990",   "/month",  "150 images/month",  ["150 generations",   "3 images each",  "No watermark",       "Basic fit-on"],       True),
-                ("Pro",   "Rs. 2,490", "/month",  "500 images/month",  ["500 generations",   "3 images each",  "Priority queue",     "Unlimited fit-on"],   False),
+                (t("home.plan_free", request.state.lang),  "Rs. 0",     t("home.plan_per_month", request.state.lang),  t("home.plan_free_sub", request.state.lang),      [t("home.plan_free_f1", request.state.lang), t("home.plan_free_f2", request.state.lang),  t("home.plan_free_f3", request.state.lang),          t("home.plan_free_f4", request.state.lang)],        False),
+                (t("home.plan_basic", request.state.lang), "Rs. 990",   t("home.plan_per_month", request.state.lang),  t("home.plan_basic_sub", request.state.lang),     [t("home.plan_basic_f1", request.state.lang), t("home.plan_basic_f2", request.state.lang),  t("home.plan_basic_f3", request.state.lang),       t("home.plan_basic_f4", request.state.lang)],       True),
+                (t("home.plan_pro", request.state.lang),   "Rs. 2,490", t("home.plan_per_month", request.state.lang),  t("home.plan_pro_sub", request.state.lang),       [t("home.plan_pro_f1", request.state.lang), t("home.plan_pro_f2", request.state.lang),  t("home.plan_pro_f3", request.state.lang),     t("home.plan_pro_f4", request.state.lang)],   False),
             ] %}
             {% for name, price, period, sub, features, popular in plans %}
             <div class="relative bg-white rounded-2xl border p-5
                         {% if popular %}border-primary shadow-card-hover{% else %}border-gray-100 shadow-card{% endif %}">
                 {% if popular %}
-                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">MOST POPULAR</div>
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">{{ t("home.plan_most_popular", request.state.lang) }}</div>
                 {% endif %}
                 <h3 class="font-bold text-dark">{{ name }}</h3>
                 <div class="flex items-baseline gap-1 mt-2 mb-0.5">
@@ -190,7 +190,7 @@
                 <a href="/profile"
                    class="block text-center text-xs font-semibold py-2.5 rounded-xl transition-colors
                           {% if popular %}bg-primary text-white hover:bg-primary-dark{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    Get Started
+                    {{ t("home.plan_get_started", request.state.lang) }}
                 </a>
             </div>
             {% endfor %}
@@ -211,14 +211,14 @@
              }"
              @mouseenter="stop()" @mouseleave="start()">
 
-        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">What Sellers Say</h2>
+        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">{{ t("home.testimonials_heading", request.state.lang) }}</h2>
 
         {# Mobile: single-card carousel #}
         <div class="lg:hidden relative overflow-hidden">
             {% set testimonials = [
-                ("Kumari P.",  "Kumari's Boutique, Colombo",  "Saved me Rs. 15,000 per photoshoot! The images look completely professional."),
-                ("Sanjay R.",  "StyleMen, Kandy",             "My product listings look so much better now. Sales increased by 40%."),
-                ("Fathima N.", "Modest Fashion LK, Galle",    "So easy to use. Upload, configure, done. Takes less than 2 minutes."),
+                (t("home.testimonial_1_name", request.state.lang),  t("home.testimonial_1_biz", request.state.lang),  t("home.testimonial_1_quote", request.state.lang)),
+                (t("home.testimonial_2_name", request.state.lang),  t("home.testimonial_2_biz", request.state.lang),  t("home.testimonial_2_quote", request.state.lang)),
+                (t("home.testimonial_3_name", request.state.lang),  t("home.testimonial_3_biz", request.state.lang),  t("home.testimonial_3_quote", request.state.lang)),
             ] %}
             {% for name, biz, quote in testimonials %}
             <div x-show="current === {{ loop.index0 }}"
@@ -274,12 +274,12 @@
                     <img src="/static/logo.png" alt="DrapeStudio" class="h-6 w-auto">
                     <span class="font-bold text-dark">DrapeStudio</span>
                 </a>
-                <p class="text-xs text-gray-400">AI Product Photography for Sri Lankan Businesses</p>
+                <p class="text-xs text-gray-400">{{ t("home.footer_tagline", request.state.lang) }}</p>
             </div>
 
             {# Links #}
             <nav class="flex flex-wrap justify-center gap-x-5 gap-y-1">
-                {% for label, href in [("About", "#"), ("Pricing", "#pricing"), ("Contact", "#"), ("Terms", "#"), ("Privacy", "#")] %}
+                {% for label, href in [(t("home.footer_about", request.state.lang), "#"), (t("home.footer_pricing", request.state.lang), "#pricing"), (t("home.footer_contact", request.state.lang), "#"), (t("home.footer_terms", request.state.lang), "#"), (t("home.footer_privacy", request.state.lang), "#")] %}
                 <a href="{{ href }}" class="text-xs text-gray-500 hover:text-primary transition-colors">{{ label }}</a>
                 {% endfor %}
             </nav>
@@ -307,9 +307,9 @@
             {# Made in Sri Lanka + copyright #}
             <div class="space-y-1">
                 <p class="text-xs text-gray-400">
-                    🇱🇰 Made with ❤️ in Sri Lanka
+                    {{ t("home.footer_made_in", request.state.lang) }}
                 </p>
-                <p class="text-[10px] text-gray-300">© 2026 DrapeStudio. All rights reserved.</p>
+                <p class="text-[10px] text-gray-300">{{ t("home.footer_copyright", request.state.lang) }}</p>
             </div>
 
         </div>
