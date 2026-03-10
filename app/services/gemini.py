@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Fixed camera angles for the three output variations.
+# Fixed camera angles for the three output variations — adult module.
 # Each description also requires the face to remain visible.
 VARIATION_VIEWS = [
     (
@@ -27,6 +27,42 @@ VARIATION_VIEWS = [
     (
         "CAMERA ANGLE FOR THIS IMAGE: Back view — model facing away from camera to show the back of the garment. "
         "Model's head turned over the shoulder looking back toward the camera so the face is clearly visible."
+    ),
+]
+
+# Accessories camera angle descriptions — loaded directly from the YAML template
+# at call time rather than hard-coded here, because the angles differ by display mode.
+# This dict provides fallback strings in case the template can't be loaded.
+ACCESSORIES_FALLBACK_VIEWS: dict[str, list[str]] = {
+    "on_model": [
+        "CAMERA ANGLE FOR THIS IMAGE: Straight-on close-up — product facing directly toward lens.",
+        "CAMERA ANGLE FOR THIS IMAGE: Angled view — 45 degrees to the side, showing product depth.",
+    ],
+    "flat_lay": [
+        "CAMERA ANGLE FOR THIS IMAGE: Overhead (top-down) at 90 degrees.",
+        "CAMERA ANGLE FOR THIS IMAGE: 45-degree angle — showing product profile and depth.",
+    ],
+    "lifestyle": [
+        "CAMERA ANGLE FOR THIS IMAGE: Wide contextual scene.",
+        "CAMERA ANGLE FOR THIS IMAGE: Tighter product-focused composition.",
+    ],
+}
+
+# Gentler camera angle descriptions for the children's module.
+# Uses softer language to avoid overly fashion-forward framing for minors.
+CHILDREN_VARIATION_VIEWS = [
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Front view — child facing directly toward the camera. "
+        "Face clearly and naturally visible, neutral or gentle expression."
+    ),
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Gentle 45-degree side view — child turned slightly to the side. "
+        "Face gently turned back toward the camera so it remains clearly visible. "
+        "Outfit silhouette visible on both sides."
+    ),
+    (
+        "CAMERA ANGLE FOR THIS IMAGE: Back view — child facing away from camera to show the back of the garment. "
+        "Child looking over the shoulder with a natural, comfortable head turn so the face is partially visible."
     ),
 ]
 
@@ -77,6 +113,8 @@ def _call_openrouter(
     model_name: str,
     variation_index: int = 0,
     model_photo_bytes: bytes | None = None,
+    module: str = "adult",
+    display_mode: str = "",
 ) -> tuple[bytes, dict]:
     """Make a single OpenRouter chat completion call that returns one image.
 
@@ -84,14 +122,34 @@ def _call_openrouter(
     multimodal payload (before the garment images) so the model can reference
     the real person's appearance.
 
+    Args:
+        module:       "adult", "children", "accessories", or "fiton".
+        display_mode: For module="accessories" — "on_model", "flat_lay", or "lifestyle".
+                      The camera angle is already injected into the prompt text by the
+                      accessories prompt assembler, so this is informational only here.
+
     Returns:
         Tuple of (image_bytes, usage_dict).
     """
-    view_instruction = VARIATION_VIEWS[variation_index % len(VARIATION_VIEWS)]
+    if module == "accessories":
+        # Camera angle text is already embedded in prompt_text by assemble_accessories_prompt().
+        # No additional view instruction needed.
+        view_instruction = ""
+    elif module == "fiton":
+        # Fit-on generates exactly one image; no camera-angle rotation.
+        # The pose is determined by the customer reference photo.
+        view_instruction = ""
+    elif module == "children":
+        views = CHILDREN_VARIATION_VIEWS
+        view_instruction = views[variation_index % len(views)]
+    else:
+        views = VARIATION_VIEWS
+        view_instruction = views[variation_index % len(views)]
 
     # Build the multimodal content: text prompt first, then images
+    full_prompt = prompt_text + (f"\n\n{view_instruction}" if view_instruction else "")
     content_parts: list[dict] = [
-        {"type": "text", "text": prompt_text + f"\n\n{view_instruction}"},
+        {"type": "text", "text": full_prompt},
     ]
 
     # Model reference photo goes first (if provided)
@@ -181,19 +239,32 @@ def generate_garment_images(
     model_name: str | None = None,
     max_retries: int = 2,
     model_photo_bytes: bytes | None = None,
+    module: str = "adult",
+    output_count: int = 3,
+    display_mode: str = "",
+    prompt_texts: list[str] | None = None,
 ) -> GeminiResult:
     """Send garment images + text prompt to OpenRouter and return generated images.
 
-    Makes 3 separate API calls to generate 3 distinct image variations.
+    Makes ``output_count`` separate API calls to generate distinct image variations.
+    Adult and children modules default to 3 images; accessories defaults to 2.
 
     Args:
         garment_image_bytes: List of garment image bytes (1-5 images).
-        prompt_text: Assembled prompt string.
+        prompt_text: Assembled prompt string (used for all variations unless
+                     prompt_texts is also supplied).
         model_name: OpenRouter model slug. Defaults to settings.OPENROUTER_MODEL.
         max_retries: Number of retries per call on transient errors.
         model_photo_bytes: Optional bytes of a real-person model reference photo.
                            When provided, it is prepended to the image list so the
                            AI can replicate the person's appearance.
+        module: "adult", "children", "accessories", or "fiton".
+        output_count: Number of image variations to generate (1 for fiton, 2 for accessories, 3 otherwise).
+        display_mode: For module="accessories" — "on_model", "flat_lay", or "lifestyle".
+        prompt_texts: Optional per-variation prompt list. When provided,
+                      ``prompt_texts[i]`` is used for variation i instead of
+                      ``prompt_text``. Used by the accessories module so each
+                      variation carries its own camera angle instruction.
 
     Returns:
         GeminiResult with generated images and usage metadata.
@@ -212,18 +283,27 @@ def generate_garment_images(
     total_output_tokens = 0
     start_time = time.time()
 
-    # Generate 3 image variations via 3 separate calls
-    for variation_idx in range(3):
+    # Generate image variations via separate API calls
+    for variation_idx in range(output_count):
         last_error = None
+
+        # Per-variation prompt: accessories supply a list; others use the single prompt
+        current_prompt = (
+            prompt_texts[variation_idx]
+            if prompt_texts and variation_idx < len(prompt_texts)
+            else prompt_text
+        )
 
         for attempt in range(max_retries + 1):
             try:
                 image_bytes, usage = _call_openrouter(
-                    prompt_text=prompt_text,
+                    prompt_text=current_prompt,
                     garment_image_bytes=garment_image_bytes,
                     model_name=model_name,
                     variation_index=variation_idx,
                     model_photo_bytes=model_photo_bytes,
+                    module=module,
+                    display_mode=display_mode,
                 )
 
                 all_images.append(image_bytes)
@@ -235,7 +315,7 @@ def generate_garment_images(
                 logger.info(
                     "OpenRouter variation %d/%d generated (%d bytes)",
                     variation_idx + 1,
-                    3,
+                    output_count,
                     len(image_bytes),
                 )
                 break  # Success — move to next variation
@@ -273,7 +353,7 @@ def generate_garment_images(
         else:
             # All retries exhausted for this variation
             raise GeminiError(
-                f"OpenRouter failed for variation {variation_idx + 1} "
+                f"OpenRouter failed for variation {variation_idx + 1}/{output_count} "
                 f"after {max_retries + 1} attempts: {last_error}"
             )
 

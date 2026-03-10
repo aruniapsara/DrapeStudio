@@ -1,41 +1,180 @@
-{% if status == "queued" %}
-<div id="status-container"
-     hx-get="/v1/generations/{{ gen_id }}/status-partial"
-     hx-trigger="every 4s"
-     hx-swap="outerHTML">
-    <div class="status-card status-queued">
-        <div class="spinner"></div>
-        <p class="status-text">Queued — preparing your generation...</p>
-        <p class="status-hint">This typically takes 30–60 seconds.</p>
-    </div>
-</div>
+{#
+  HTMX partial — returned by GET /v1/generations/{id}/status-partial every 4 s.
+  The outer #status-container div carries the hx-* attributes so it replaces itself.
+#}
 
-{% elif status == "running" %}
+{% if status == "queued" or status == "running" %}
 <div id="status-container"
      hx-get="/v1/generations/{{ gen_id }}/status-partial"
      hx-trigger="every 4s"
      hx-swap="outerHTML">
-    <div class="status-card status-running">
-        <div class="spinner"></div>
-        <p class="status-text">Running — generating your images...</p>
-        <p class="status-hint">Almost there!</p>
+
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-8 text-center">
+
+        {# Spinner ring #}
+        <div class="relative w-20 h-20 mx-auto mb-6">
+            <div class="absolute inset-0 rounded-full border-4 border-primary/15"></div>
+            <div class="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/>
+                </svg>
+            </div>
+        </div>
+
+        <h3 class="text-lg font-bold text-dark mb-2">Creating Your Images</h3>
+        <p id="step-text" class="text-sm text-gray-500 mb-1">
+            {% if status == "running" %}Generating your images…{% else %}Preparing your generation…{% endif %}
+        </p>
+        <p class="text-xs text-gray-400 mb-6">This typically takes 30–60 seconds</p>
+
+        {# Step bubbles — updated by JS using sessionStorage elapsed time #}
+        <div class="flex items-center justify-center gap-3 mb-6">
+            <div id="step-0" class="flex flex-col items-center gap-1.5">
+                <div class="w-8 h-8 rounded-full border-2 border-primary/30 bg-primary/5 flex items-center justify-center text-xs font-bold text-primary/50">1</div>
+                <span class="text-[10px] text-gray-400">Front</span>
+            </div>
+            <div class="h-px w-6 bg-gray-200"></div>
+            <div id="step-1" class="flex flex-col items-center gap-1.5">
+                <div class="w-8 h-8 rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-300">2</div>
+                <span class="text-[10px] text-gray-400">Side</span>
+            </div>
+            <div class="h-px w-6 bg-gray-200"></div>
+            <div id="step-2" class="flex flex-col items-center gap-1.5">
+                <div class="w-8 h-8 rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-300">3</div>
+                <span class="text-[10px] text-gray-400">Back</span>
+            </div>
+        </div>
+
+        {# Bouncing dots #}
+        <div class="flex justify-center gap-2 mb-6">
+            <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:0ms"></div>
+            <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:150ms"></div>
+            <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:300ms"></div>
+        </div>
+
+        <p class="text-xs text-gray-400 italic">You can close this page — progress is saved automatically.</p>
+
+        <div class="mt-4 inline-flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl">
+            <span class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">ID</span>
+            <code class="text-xs text-gray-500 font-mono">{{ gen_id }}</code>
+        </div>
     </div>
+
+    {# Re-apply step progress JS after HTMX swap #}
+    <script>
+    (function() {
+        var STEPS = [
+            { threshold: 0,  text: 'Preparing your generation…',  activeStep: -1 },
+            { threshold: 5,  text: 'Creating front view…',        activeStep: 0  },
+            { threshold: 35, text: 'Creating side view…',         activeStep: 1  },
+            { threshold: 65, text: 'Creating back view…',         activeStep: 2  },
+        ];
+        function getElapsedSec() {
+            var t = parseInt(sessionStorage.getItem('genStartTime') || '0', 10);
+            return t ? Math.floor((Date.now() - t) / 1000) : 0;
+        }
+        function applyStepUI(elapsed) {
+            var current = STEPS[0];
+            for (var i = 0; i < STEPS.length; i++) {
+                if (elapsed >= STEPS[i].threshold) current = STEPS[i];
+            }
+            var textEl = document.getElementById('step-text');
+            if (textEl) textEl.textContent = current.text;
+            for (var j = 0; j < 3; j++) {
+                var el = document.getElementById('step-' + j);
+                if (!el) continue;
+                var bubble = el.querySelector('div');
+                if (j < current.activeStep) {
+                    bubble.className = 'w-8 h-8 rounded-full border-2 border-teal bg-teal/10 flex items-center justify-center text-xs font-bold text-teal';
+                    bubble.textContent = '✓';
+                } else if (j === current.activeStep) {
+                    bubble.className = 'w-8 h-8 rounded-full border-2 border-primary bg-primary/10 flex items-center justify-center text-xs font-bold text-primary animate-pulse';
+                    bubble.textContent = String(j + 1);
+                } else {
+                    bubble.className = 'w-8 h-8 rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-300';
+                    bubble.textContent = String(j + 1);
+                }
+            }
+        }
+        applyStepUI(getElapsedSec());
+        var iv = setInterval(function() {
+            if (!document.getElementById('step-0')) { clearInterval(iv); return; }
+            applyStepUI(getElapsedSec());
+        }, 1000);
+    })();
+    </script>
 </div>
 
 {% elif status == "succeeded" %}
 <div id="status-container">
-    <div class="status-card status-succeeded">
-        <p class="status-text">Images generated successfully!</p>
-        <a href="/results/{{ gen_id }}" class="btn btn-primary">View Results</a>
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-8 text-center">
+        <div class="text-5xl mb-4">🎉</div>
+        <h3 class="text-lg font-bold text-dark mb-2">Images Ready!</h3>
+        <p class="text-sm text-gray-500 mb-6" id="success-msg">Your images have been generated successfully.</p>
+        <a id="view-images-link"
+           href="/results/{{ gen_id }}"
+           class="inline-flex items-center justify-center gap-2 px-6 py-3
+                  bg-primary hover:bg-primary-dark text-white text-sm font-semibold
+                  rounded-xl transition-colors shadow-sm">
+            View Images ✨
+        </a>
     </div>
+    <script>
+    (function() {
+        var m = sessionStorage.getItem('generationModule') || 'adult';
+        // Fiton module has its own dedicated results page
+        var resultsUrl;
+        if (m === 'fiton') {
+            resultsUrl = '/fiton/results/{{ gen_id }}';
+        } else {
+            var suffix = m !== 'adult' ? '?module=' + m : '';
+            resultsUrl = '/results/{{ gen_id }}' + suffix;
+        }
+        var link = document.getElementById('view-images-link');
+        if (link) link.href = resultsUrl;
+        // Auto-redirect after a short pause so user sees the success state
+        setTimeout(function() {
+            window.location.href = resultsUrl;
+        }, 1500);
+    })();
+    </script>
 </div>
 
 {% elif status == "failed" %}
 <div id="status-container">
-    <div class="status-card status-error">
-        <p class="status-text">Generation failed</p>
-        <p>{{ error_message or "An unexpected error occurred." }}</p>
-        <a href="/upload" class="btn btn-primary">Try Again</a>
+    <div class="bg-white rounded-3xl border border-red-100 shadow-card p-8 text-center">
+        <div class="text-5xl mb-4">❌</div>
+        <h3 class="text-lg font-bold text-dark mb-2">Generation Failed</h3>
+        <p class="text-sm text-gray-500 mb-2">{{ error_message or "An unexpected error occurred." }}</p>
+        <p class="text-xs text-gray-400 mb-6">
+            Your credits have <strong>not</strong> been deducted. Please try again.
+        </p>
+        <div class="flex gap-3 justify-center">
+            <a href="/review"
+               class="inline-flex items-center justify-center gap-2 px-5 py-2.5
+                      bg-primary hover:bg-primary-dark text-white text-sm font-semibold
+                      rounded-xl transition-colors">
+                🔄 Try Again
+            </a>
+            <a href="/upload"
+               class="inline-flex items-center justify-center gap-2 px-5 py-2.5
+                      border border-gray-200 text-gray-600 bg-white hover:bg-gray-50
+                      text-sm font-semibold rounded-xl transition-colors">
+                🏠 New Upload
+            </a>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div id="status-container"
+     hx-get="/v1/generations/{{ gen_id }}/status-partial"
+     hx-trigger="every 4s"
+     hx-swap="outerHTML">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-6 text-center">
+        <p class="text-sm text-gray-500">Status: <strong>{{ status }}</strong></p>
     </div>
 </div>
 {% endif %}

@@ -1,0 +1,197 @@
+version: accessories_v1
+module: accessories
+default_output_count: 2
+
+# ---------------------------------------------------------------------------
+# Camera angle variations per display mode
+# Two images per generation: variation_index 0 and 1
+# ---------------------------------------------------------------------------
+camera_angles:
+  on_model:
+    - >
+      CAMERA ANGLE FOR THIS IMAGE: Straight-on close-up — camera is level with the focal
+      body area, product facing directly toward the lens. Product sharp and in full focus,
+      background softly blurred (bokeh). This is the primary hero shot.
+    - >
+      CAMERA ANGLE FOR THIS IMAGE: Angled view — camera elevated at 45 degrees and slightly
+      to the side, showing the product's three-dimensional depth and form. Complementary
+      angle to the straight-on shot, highlighting a different aspect of the product.
+
+  flat_lay:
+    - >
+      CAMERA ANGLE FOR THIS IMAGE: Overhead (top-down) — camera positioned directly above
+      the product at 90 degrees. Perfect symmetry, clean edges, minimal but elegant shadow.
+      This is the primary product documentation shot.
+    - >
+      CAMERA ANGLE FOR THIS IMAGE: 45-degree angle — camera at a 45-degree angle from the
+      surface, showing the product's profile, depth, and three-dimensional form. Creates
+      dimension and a more editorial feel compared to the overhead shot.
+
+  lifestyle:
+    - >
+      CAMERA ANGLE FOR THIS IMAGE: Wide contextual scene — camera pulled back to include
+      the environment. The product is the hero but the lifestyle setting is clearly visible,
+      creating aspirational context for the viewer.
+    - >
+      CAMERA ANGLE FOR THIS IMAGE: Tighter product-focused composition — camera moves closer
+      to emphasise the product within the lifestyle context. Background visible but softly
+      blurred (bokeh), product sharp and prominent.
+
+# ---------------------------------------------------------------------------
+# Category-specific configurations: 9 categories × 3 display modes
+# ---------------------------------------------------------------------------
+categories:
+  necklace:
+    label: "necklace"
+    on_model:
+      body_area: "neck and upper chest"
+      framing: "close-up of chest and neck area — head may be partially in frame"
+      model_needs: "decolletage clearly visible, shoulders bare or lightly covered, necklace sitting naturally"
+    flat_lay:
+      arrangement: "necklace laid flat or elegantly draped, showing the full chain length and pendant"
+    lifestyle:
+      context: "model touching necklace gently with fingertips, candid intimate moment, soft natural light"
+
+  earrings:
+    label: "earrings"
+    on_model:
+      body_area: "ear and face profile"
+      framing: "head and face close-up, ear turned slightly toward camera to show the earring clearly"
+      model_needs: "hair pulled back or styled to fully expose the ear, face naturally and attractively lit"
+    flat_lay:
+      arrangement: "earrings displayed as a matched pair — on a display card, velvet tray, or surface, symmetrically placed to show both pieces"
+    lifestyle:
+      context: "clean profile portrait with natural outdoor or window light catching and highlighting the earring"
+
+  bracelet:
+    label: "bracelet"
+    on_model:
+      body_area: "wrist and hand"
+      framing: "wrist and lower arm close-up, elegant hand pose in the foreground"
+      model_needs: "graceful hand position, sleeve pushed back or absent to expose full wrist, bracelet correctly positioned"
+    flat_lay:
+      arrangement: "bracelet(s) arranged on a fabric surface — displayed as a single statement piece or elegantly stacked"
+    lifestyle:
+      context: "hand in a natural gesture — holding a coffee cup, resting on a table, or leafing through a book — wrist naturally visible and bracelet prominent"
+
+  ring:
+    label: "ring"
+    on_model:
+      body_area: "finger and hand"
+      framing: "hand close-up with elegant finger pose, ring as the clear focal point"
+      model_needs: "hand posed elegantly with fingers naturally extended, ring clearly visible on the appropriate finger"
+    flat_lay:
+      arrangement: "ring displayed on a ring holder, velvet cushion, or fabric surface — single piece or a curated set"
+    lifestyle:
+      context: "hand resting naturally in context — on a book, a wooden surface, a flower — ring visible and naturally lit"
+
+  handbag:
+    label: "handbag"
+    on_model:
+      body_area: "full body with bag as focal point"
+      framing: "full body or three-quarter body shot, bag prominently featured"
+      model_needs: "model holding or carrying the bag as naturally intended (hand carry, shoulder, crossbody), bag clearly visible"
+    flat_lay:
+      arrangement: "bag placed upright or slightly open on a styled surface, showing silhouette, shape, hardware, and key details"
+    lifestyle:
+      context: "model walking confidently with bag, or bag placed on a cafe chair or table — aspirational lifestyle moment"
+
+  hat:
+    label: "hat"
+    on_model:
+      body_area: "head and face"
+      framing: "upper body — head and shoulders — showing the hat's full shape, brim, and crown"
+      model_needs: "hat positioned naturally on the head, face clearly visible beneath the brim, natural lighting on face and hat"
+    flat_lay:
+      arrangement: "hat placed crown-up or at a slight editorial angle on a flat surface — showing the full brim shape and crown profile"
+    lifestyle:
+      context: "outdoor fashion context — model wearing hat in natural sunlight, trees or open sky visible in the background"
+
+  scarf:
+    label: "scarf"
+    on_model:
+      body_area: "shoulders, neck, and upper chest"
+      framing: "upper body close-up showing how the scarf drapes over shoulders and wraps around the neck"
+      model_needs: "scarf draped naturally over shoulders or loosely wrapped — showing the fabric's movement and texture"
+    flat_lay:
+      arrangement: "scarf folded, loosely draped, or spread on a surface to showcase the pattern, colour, and fabric texture"
+    lifestyle:
+      context: "model walking with scarf flowing in movement, or seated in a cosy setting with scarf casually arranged — warmth and texture implied"
+
+  crochet:
+    label: "crochet item"
+    on_model:
+      body_area: "appropriate body area for the specific crochet item (torso for a top, head for a hat, wrist for a bag)"
+      framing: "framing appropriate to the item type — full body for a wearable garment, close-up for a smaller accessory"
+      model_needs: "item worn or held naturally as designed — showcasing the crochet texture and craftsmanship"
+    flat_lay:
+      arrangement: "crochet item laid flat on a textured surface to highlight the handmade stitch detail, pattern, and texture"
+    lifestyle:
+      context: "warm cosy lifestyle setting — model at home by a window, at a garden cafe, or outdoors in soft light — handmade warmth emphasised"
+
+  hair_accessory:
+    label: "hair accessory"
+    on_model:
+      body_area: "hair and head"
+      framing: "head close-up or three-quarter profile — accessory prominently displayed in styled hair"
+      model_needs: "hair styled to complement and prominently display the accessory, good lighting on both hair and accessory"
+    flat_lay:
+      arrangement: "hair accessory displayed alone or as a small group on a clean, complementary surface — design, colour, and detail clearly visible"
+    lifestyle:
+      context: "profile or three-quarter back-of-head shot in a naturally lit setting — accessory sitting naturally in the hair"
+
+# ---------------------------------------------------------------------------
+# Surface descriptions for flat-lay display mode
+# ---------------------------------------------------------------------------
+surfaces:
+  white_marble:   "a white marble surface with subtle natural grey veining"
+  wooden_table:   "a warm natural wood table surface with visible grain texture"
+  velvet_fabric:  "a rich velvet fabric surface in a deep complementary colour"
+  linen_cloth:    "a natural linen cloth with soft, organic texture"
+  concrete:       "a smooth concrete surface with a minimal, modern aesthetic"
+  rose_petals:    "delicate scattered rose petals on a soft light-coloured surface"
+
+# ---------------------------------------------------------------------------
+# Lifestyle scene descriptions (for context_scene parameter)
+# ---------------------------------------------------------------------------
+lifestyle_scenes:
+  cafe:         "warm cafe interior with wooden table, exposed brick, and soft ambient lighting"
+  garden:       "lush green garden setting with natural dappled sunlight filtering through leaves"
+  beach:        "scenic beach setting with soft sand underfoot and gently blurred waves"
+  urban_street: "clean urban street scene with interesting architectural background and natural daylight"
+  cozy_room:    "cosy interior room with warm natural window light and tasteful home styling"
+  office:       "clean, minimal modern office environment with neutral tones"
+
+# ---------------------------------------------------------------------------
+# Skin tone descriptions for on_model display mode
+# ---------------------------------------------------------------------------
+skin_tones:
+  very_light: "very fair, light skin tone"
+  light:      "light skin tone"
+  medium:     "medium/olive skin tone"
+  dark:       "dark/brown skin tone"
+  very_dark:  "very dark/deep skin tone"
+
+# ---------------------------------------------------------------------------
+# Shared quality, output, and negative constraints
+# ---------------------------------------------------------------------------
+quality: >
+  Photorealistic, professional commercial product photography.
+  Shot with a high-end camera lens — sharp focus on the product, correct and
+  vivid colour reproduction, no digital artifacts. Catalogue quality: suitable
+  for an e-commerce listing, online store, or print brochure. Lighting that
+  flatters and accurately represents the product. No visible mannequin joints,
+  no artificial-looking skin, no obvious AI generation artifacts.
+
+output: >
+  Generate exactly one image. No watermarks, no text overlays, no logos,
+  no borders. High resolution, correct aspect ratio. Product must be fully
+  in-frame.
+
+negative: >
+  blurry, out of focus, overexposed, underexposed, colour cast, excessive grain,
+  noise, watermark, text overlay, logo, mannequin joints visible, plastic skin,
+  duplicate product, extra limbs, distorted proportions, warped or melting
+  background, low quality, pixelated, heavy compression artifacts,
+  oversaturated, washed out colours, nsfw, inappropriate content,
+  product cut off by frame edge

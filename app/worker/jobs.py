@@ -16,7 +16,13 @@ from app.models.db import (
     generate_ulid,
 )
 from app.services.gemini import GeminiError, generate_garment_images
-from app.services.prompt import assemble_prompt
+from app.services.prompt import (
+    assemble_prompt,
+    assemble_children_prompt,
+    assemble_accessories_prompt,
+    load_children_template,
+    load_accessories_template,
+)
 from app.services.storage import storage
 
 logger = logging.getLogger(__name__)
@@ -91,49 +97,181 @@ def generate_images(generation_request_id: str) -> None:
             _fail_generation(db, gen, "No garment images could be loaded.")
             return
 
-        # Step 4 & 5: Load template and assemble prompt
+        # Step 4 & 5: Load template and assemble prompt (module-aware)
+        module = gen.module or "adult"
+
+        # Determine output image count: accessories → 2, fiton → 1, others → stored value (default 3)
+        display_mode = ""
+        if module == "accessories":
+            output_count = 2
+            display_mode = gen.scene_params.get("display_mode", "on_model")
+        elif module == "fiton":
+            output_count = 1
+        else:
+            output_count = gen.output_count or 3
+
         try:
-            prompt_text = assemble_prompt(
-                model_params=gen.model_params,
-                scene_params=gen.scene_params,
-                template_version=gen.prompt_template_version,
-            )
+            if module == "accessories":
+                # Accessories module: rebuild accessory_params dict from stored JSON
+                accessory_params_for_prompt = {
+                    "accessory_category": gen.model_params.get("accessory_category", "necklace"),
+                    "display_mode":       display_mode,
+                    "model_skin_tone":    gen.model_params.get("model_skin_tone", ""),
+                    "background_surface": gen.model_params.get("background_surface", ""),
+                    "context_scene":      gen.model_params.get("context_scene", ""),
+                }
+                # Generate two prompts (variation 0 and 1) — they differ by camera angle
+                # For simplicity, assemble with variation_index=0 and let generate_garment_images
+                # iterate over both angles via variation_index inside _call_openrouter.
+                # We pass variation_index=0 for the base prompt; the camera angle instructions
+                # are embedded per-variation by passing the right index to the assembler.
+                # We store prompt_text as a base; the gemini service calls assemble dynamically.
+                # Simplest approach: assemble a single prompt (angle is part of the per-call text)
+                accessories_template = load_accessories_template()
+
+                # We produce one prompt per variation by pre-assembling both.
+                # However, the current gemini service takes a single prompt_text.
+                # Use variation_index=0 as the base; store template for later.
+                # The camera angle is already in the YAML and the service will use variation_index.
+                # To get the right camera angle per variation, we pass the template to generate_garment_images.
+                # For backward compatibility, we assemble with index=0 (angle 1) and let the service
+                # append camera instructions. Since accessories embed angle in prompt, we call the
+                # assembler here for each variation and store both in a list.
+                accessory_prompts = [
+                    assemble_accessories_prompt(
+                        template=accessories_template,
+                        accessory_params=accessory_params_for_prompt,
+                        variation_index=i,
+                    )
+                    for i in range(output_count)
+                ]
+                # Use variation 0 as the "base" prompt_text for the service call
+                prompt_text = accessory_prompts[0]
+                logger.info(
+                    "Generation %s (accessories/%s/%s): prompt assembled (%d chars)",
+                    generation_request_id,
+                    accessory_params_for_prompt.get("accessory_category"),
+                    display_mode,
+                    len(prompt_text),
+                )
+
+            elif module == "children":
+                # Children's module: combine model_params + scene_params into
+                # a single child_params dict for the children's prompt assembler
+                child_params_for_prompt = {
+                    "age_group":         gen.model_params.get("age_group", "kid"),
+                    "child_gender":      gen.model_params.get("child_gender", "unisex"),
+                    "pose_style":        gen.scene_params.get("pose_style", "standing"),
+                    "background_preset": gen.scene_params.get("background_preset", "studio"),
+                    "hair_style":        gen.model_params.get("hair_style", ""),
+                    "expression":        gen.model_params.get("expression", "happy"),
+                    "skin_tone":         gen.model_params.get("skin_tone", "medium"),
+                }
+                children_template = load_children_template()
+                prompt_text = assemble_children_prompt(
+                    template=children_template,
+                    child_params=child_params_for_prompt,
+                )
+                logger.info(
+                    "Generation %s (children/%s): prompt assembled (%d chars)",
+                    generation_request_id,
+                    child_params_for_prompt.get("age_group"),
+                    len(prompt_text),
+                )
+
+            elif module == "fiton":
+                # Fiton module: build prompt via FitonPromptBuilder
+                from app.services.fiton_prompt import FitonPromptBuilder
+                from app.models.db import FitonRequest as FitonRequestModel
+
+                garment_type = gen.model_params.get("garment_type", "dress")
+                customer_measurements = gen.model_params.get("customer_measurements", {})
+                fit_preference = gen.model_params.get("fit_preference", "regular")
+                garment_description = gen.model_params.get("garment_description") or {}
+
+                # Load fit_details from the FitonRequest record (computed at API time)
+                fiton_record = (
+                    db.query(FitonRequestModel)
+                    .filter(FitonRequestModel.generation_request_id == gen.id)
+                    .first()
+                )
+                fit_details = fiton_record.fit_details if fiton_record else {}
+
+                builder = FitonPromptBuilder()
+                prompt_data = builder.build_prompt(
+                    garment_type=garment_type,
+                    customer_measurements=customer_measurements,
+                    fit_preference=fit_preference,
+                    fit_details=fit_details,
+                    garment_description=garment_description,
+                )
+                prompt_text = prompt_data["prompt"]
+                logger.info(
+                    "Generation %s (fiton/%s): prompt assembled (%d chars)",
+                    generation_request_id,
+                    garment_type,
+                    len(prompt_text),
+                )
+
+            else:
+                prompt_text = assemble_prompt(
+                    model_params=gen.model_params,
+                    scene_params=gen.scene_params,
+                    template_version=gen.prompt_template_version,
+                )
         except Exception as e:
             _fail_generation(db, gen, f"Prompt assembly failed: {e}")
             return
 
-        # Load model reference photo (optional)
+        # Load reference photo:
+        #   - adult module: optional model reference photo (model_photo_url)
+        #   - fiton module: customer photo to preserve appearance (customer_photo_url)
         model_photo_bytes = None
-        model_photo_url = gen.model_params.get("model_photo_url")
-        if model_photo_url:
+        if module == "fiton":
+            photo_url = gen.model_params.get("customer_photo_url")
+        else:
+            photo_url = gen.model_params.get("model_photo_url")
+
+        if photo_url:
             try:
-                model_photo_bytes = storage.load(model_photo_url)
+                model_photo_bytes = storage.load(photo_url)
                 logger.info(
-                    "Generation %s: loaded model photo from %s",
+                    "Generation %s: loaded reference photo from %s",
                     generation_request_id,
-                    model_photo_url,
+                    photo_url,
                 )
             except FileNotFoundError:
                 logger.warning(
-                    "Generation %s: model photo not found at %s — proceeding without it",
+                    "Generation %s: reference photo not found at %s — proceeding without it",
                     generation_request_id,
-                    model_photo_url,
+                    photo_url,
                 )
 
         logger.info(
-            "Generation %s: calling Gemini with %d garment image(s)%s, prompt length %d",
+            "Generation %s: calling Gemini with %d garment image(s)%s, module=%s, prompt length %d",
             generation_request_id,
             len(garment_image_bytes_list),
             " + model photo" if model_photo_bytes else "",
+            module,
             len(prompt_text),
         )
 
-        # Step 6: Call Gemini API
+        # Step 6: Call Gemini API (pass module + output_count + display_mode)
         try:
+            extra_kwargs = {}
+            if module == "accessories":
+                # Pass both prompts (one per camera angle) so each variation
+                # gets the correct angle instruction embedded in its prompt text.
+                extra_kwargs["prompt_texts"] = accessory_prompts
+                extra_kwargs["display_mode"] = display_mode
+
             result = generate_garment_images(
                 garment_image_bytes=garment_image_bytes_list,
                 prompt_text=prompt_text,
                 model_photo_bytes=model_photo_bytes,
+                module=module,
+                output_count=output_count,
+                **extra_kwargs,
             )
         except GeminiError as e:
             _fail_generation(db, gen, f"Gemini API error: {e}")
@@ -190,6 +328,21 @@ def generate_images(generation_request_id: str) -> None:
             len(result.images),
             result.duration_ms,
         )
+
+        # Step 11: Send completion notifications (push + SMS)
+        if gen.user_id:
+            try:
+                from app.models.db import User
+                from app.services.notification import notification_service
+                user_obj = db.query(User).filter_by(id=gen.user_id).first()
+                notification_service.notify_generation_complete(
+                    user=user_obj,
+                    generation_id=generation_request_id,
+                    module=gen.module or "adult",
+                    db=db,
+                )
+            except Exception as exc:
+                logger.warning("Notification step failed for %s: %s", generation_request_id, exc)
 
     except Exception as e:
         logger.exception("Unhandled error in generate_images job: %s", e)

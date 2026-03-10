@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import button, step_indicator, selector_grid, skin_tone_picker, empty_state, stat_card, module_card %}
+{% from "components/icons.html" import icon_upload, icon_generate, icon_history, icon_home, icon_user, icon_sparkles, icon_download, icon_share, icon_check %}
+
+{% block title %}Component Library — DrapeStudio Dev{% endblock %}
+{% block page_title %}Component Library{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8 space-y-12">
+
+    <div class="bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-3 flex items-center gap-2 text-sm text-yellow-800">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Development only — <code class="font-mono text-xs">/dev/components</code>
+    </div>
+
+    {# ── Colors ──────────────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Brand Colors</h2>
+        <div class="grid grid-cols-5 gap-3">
+            {% for name, color in [("Primary", "#6C3CE1"), ("Accent", "#FF6B35"), ("Teal", "#00C9A7"), ("Dark", "#1A1A2E"), ("Surface", "#F8F7FF")] %}
+            <div>
+                <div class="h-16 rounded-xl mb-2 border border-gray-100" style="background: {{ color }}"></div>
+                <p class="text-xs font-semibold text-dark">{{ name }}</p>
+                <p class="text-xs text-gray-400 font-mono">{{ color }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ── Buttons ─────────────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Buttons</h2>
+        <div class="space-y-4">
+            <div class="flex flex-wrap gap-3 items-center">
+                {{ button("Primary", variant="primary") }}
+                {{ button("Secondary", variant="secondary") }}
+                {{ button("Outline", variant="outline") }}
+                {{ button("Ghost", variant="ghost") }}
+                {{ button("Accent", variant="accent") }}
+                {{ button("Danger", variant="danger") }}
+            </div>
+            <div class="flex flex-wrap gap-3 items-center">
+                {{ button("Small", variant="primary", size="sm") }}
+                {{ button("Medium", variant="primary", size="md") }}
+                {{ button("Large", variant="primary", size="lg") }}
+            </div>
+            <div>
+                {{ button("Full Width Button", variant="primary", full=True) }}
+            </div>
+            <div>
+                {{ button("Link Button", href="/", variant="outline") }}
+            </div>
+        </div>
+    </section>
+
+    {# ── Step Indicator ──────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Step Indicator</h2>
+        {{ step_indicator(["Upload", "Configure", "Review", "Generate"], 2) }}
+        {{ step_indicator(["Upload", "Configure", "Review", "Generate"], 4) }}
+    </section>
+
+    {# ── Selector Grid ───────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Selector Grid</h2>
+        {{ selector_grid("demo_gender", [
+            {"value": "feminine", "label": "Female", "icon": "♀"},
+            {"value": "masculine", "label": "Male", "icon": "♂"},
+            {"value": "neutral", "label": "Unisex", "icon": "⚪"},
+        ], cols=3) }}
+    </section>
+
+    {# ── Skin Tone Picker ────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Skin Tone Picker</h2>
+        <div class="bg-white rounded-2xl border border-gray-100 p-5">
+            {{ skin_tone_picker("demo_skin", current="3") }}
+        </div>
+    </section>
+
+    {# ── Icons ───────────────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Icons</h2>
+        <div class="flex flex-wrap gap-6">
+            {% for icon_fn, label in [
+                (icon_upload, "Upload"), (icon_generate, "Generate"), (icon_history, "History"),
+                (icon_home, "Home"), (icon_user, "User"), (icon_sparkles, "Sparkles"),
+                (icon_download, "Download"), (icon_share, "Share"), (icon_check, "Check"),
+            ] %}
+            <div class="flex flex-col items-center gap-1">
+                <div class="p-3 bg-gray-50 rounded-xl text-primary">
+                    {{ icon_fn("w-6 h-6") }}
+                </div>
+                <p class="text-xs text-gray-400">{{ label }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ── Stat Cards ──────────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Stat Cards</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {{ stat_card("Total Credits", "248", "💎", trend=12, trend_label="vs last month") }}
+            {{ stat_card("Generations", "83", "🎨", trend=-4, trend_label="vs last month") }}
+            {{ stat_card("Active Plan", "Pro", "⚡") }}
+        </div>
+    </section>
+
+    {# ── Module Cards ────────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Module Cards</h2>
+        <div class="grid grid-cols-2 gap-3">
+            {{ module_card("Adult Clothing", "Showcase tops, dresses & more on AI models.", "👗", "/upload", "primary", "Active", True) }}
+            {{ module_card("Children's", "Age-appropriate images for kids' clothing.", "👕", "#", "teal", "Soon", False) }}
+        </div>
+    </section>
+
+    {# ── Empty State ─────────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Empty State</h2>
+        <div class="bg-white rounded-2xl border border-gray-100">
+            {{ empty_state(
+                icon="🎨",
+                title="No generations yet",
+                description="Upload a garment and generate your first AI model photo to get started.",
+                action_href="/upload",
+                action_text="Create First Generation"
+            ) }}
+        </div>
+    </section>
+
+    {# ── Toast Demo ──────────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">Toast Notifications</h2>
+        <div class="flex flex-wrap gap-3">
+            <button onclick="window.$toast && window.$toast.success('Operation successful!')"
+                    class="px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 transition-colors">
+                Success Toast
+            </button>
+            <button onclick="window.$toast && window.$toast.error('Something went wrong!')"
+                    class="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-xl hover:bg-red-600 transition-colors">
+                Error Toast
+            </button>
+            <button onclick="window.$toast && window.$toast.warning('Please check your input.')"
+                    class="px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors">
+                Warning Toast
+            </button>
+            <button onclick="window.$toast && window.$toast.show('Generic notification')"
+                    class="px-4 py-2 bg-dark text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors">
+                Default Toast
+            </button>
+        </div>
+    </section>
+
+</div>
+{% endblock %}

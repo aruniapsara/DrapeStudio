@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dev/
+Disallow: /admin/
+Disallow: /v1/
+
+Sitemap: https://drapestudio.lk/sitemap.xml

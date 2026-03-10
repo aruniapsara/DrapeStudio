@@ -1,55 +1,173 @@
 {% extends "base.html" %}
+{% from "components/ui.html" import step_indicator %}
 
 {% block title %}Generating — DrapeStudio{% endblock %}
+{% block page_title %}Generating Images{% endblock %}
 
 {% block content %}
-<section class="page-section generating-page">
-    <h2>Step 4: Generating Your Images</h2>
+<div class="max-w-xl mx-auto px-4 py-6">
 
+    {# Step indicator #}
+    {{ step_indicator(["Upload", "Configure", "Review", "Generate", "Results"], 4) }}
+
+    {# HTMX polling container — replaced entirely by status_poll.html partial #}
     <div id="status-container"
          hx-get="/v1/generations/{{ gen_id }}/status-partial"
          hx-trigger="every 4s"
          hx-swap="outerHTML">
-        <div class="status-card status-queued">
-            <div class="spinner"></div>
-            <p class="status-text">Queued — preparing your generation...</p>
-            <p class="status-hint">This typically takes 30–60 seconds.</p>
+
+        {# Initial queued state — identical visual to status_poll.html queued state #}
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-8 text-center">
+
+            {# Spinner ring with star icon #}
+            <div class="relative w-20 h-20 mx-auto mb-6">
+                <div class="absolute inset-0 rounded-full border-4 border-primary/15"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold text-dark mb-2">Creating Your Images</h3>
+            <p id="step-text" class="text-sm text-gray-500 mb-1">Preparing your generation…</p>
+            <p class="text-xs text-gray-400 mb-6">This typically takes 30–60 seconds</p>
+
+            {# Step progress indicators #}
+            <div class="flex items-center justify-center gap-3 mb-6">
+                <div id="step-0" class="flex flex-col items-center gap-1.5">
+                    <div class="w-8 h-8 rounded-full border-2 border-primary/30 bg-primary/5 flex items-center justify-center text-xs font-bold text-primary/50">1</div>
+                    <span class="text-[10px] text-gray-400">Front</span>
+                </div>
+                <div class="h-px w-6 bg-gray-200"></div>
+                <div id="step-1" class="flex flex-col items-center gap-1.5">
+                    <div class="w-8 h-8 rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-300">2</div>
+                    <span class="text-[10px] text-gray-400">Side</span>
+                </div>
+                <div class="h-px w-6 bg-gray-200"></div>
+                <div id="step-2" class="flex flex-col items-center gap-1.5">
+                    <div class="w-8 h-8 rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-300">3</div>
+                    <span class="text-[10px] text-gray-400">Back</span>
+                </div>
+            </div>
+
+            {# Bouncing dots #}
+            <div class="flex justify-center gap-2 mb-6">
+                <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:0ms"></div>
+                <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:150ms"></div>
+                <div class="w-2 h-2 rounded-full bg-primary animate-bounce" style="animation-delay:300ms"></div>
+            </div>
+
+            {# Tip #}
+            <p class="text-xs text-gray-400 italic">
+                You can close this page — progress is saved automatically.
+            </p>
+
+            {# Generation ID badge #}
+            <div class="mt-4 inline-flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl">
+                <span class="text-[10px] text-gray-400 font-medium uppercase tracking-wide">ID</span>
+                <code class="text-xs text-gray-500 font-mono">{{ gen_id }}</code>
+            </div>
+
         </div>
     </div>
-
-    <div class="generation-info">
-        <p><strong>Generation ID:</strong> <code>{{ gen_id }}</code></p>
-    </div>
-</section>
+</div>
 
 <script>
-    // Client-side timeout warnings
-    const startTime = Date.now();
-    const WARNING_MS = 150000;  // 150 seconds
-    const ERROR_MS = 300000;    // 300 seconds
+(function() {
+    // Record start time in sessionStorage so status_poll partial can pick it up
+    if (!sessionStorage.getItem('genStartTime')) {
+        sessionStorage.setItem('genStartTime', String(Date.now()));
+    }
 
-    setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const container = document.getElementById('status-container');
-        if (!container) return;  // Polling replaced it
+    // ── Timing-based step progress ────────────────────────────────────────────
+    // Steps: 0–15 s = preparing, 15–40 s = front, 40–70 s = side, 70 s+ = back
+    var STEPS = [
+        { threshold: 0,  text: 'Preparing your generation…',    activeStep: -1 },
+        { threshold: 5,  text: 'Creating front view…',          activeStep: 0  },
+        { threshold: 35, text: 'Creating side view…',           activeStep: 1  },
+        { threshold: 65, text: 'Creating back view…',           activeStep: 2  },
+    ];
+
+    function getElapsedSec() {
+        var t = parseInt(sessionStorage.getItem('genStartTime') || '0', 10);
+        return t ? Math.floor((Date.now() - t) / 1000) : 0;
+    }
+
+    function applyStepUI(elapsed) {
+        var current = STEPS[0];
+        for (var i = 0; i < STEPS.length; i++) {
+            if (elapsed >= STEPS[i].threshold) current = STEPS[i];
+        }
+
+        var textEl = document.getElementById('step-text');
+        if (textEl) textEl.textContent = current.text;
+
+        // Update step bubbles
+        for (var j = 0; j < 3; j++) {
+            var el = document.getElementById('step-' + j);
+            if (!el) continue;
+            var bubble = el.querySelector('div');
+            if (j < current.activeStep) {
+                // Completed
+                bubble.className = 'w-8 h-8 rounded-full border-2 border-teal bg-teal/10 flex items-center justify-center text-xs font-bold text-teal';
+                bubble.textContent = '✓';
+            } else if (j === current.activeStep) {
+                // Active
+                bubble.className = 'w-8 h-8 rounded-full border-2 border-primary bg-primary/10 flex items-center justify-center text-xs font-bold text-primary animate-pulse';
+                bubble.textContent = String(j + 1);
+            } else {
+                // Pending
+                bubble.className = 'w-8 h-8 rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-300';
+                bubble.textContent = String(j + 1);
+            }
+        }
+    }
+
+    // Initial render
+    applyStepUI(getElapsedSec());
+
+    // Update every second
+    var stepInterval = setInterval(function() {
+        var container = document.getElementById('status-container');
+        if (!container) { clearInterval(stepInterval); return; }
+        applyStepUI(getElapsedSec());
+    }, 1000);
+
+    // ── Timeout watchdog ──────────────────────────────────────────────────────
+    var WARNING_MS = 150000;
+    var ERROR_MS   = 300000;
+
+    var watchdog = setInterval(function() {
+        var elapsed  = getElapsedSec() * 1000;
+        var container = document.getElementById('status-container');
+        if (!container) { clearInterval(watchdog); return; }
 
         if (elapsed > ERROR_MS) {
-            container.innerHTML = `
-                <div class="status-card status-error">
-                    <p class="status-text">Generation is taking too long.</p>
-                    <p>Something may have gone wrong. Please try again.</p>
-                    <a href="/upload" class="btn btn-primary">Start Over</a>
-                </div>
-            `;
+            clearInterval(watchdog);
+            clearInterval(stepInterval);
             container.removeAttribute('hx-trigger');
             container.removeAttribute('hx-get');
+            container.innerHTML =
+                '<div class="bg-white rounded-3xl border border-red-100 shadow-card p-8 text-center">' +
+                    '<div class="text-5xl mb-4">⏱️</div>' +
+                    '<h3 class="text-lg font-bold text-dark mb-2">Generation Timed Out</h3>' +
+                    '<p class="text-sm text-gray-500 mb-2">This is taking too long. Your credits have <strong>not</strong> been deducted.</p>' +
+                    '<p class="text-xs text-gray-400 mb-6">Please try again or contact support if the issue persists.</p>' +
+                    '<a href="/upload" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-xl transition-colors">' +
+                        'Start Over' +
+                    '</a>' +
+                '</div>';
         } else if (elapsed > WARNING_MS) {
-            const hint = container.querySelector('.status-hint');
-            if (hint) {
-                hint.textContent = 'This is taking longer than usual. Please wait...';
-                hint.classList.add('status-warning');
+            var hintEl = document.getElementById('step-text');
+            if (hintEl && !hintEl.dataset.warned) {
+                hintEl.textContent = 'Taking a bit longer than usual — please wait…';
+                hintEl.style.color = '#FF6B35';
+                hintEl.dataset.warned = '1';
             }
         }
     }, 5000);
+})();
 </script>
 {% endblock %}

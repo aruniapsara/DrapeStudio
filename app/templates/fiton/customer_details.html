@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import step_indicator %}
+
+{% block title %}Customer Details — Virtual Fit-On{% endblock %}
+{% block page_title %}Virtual Fit-On{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-6"
+     x-data="{
+         activeTab: 'full',
+         activeField: '',
+         fitPreference: 'regular',
+         customerSize: 'M',
+         customerBuild: 'medium',
+         customerGender: 'female',
+         customerSkinTone: 'medium'
+     }">
+
+    {# Step indicator #}
+    {{ step_indicator(["Garment", "Customer", "Preview"], 2) }}
+
+    <div class="space-y-4">
+
+        {# ── Tab switcher ────────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-1 flex gap-1">
+            <button @click="activeTab = 'full'"
+                    :class="activeTab === 'full'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-gray-500 hover:text-dark hover:bg-gray-50'"
+                    class="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all">
+                📸 Photo + Measurements
+                <span class="ml-1 text-[10px] opacity-75">(Recommended)</span>
+            </button>
+            <button @click="activeTab = 'quick'"
+                    :class="activeTab === 'quick'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-gray-500 hover:text-dark hover:bg-gray-50'"
+                    class="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold transition-all">
+                ⚡ Quick Mode
+            </button>
+        </div>
+
+        {# ── TAB 1: Photo + Measurements ──────────────────────────── #}
+        <div x-show="activeTab === 'full'" x-cloak>
+
+            {# Customer photo upload #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 mb-4">
+                <div class="flex items-start justify-between mb-1">
+                    <h3 class="text-sm font-bold text-dark">Customer Photo</h3>
+                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">1 photo</span>
+                </div>
+
+                {# Photo guidelines #}
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-4">
+                    <p class="text-xs font-semibold text-blue-800 mb-1.5">📸 Photo guidelines</p>
+                    <ul class="text-xs text-blue-700 space-y-1">
+                        <li>• Full-body front-facing photo</li>
+                        <li>• Fitted clothing (so body shape is visible)</li>
+                        <li>• Good lighting, plain background preferred</li>
+                        <li>• Customer must be over 18 years old</li>
+                    </ul>
+                </div>
+
+                <div id="customer-drop-zone"
+                     class="rounded-2xl border-2 border-dashed border-gray-200 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
+                     ondrop="handleCustomerDrop(event)"
+                     ondragover="event.preventDefault(); this.classList.add('!border-primary','!bg-primary/5')"
+                     ondragleave="this.classList.remove('!border-primary','!bg-primary/5')"
+                     ondragenter="this.classList.add('!border-primary','!bg-primary/5')"
+                     onclick="document.getElementById('customer-files').click()">
+
+                    <input type="file" id="customer-files"
+                           accept="image/jpeg,image/png,image/webp"
+                           onchange="handleCustomerFile(this.files[0])"
+                           style="display:none">
+                    <input type="file" id="customer-camera"
+                           accept="image/jpeg,image/png,image/webp"
+                           capture="user"
+                           onchange="handleCustomerFile(this.files[0])"
+                           style="display:none">
+
+                    {# Desktop #}
+                    <div id="customer-drop-desktop"
+                         class="hidden sm:flex flex-col items-center justify-center py-10 px-4 text-center pointer-events-none">
+                        <div class="w-12 h-12 rounded-2xl bg-teal/10 flex items-center justify-center mb-3">
+                            <svg class="w-6 h-6 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm font-semibold text-dark mb-0.5">Drag &amp; drop customer photo</p>
+                        <p class="text-xs text-gray-400">or click to browse</p>
+                    </div>
+
+                    {# Mobile #}
+                    <div class="flex sm:hidden gap-3 p-4" onclick="event.stopPropagation()">
+                        <button type="button" onclick="document.getElementById('customer-camera').click()"
+                                class="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-2 py-5 rounded-xl bg-teal/10 hover:bg-teal/20 transition-colors">
+                            <svg class="w-7 h-7 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
+                            </svg>
+                            <span class="text-xs font-semibold text-teal">Take Selfie</span>
+                        </button>
+                        <button type="button" onclick="document.getElementById('customer-files').click()"
+                                class="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-2 py-5 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <svg class="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+                            </svg>
+                            <span class="text-xs font-semibold text-gray-600">From Gallery</span>
+                        </button>
+                    </div>
+                </div>
+
+                {# Customer photo preview #}
+                <div id="customer-preview" class="hidden mt-3">
+                    <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+                        <img id="customer-preview-img" src="" alt="Customer photo"
+                             class="w-16 h-16 rounded-xl object-cover border border-gray-200 flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-semibold text-dark truncate" id="customer-photo-name">Photo selected</p>
+                            <p class="text-[11px] text-green-600 mt-0.5">✓ Ready to upload</p>
+                        </div>
+                        <button onclick="clearCustomerPhoto()"
+                                class="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 min-w-[32px] min-h-[32px] flex items-center justify-center"
+                                aria-label="Remove photo">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {# Measurements + body diagram #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 mb-4">
+                <h3 class="text-sm font-bold text-dark mb-4">Body Measurements</h3>
+
+                <div class="flex gap-4">
+
+                    {# Measurement inputs — left column #}
+                    <div class="flex-1 space-y-3">
+
+                        {# Gender #}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Gender</label>
+                            <select x-model="customerGender"
+                                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-dark
+                                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary focus:bg-white transition-all">
+                                <option value="female">Female</option>
+                                <option value="male">Male</option>
+                            </select>
+                        </div>
+
+                        {# Skin tone #}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Skin Tone</label>
+                            <select x-model="customerSkinTone"
+                                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-dark
+                                           focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary focus:bg-white transition-all">
+                                <option value="fair">Fair</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="olive">Olive</option>
+                                <option value="deep">Deep</option>
+                            </select>
+                        </div>
+
+                        {% set measure_fields = [
+                            ("cust-bust",     "bust_cm",           "Bust / Chest (cm) *", "e.g. 88"),
+                            ("cust-waist",    "waist_cm",          "Waist (cm) *",        "e.g. 70"),
+                            ("cust-hips",     "hips_cm",           "Hips (cm) *",         "e.g. 96"),
+                            ("cust-height",   "height_cm",         "Height (cm) *",       "e.g. 163"),
+                            ("cust-shoulder", "shoulder_width_cm", "Shoulder (cm)",       "e.g. 38"),
+                        ] %}
+                        {% for id, field, label, placeholder in measure_fields %}
+                        <div>
+                            <label for="{{ id }}"
+                                   class="block text-xs font-semibold mb-1.5 transition-colors"
+                                   :class="activeField === '{{ field }}' ? 'text-primary' : 'text-gray-700'">
+                                {{ label }}
+                            </label>
+                            <input type="number" id="{{ id }}" step="0.5"
+                                   placeholder="{{ placeholder }}"
+                                   @focus="activeField = '{{ field }}'"
+                                   @blur="activeField = ''"
+                                   class="w-full rounded-xl border px-3 py-2.5 text-sm text-dark transition-all
+                                          focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-white"
+                                   :class="activeField === '{{ field }}'
+                                       ? 'border-primary bg-primary/5'
+                                       : 'border-gray-200 bg-gray-50'">
+                        </div>
+                        {% endfor %}
+                        <p class="text-[10px] text-gray-400">* Required for size recommendation</p>
+                    </div>
+
+                    {# Body diagram — right column, hidden on very small screens #}
+                    <div class="hidden sm:block flex-none w-36 pt-2">
+                        {% include "fiton/partials/body_diagram.html" %}
+                    </div>
+
+                </div>
+            </div>
+
+            {# Measurement guide accordion #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden mb-4"
+                 x-data="{ open: false }">
+                <button @click="open = !open"
+                        class="w-full flex items-center justify-between px-5 py-4 text-left min-h-[44px]">
+                    <span class="text-sm font-semibold text-dark">📐 How to take measurements</span>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform duration-200"
+                         :class="open ? 'rotate-180' : ''"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div x-show="open" x-collapse x-cloak>
+                    <div class="px-5 pb-5 space-y-2 border-t border-gray-50">
+                        {% set guides = [
+                            ("Bust / Chest", "Measure around the fullest part of the chest, keeping the tape parallel to the floor."),
+                            ("Waist",        "Measure around the natural waistline — the narrowest part of the torso, just above the belly button."),
+                            ("Hips",         "Measure around the fullest part of the hips and buttocks, keeping the tape parallel to the floor."),
+                            ("Height",       "Stand straight against a wall. Measure from the floor to the top of the head."),
+                            ("Shoulder",     "Measure across the back from the tip of one shoulder to the tip of the other (optional)."),
+                        ] %}
+                        {% for name, guide in guides %}
+                        <div class="pt-3">
+                            <p class="text-xs font-bold text-dark mb-0.5">{{ name }}</p>
+                            <p class="text-xs text-gray-500 leading-relaxed">{{ guide }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        {# ── TAB 2: Quick Mode ────────────────────────────────────── #}
+        <div x-show="activeTab === 'quick'" x-cloak>
+
+            <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-4">
+                <p class="text-xs font-semibold text-amber-800 mb-1">💡 For best results</p>
+                <p class="text-xs text-amber-700 leading-relaxed">
+                    Providing actual measurements gives a much more accurate size recommendation and fitted preview.
+                    Quick mode uses estimated size chart ranges only.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 space-y-4">
+
+                {# Standard size #}
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Customer's Standard Size</label>
+                    <select x-model="customerSize"
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-dark
+                                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary focus:bg-white transition-all">
+                        {% for s in ["XS", "S", "M", "L", "XL", "XXL", "3XL"] %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# Height #}
+                <div>
+                    <label for="quick-height" class="block text-xs font-semibold text-gray-700 mb-1.5">Height (cm) *</label>
+                    <input type="number" id="quick-height" min="100" max="220" step="1" placeholder="e.g. 163"
+                           class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-dark
+                                  focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary focus:bg-white transition-all">
+                </div>
+
+                {# Build selector #}
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-2">Approximate Build</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        {% for val, label, desc in [
+                            ("slim",      "Slim",       "Smaller frame"),
+                            ("medium",    "Medium",     "Average frame"),
+                            ("curvy",     "Curvy",      "Fuller hips/bust"),
+                            ("plus-size", "Plus-Size",  "Larger frame"),
+                        ] %}
+                        <label @click="customerBuild = '{{ val }}'" class="cursor-pointer">
+                            <div class="rounded-xl border-2 p-3 text-center transition-all select-none"
+                                 :class="customerBuild === '{{ val }}'
+                                     ? 'border-primary bg-primary/5'
+                                     : 'border-gray-200 hover:border-primary/30'">
+                                <p class="text-xs font-bold text-dark">{{ label }}</p>
+                                <p class="text-[10px] text-gray-400">{{ desc }}</p>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        {# ── Fit preference ────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-1">Fit Preference</h3>
+            <p class="text-xs text-gray-400 mb-4">How does the customer prefer their clothes to fit?</p>
+
+            <div class="grid grid-cols-3 gap-3">
+                {% for val, emoji, label, desc in [
+                    ("slim",    "✂️", "Slim Fit",    "Close to body"),
+                    ("regular", "👗", "Regular",     "Standard fit"),
+                    ("loose",   "🌊", "Loose Fit",   "Relaxed drape"),
+                ] %}
+                <label @click="fitPreference = '{{ val }}'" class="cursor-pointer">
+                    <div class="rounded-xl border-2 py-3 px-2 text-center transition-all select-none"
+                         :class="fitPreference === '{{ val }}'
+                             ? 'border-primary bg-primary/5'
+                             : 'border-gray-200 hover:border-primary/30'">
+                        <p class="text-xl mb-1">{{ emoji }}</p>
+                        <p class="text-[11px] font-bold text-dark">{{ label }}</p>
+                        <p class="text-[10px] text-gray-400">{{ desc }}</p>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# ── Actions ──────────────────────────────────────────────── #}
+        <div class="flex gap-3 pt-2 pb-6">
+            <a href="/fiton/upload"
+               class="inline-flex items-center justify-center font-semibold rounded-xl transition-all text-sm px-5 py-3 min-h-[48px]
+                      border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 flex-none">
+                ← Back
+            </a>
+            <button id="btn-generate"
+                    onclick="generateFiton()"
+                    class="flex-1 inline-flex items-center justify-center font-semibold rounded-xl transition-all text-base px-6 py-3 min-h-[48px]
+                           bg-primary text-white shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                </svg>
+                Generate Fit-On Preview
+            </button>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ── Customer photo handling ────────────────────────────────────────────
+    var customerPhotoFile = null;
+    var customerPhotoDataUrl = null;
+
+    function handleCustomerDrop(event) {
+        event.preventDefault();
+        document.getElementById('customer-drop-zone').classList.remove('!border-primary','!bg-primary/5');
+        var files = event.dataTransfer.files;
+        if (files.length > 0) handleCustomerFile(files[0]);
+    }
+
+    function handleCustomerFile(file) {
+        if (!file || !file.type.startsWith('image/')) {
+            showToast('Please select a valid image file.', 'error');
+            return;
+        }
+        customerPhotoFile = file;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            customerPhotoDataUrl = e.target.result;
+            document.getElementById('customer-preview').classList.remove('hidden');
+            document.getElementById('customer-preview-img').src = customerPhotoDataUrl;
+            document.getElementById('customer-photo-name').textContent = file.name;
+            // Hide the drop zone on mobile/desktop
+            var desktop = document.getElementById('customer-drop-desktop');
+            if (desktop) desktop.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearCustomerPhoto() {
+        customerPhotoFile = null;
+        customerPhotoDataUrl = null;
+        document.getElementById('customer-preview').classList.add('hidden');
+        document.getElementById('customer-files').value = '';
+        document.getElementById('customer-camera').value = '';
+        var desktop = document.getElementById('customer-drop-desktop');
+        if (desktop) desktop.style.display = '';
+    }
+
+    // ── Generate fit-on ───────────────────────────────────────────────────
+    async function generateFiton() {
+        var btn = document.getElementById('btn-generate');
+        var alpineData = Alpine.$data(document.querySelector('[x-data]'));
+
+        // Load garment data stored from previous step
+        var garmentDataStr = sessionStorage.getItem('fitonGarmentData');
+        if (!garmentDataStr) {
+            showToast('Garment data missing. Please go back and re-upload the garment.', 'error');
+            return;
+        }
+        var garmentData = JSON.parse(garmentDataStr);
+
+        // Validation
+        if (alpineData.activeTab === 'full') {
+            if (!customerPhotoFile) {
+                showToast('Please upload a customer photo.', 'error');
+                return;
+            }
+            var bustVal  = parseFloat(document.getElementById('cust-bust').value);
+            var waistVal = parseFloat(document.getElementById('cust-waist').value);
+            var hipsVal  = parseFloat(document.getElementById('cust-hips').value);
+            var heightVal= parseFloat(document.getElementById('cust-height').value);
+            if (!bustVal || !waistVal || !hipsVal || !heightVal) {
+                showToast('Please fill in all required measurements (Bust, Waist, Hips, Height).', 'error');
+                return;
+            }
+        } else {
+            var quickHeight = parseFloat(document.getElementById('quick-height').value);
+            if (!quickHeight) {
+                showToast('Please enter the customer\'s height.', 'error');
+                return;
+            }
+        }
+
+        btn.disabled = true;
+        btn.innerHTML =
+            '<svg class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">' +
+                '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+                '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>' +
+            '</svg>Generating…';
+
+        try {
+            var customerPhotoUrl = null;
+
+            // Upload customer photo (full mode only)
+            if (alpineData.activeTab === 'full' && customerPhotoFile) {
+                var signResp = await fetch('/v1/uploads/sign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        files: [{ kind: 'model_photo', filename: customerPhotoFile.name, content_type: customerPhotoFile.type }],
+                    }),
+                });
+                if (!signResp.ok) throw new Error('Failed to get customer photo upload URL');
+                var signData = await signResp.json();
+                var upload = signData.uploads[0];
+                var fd = new FormData();
+                fd.append('file', customerPhotoFile);
+                var uploadResp = await fetch(upload.upload_url, { method: 'POST', body: fd });
+                if (!uploadResp.ok) throw new Error('Customer photo upload failed');
+                customerPhotoUrl = upload.file_url;
+            } else {
+                // Quick mode — no photo; use a placeholder
+                customerPhotoUrl = garmentData.garmentPhotoUrl;
+            }
+
+            // Build fiton_params
+            var fitonParams;
+            if (alpineData.activeTab === 'full') {
+                var shoulderVal = parseFloat(document.getElementById('cust-shoulder').value) || null;
+                var measurements = {
+                    bust_cm:            bustVal,
+                    waist_cm:           waistVal,
+                    hips_cm:            hipsVal,
+                    height_cm:          heightVal,
+                    skin_tone:          alpineData.customerSkinTone,
+                    gender:             alpineData.customerGender,
+                };
+                if (shoulderVal) measurements.shoulder_width_cm = shoulderVal;
+
+                // Build garment measurements or size label
+                var gm = null, gsl = null;
+                if (garmentData.sizingMode === 'measurements') {
+                    var hasMeas = garmentData.garmentBust || garmentData.garmentWaist || garmentData.garmentHips;
+                    if (hasMeas) {
+                        gm = {};
+                        if (garmentData.garmentBust)   gm.bust_cm   = garmentData.garmentBust;
+                        if (garmentData.garmentWaist)  gm.waist_cm  = garmentData.garmentWaist;
+                        if (garmentData.garmentHips)   gm.hips_cm   = garmentData.garmentHips;
+                        if (garmentData.garmentLength) gm.length_cm = garmentData.garmentLength;
+                    }
+                } else {
+                    gsl = garmentData.sizeLabel || 'M';
+                }
+                // Fall back to size label if no measurements provided
+                if (!gm && !gsl) gsl = 'M';
+
+                fitonParams = {
+                    customer_photo_url:     customerPhotoUrl,
+                    customer_measurements:  measurements,
+                    fit_preference:         alpineData.fitPreference,
+                    garment_type:           garmentData.garmentType || 'dress',
+                };
+                if (gm)  fitonParams.garment_measurements = gm;
+                if (gsl) fitonParams.garment_size_label   = gsl;
+
+                // Garment description
+                var gDesc = {};
+                if (garmentData.color)       gDesc.color    = garmentData.color;
+                if (garmentData.material)    gDesc.material = garmentData.material;
+                if (garmentData.description) gDesc.details  = garmentData.description;
+                if (Object.keys(gDesc).length) fitonParams.garment_description = gDesc;
+
+            } else {
+                // Quick mode — derive synthetic measurements from size + build
+                var qHeight = parseFloat(document.getElementById('quick-height').value) || 160;
+                var buildToMeasurements = {
+                    'slim':      { bust_cm: 82, waist_cm: 64, hips_cm: 88 },
+                    'medium':    { bust_cm: 89, waist_cm: 71, hips_cm: 95 },
+                    'curvy':     { bust_cm: 96, waist_cm: 78, hips_cm: 104 },
+                    'plus-size': { bust_cm: 108, waist_cm: 92, hips_cm: 116 },
+                };
+                var buildMeas = buildToMeasurements[alpineData.customerBuild] || buildToMeasurements['medium'];
+                fitonParams = {
+                    customer_photo_url: customerPhotoUrl,
+                    customer_measurements: {
+                        bust_cm:    buildMeas.bust_cm,
+                        waist_cm:   buildMeas.waist_cm,
+                        hips_cm:    buildMeas.hips_cm,
+                        height_cm:  qHeight,
+                        skin_tone:  'medium',
+                        gender:     'female',
+                    },
+                    garment_size_label: alpineData.customerSize || 'M',
+                    fit_preference:     alpineData.fitPreference,
+                    garment_type:       garmentData.garmentType || 'dress',
+                };
+            }
+
+            // Build garment images list from sessionStorage
+            var uploadedFiles = JSON.parse(sessionStorage.getItem('uploadedFiles') || '[]');
+            if (uploadedFiles.length === 0) {
+                throw new Error('No garment image found. Please go back and re-upload.');
+            }
+
+            // Submit generation request
+            var genResp = await fetch('/v1/generations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idempotency_key: crypto.randomUUID(),
+                    module: 'fiton',
+                    product_type: 'clothing',
+                    garment_images: uploadedFiles,
+                    fiton_params: fitonParams,
+                    output: { count: 1, resolution: 'high' },
+                }),
+            });
+            if (!genResp.ok) {
+                var errData = await genResp.json();
+                throw new Error(errData.detail || 'Generation request failed');
+            }
+            var genData = await genResp.json();
+
+            sessionStorage.setItem('genStartTime', String(Date.now()));
+            sessionStorage.setItem('generationModule', 'fiton');
+
+            window.location.href = '/generating/' + genData.id;
+
+        } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML =
+                '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>' +
+                'Generate Fit-On Preview';
+        }
+    }
+</script>
+{% endblock %}

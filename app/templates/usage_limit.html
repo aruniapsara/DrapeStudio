@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Usage Limit Reached — DrapeStudio{% endblock %}
+{% block page_title %}Usage Limit{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto px-4 py-10 text-center space-y-8">
+
+    {# ── Icon + message ──────────────────────────────────────────────────── #}
+    <div class="space-y-4">
+        <div class="w-20 h-20 rounded-3xl bg-accent/10 flex items-center justify-center mx-auto text-4xl">
+            {% if "daily_limit" in reason %}⏰
+            {% elif "monthly_limit" in reason %}📦
+            {% elif "fiton" in reason %}✨
+            {% else %}🚫
+            {% endif %}
+        </div>
+        <h2 class="text-xl font-bold text-dark">
+            {% if "daily_limit" in reason %}You've used all your images for today
+            {% elif "monthly_limit" in reason %}Monthly credits exhausted
+            {% elif "fiton_not_enabled" in reason %}Virtual Fit-On not available on your plan
+            {% elif "fiton_daily_limit" in reason %}Fit-On daily limit reached
+            {% else %}Usage limit reached
+            {% endif %}
+        </h2>
+        <p class="text-gray-500 text-sm">
+            {% if "daily_limit" in reason %}
+                Free plan allows 3 images per day. Your quota resets at midnight UTC.
+                Upgrade to a paid plan for up to 500 images per month.
+            {% elif "monthly_limit" in reason %}
+                You've used all your monthly credits.
+                Upgrade to Pro for 500 images/month or wait for your renewal date.
+            {% elif "fiton_not_enabled" in reason %}
+                Virtual Fit-On is available on Basic and Pro plans.
+            {% elif "fiton_daily_limit" in reason %}
+                Basic plan includes 3 Fit-On sessions per day.
+                Upgrade to Pro for unlimited Fit-On sessions.
+            {% else %}
+                Please upgrade your plan to continue generating images.
+            {% endif %}
+        </p>
+    </div>
+
+    {# ── Usage meter ─────────────────────────────────────────────────────── #}
+    {% if usage %}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 text-left space-y-3">
+        <div class="flex justify-between items-center">
+            <span class="text-sm font-semibold text-dark">{{ usage.plan_name }} Plan</span>
+            <span class="text-xs text-gray-400">{{ usage.daily_used }}/{{ usage.daily_limit }} today</span>
+        </div>
+        <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            {% set pct = [100, (usage.daily_used / usage.daily_limit * 100) if usage.daily_limit else 100] | min %}
+            <div class="h-2.5 rounded-full bg-gradient-to-r from-accent to-primary"
+                 style="width: {{ pct }}%"></div>
+        </div>
+        {% if usage.plan != 'free' and usage.monthly_limit %}
+        <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+                <span>Monthly credits</span>
+                <span>{{ usage.monthly_used }}/{{ usage.monthly_limit }}</span>
+            </div>
+            <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                {% set mpct = [100, (usage.monthly_used / usage.monthly_limit * 100) if usage.monthly_limit else 100] | min %}
+                <div class="h-1.5 rounded-full bg-primary"
+                     style="width: {{ mpct }}%"></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── CTAs ────────────────────────────────────────────────────────────── #}
+    <div class="space-y-3">
+        {% if "daily_limit" in reason and usage and usage.plan == 'free' %}
+        <div class="bg-surface rounded-2xl p-4 text-sm text-gray-500">
+            <span class="text-2xl">🌙</span>
+            <p class="mt-1 font-medium text-dark">Come back tomorrow</p>
+            <p class="text-xs">Your 3 daily images reset at midnight UTC.</p>
+        </div>
+        {% endif %}
+
+        <a href="/pricing"
+           class="block w-full py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-primary to-[#9B6DFF] text-white hover:opacity-90 active:scale-95 transition-all shadow-md">
+            View Plans &amp; Upgrade
+        </a>
+
+        <a href="/"
+           class="block w-full py-3 rounded-xl text-sm font-medium border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all">
+            Back to Home
+        </a>
+    </div>
+
+</div>
+{% endblock %}

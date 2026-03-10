@@ -1,0 +1,45 @@
+{% macro seo(title="", description="", image="", url="", type="website") %}
+<title>{{ title or "DrapeStudio — AI Product Photography for Sri Lankan Businesses" }}</title>
+<meta name="description" content="{{ description or 'Professional catalogue images without models or studios. AI-powered product photography for clothing, accessories, and virtual fit-on.' }}">
+
+<!-- Open Graph -->
+<meta property="og:title" content="{{ title or 'DrapeStudio' }}">
+<meta property="og:description" content="{{ description or 'AI Product Photography for Your Business' }}">
+<meta property="og:image" content="{{ image or request.url_for('static', path='og-image.png') }}">
+<meta property="og:url" content="{{ url or request.url }}">
+<meta property="og:type" content="{{ type }}">
+<meta property="og:locale" content="en_LK">
+<meta property="og:site_name" content="DrapeStudio">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ title or 'DrapeStudio' }}">
+<meta name="twitter:description" content="{{ description or 'AI Product Photography' }}">
+<meta name="twitter:image" content="{{ image or request.url_for('static', path='og-image.png') }}">
+
+<!-- Sri Lankan SEO -->
+<meta name="geo.region" content="LK">
+<meta name="geo.placename" content="Sri Lanka">
+<link rel="alternate" hreflang="en" href="{{ request.url }}">
+<link rel="alternate" hreflang="si" href="{{ request.url }}?lang=si">
+<link rel="alternate" hreflang="ta" href="{{ request.url }}?lang=ta">
+<link rel="alternate" hreflang="x-default" href="{{ request.url }}">
+
+<!-- Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "DrapeStudio",
+  "applicationCategory": "PhotographyApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "LKR"
+  },
+  "description": "AI-powered product photography for Sri Lankan businesses",
+  "availableLanguage": ["English", "Sinhala", "Tamil"]
+}
+</script>
+{% endmacro %}

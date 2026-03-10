@@ -1,16 +1,24 @@
-"""Generation endpoints — create, poll, outputs, regenerate."""
+"""Generation endpoints — create, poll, outputs, download, regenerate."""
 
 import json
+import logging
 from datetime import datetime
+from io import BytesIO
+from zipfile import ZipFile
+
+from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_or_create_session_id
-from app.models.db import GenerationRequest, GenerationOutput, generate_gen_id
+from app.middleware.auth import get_request_user
+from app.models.db import AccessoryParams, ChildParams, FitonRequest, GenerationRequest, GenerationOutput, generate_gen_id, generate_ulid
 from app.schemas.generation import (
     CreateGenerationRequest,
     GenerationCreatedResponse,
@@ -18,6 +26,7 @@ from app.schemas.generation import (
     GenerationStatusResponse,
     OutputImage,
 )
+from app.services.safety import ChildSafetyValidator
 from app.services.storage import storage
 
 router = APIRouter(tags=["generations"])
@@ -48,7 +57,99 @@ def create_generation(
     if len(body.garment_images) == 0:
         raise HTTPException(status_code=400, detail="At least one garment image is required.")
 
-    # Idempotency check
+    # ── Build canonical params dicts (used for idempotency and DB storage) ────
+    if body.module == "fiton":
+        fp = body.fiton_params  # type: ignore[assignment]
+        model_params_dict: dict = {
+            "module": "fiton",
+            "customer_photo_url": fp.customer_photo_url,
+            "customer_measurements": fp.customer_measurements.model_dump(),
+            "fit_preference": fp.fit_preference,
+            "garment_type": fp.garment_type,
+            "garment_description": fp.garment_description or {},
+        }
+        scene_params_dict: dict = {
+            "garment_measurements": fp.garment_measurements.model_dump() if fp.garment_measurements else None,
+            "garment_size_label": fp.garment_size_label,
+        }
+
+    elif body.module == "accessories":
+        ap = body.accessory_params  # type: ignore[assignment]
+        model_params_dict: dict = {
+            "module": "accessories",
+            "accessory_category": ap.accessory_category,
+            "display_mode": ap.display_mode,
+            "context_scene": ap.context_scene or "",
+            "model_skin_tone": ap.model_skin_tone or "",
+            "background_surface": ap.background_surface or "",
+            "product_type": body.product_type,
+        }
+        scene_params_dict: dict = {
+            "display_mode": ap.display_mode,
+            "accessory_category": ap.accessory_category,
+        }
+
+    elif body.module == "children":
+        # ── Children's module safety validation ────────────────────────────
+        cp = body.child_params  # type: ignore[assignment]
+        is_valid, error_msg = ChildSafetyValidator.validate_child_params(
+            cp.age_group,
+            {
+                "pose_style": cp.pose_style,
+                "background_preset": cp.background_preset,
+                "hair_style": cp.hair_style or "",
+                "expression": cp.expression or "",
+            },
+        )
+        if not is_valid:
+            raise HTTPException(status_code=422, detail=error_msg)
+
+        # For the children module, model_params stores child config
+        # and scene_params stores background + pose info for prompt assembly.
+        model_params_dict = {
+            "module": "children",
+            "age_group": cp.age_group,
+            "child_gender": cp.child_gender,
+            "hair_style": cp.hair_style or "",
+            "expression": cp.expression or "happy",
+            "skin_tone": cp.skin_tone or "medium",
+            "product_type": body.product_type,
+        }
+        scene_params_dict = {
+            "pose_style": cp.pose_style,
+            "background_preset": cp.background_preset,
+        }
+
+    else:
+        # Adult module — original behaviour
+        model_params_dict = body.model_params.model_dump()  # type: ignore[union-attr]
+        model_params_dict["product_type"] = body.product_type
+        scene_params_dict = body.scene.model_dump()  # type: ignore[union-attr]
+
+    # ── Credit / usage enforcement (JWT users only) ───────────────────────────
+    request_user = get_request_user(request)
+    generation_user_id: str | None = None
+    if request_user and request_user.get("auth_type") == "jwt":
+        generation_user_id = request_user["user_id"]
+        from app.services.billing import BillingService
+        can_generate, reason = BillingService.check_can_generate(
+            generation_user_id, body.module or "adult", db
+        )
+        if not can_generate:
+            templates_ = _get_templates()
+            usage_summary = BillingService.get_usage_summary(generation_user_id, db)
+            return templates_.TemplateResponse(
+                "usage_limit.html",
+                {
+                    "request": request,
+                    "user": request_user,
+                    "reason": reason,
+                    "usage": usage_summary,
+                },
+                status_code=402,
+            )
+
+    # ── Idempotency check ─────────────────────────────────────────────────────
     if body.idempotency_key:
         existing = (
             db.query(GenerationRequest)
@@ -56,46 +157,36 @@ def create_generation(
             .first()
         )
         if existing:
-            # Check if params match
             existing_params = {
                 "garment_images": existing.garment_image_urls,
                 "model_params": existing.model_params,
                 "scene_params": existing.scene_params,
             }
-            new_model_params = body.model_params.model_dump()
-            new_model_params["product_type"] = body.product_type
             new_params = {
                 "garment_images": body.garment_images,
-                "model_params": new_model_params,
-                "scene_params": body.scene.model_dump(),
+                "model_params": model_params_dict,
+                "scene_params": scene_params_dict,
             }
             if json.dumps(existing_params, sort_keys=True) == json.dumps(
                 new_params, sort_keys=True
             ):
-                # Identical request — return existing
-                return GenerationCreatedResponse(
-                    id=existing.id, status=existing.status
-                )
+                return GenerationCreatedResponse(id=existing.id, status=existing.status)
             else:
                 raise HTTPException(
                     status_code=409,
                     detail="Idempotency key already used with different parameters.",
                 )
 
-    # Build model_params dict — embed product_type so prompt assembly
-    # can access it without a DB schema migration.
-    model_params_dict = body.model_params.model_dump()
-    model_params_dict["product_type"] = body.product_type
-
-    # Create generation request
+    # ── Create GenerationRequest record ───────────────────────────────────────
     gen_id = generate_gen_id()
     gen_request = GenerationRequest(
         id=gen_id,
         session_id=session_id,
         status="queued",
+        module=body.module,
         garment_image_urls=body.garment_images,
         model_params=model_params_dict,
-        scene_params=body.scene.model_dump(),
+        scene_params=scene_params_dict,
         output_count=body.output.count,
         prompt_template_version="v0.1",
         idempotency_key=body.idempotency_key,
@@ -104,10 +195,71 @@ def create_generation(
     )
 
     db.add(gen_request)
+    db.flush()  # Flush so gen_id is persisted before inserting child_params FK
+
+    # ── Create ChildParams record (children module only) ──────────────────────
+    if body.module == "children" and body.child_params is not None:
+        cp = body.child_params
+        child_record = ChildParams(
+            id=generate_ulid(),
+            generation_request_id=gen_id,
+            age_group=cp.age_group,
+            child_gender=cp.child_gender,
+            pose_style=cp.pose_style,
+            background_preset=cp.background_preset,
+            hair_style=cp.hair_style,
+            expression=cp.expression or "happy",
+        )
+        db.add(child_record)
+
+    # ── Create AccessoryParams record (accessories module only) ───────────────
+    elif body.module == "accessories" and body.accessory_params is not None:
+        ap = body.accessory_params
+        accessory_record = AccessoryParams(
+            id=generate_ulid(),
+            generation_request_id=gen_id,
+            accessory_category=ap.accessory_category,
+            display_mode=ap.display_mode,
+            context_scene=ap.context_scene,
+            model_skin_tone=ap.model_skin_tone,
+            background_surface=ap.background_surface,
+        )
+        db.add(accessory_record)
+
+    # ── Create FitonRequest record (fiton module only) ────────────────────────
+    elif body.module == "fiton" and body.fiton_params is not None:
+        from app.services.sizing import sizing_service
+
+        fp = body.fiton_params
+        cm = fp.customer_measurements
+        gm = fp.garment_measurements
+
+        # Run size recommendation immediately so recommended_size is stored
+        result = sizing_service.recommend_size(
+            customer_measurements=cm.model_dump(),
+            garment_measurements=gm.model_dump() if gm else None,
+            garment_size_label=fp.garment_size_label,
+            fit_preference=fp.fit_preference,
+        )
+
+        fiton_record = FitonRequest(
+            id=generate_ulid(),
+            generation_request_id=gen_id,
+            customer_photo_url=fp.customer_photo_url,
+            customer_measurements=cm.model_dump(),
+            garment_measurements=gm.model_dump() if gm else None,
+            garment_size_label=fp.garment_size_label,
+            fit_preference=fp.fit_preference,
+            recommended_size=result.recommended_size,
+            fit_confidence=result.fit_confidence,
+            fit_details=result.fit_details,
+        )
+        db.add(fiton_record)
+
     db.commit()
     db.refresh(gen_request)
 
-    # Enqueue worker job (try Redis Queue, fall back gracefully)
+    # ── Enqueue worker job ────────────────────────────────────────────────────
     try:
         import redis as redis_lib
         from rq import Queue
@@ -121,8 +273,17 @@ def create_generation(
         )
     except Exception:
         # If Redis is not available, the job stays queued
-        # Worker can pick it up later, or it can be processed manually
         pass
+
+    # ── Deduct credit (after successful enqueue) ──────────────────────────────
+    if generation_user_id:
+        try:
+            from app.services.billing import BillingService
+            BillingService.deduct_credit(
+                generation_user_id, gen_id, body.module or "adult", db
+            )
+        except Exception as exc:
+            logger.warning("Credit deduction failed for %s: %s", gen_id, exc)
 
     return GenerationCreatedResponse(id=gen_id, status="queued")
 
@@ -165,7 +326,6 @@ def get_generation_outputs(gen_id: str, db: Session = Depends(get_db)):
             .all()
         )
         for out in db_outputs:
-            # Generate a signed download URL
             image_url = storage.signed_download_url(
                 out.image_url,
                 settings.OUTPUT_URL_EXPIRY_SECONDS,
@@ -218,5 +378,122 @@ def get_generation_status_partial(
             "gen_id": gen_id,
             "status": gen.status,
             "error_message": gen.error_message,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/generations/{id}/download-zip
+# ---------------------------------------------------------------------------
+@router.get("/generations/{gen_id}/download-zip")
+def download_zip(gen_id: str, db: Session = Depends(get_db)):
+    """Download all output images for a generation as a ZIP file."""
+    gen = db.query(GenerationRequest).filter(GenerationRequest.id == gen_id).first()
+    if not gen:
+        raise HTTPException(status_code=404, detail="Generation not found.")
+    if gen.status != "succeeded":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Generation is '{gen.status}', not yet succeeded.",
+        )
+
+    db_outputs = (
+        db.query(GenerationOutput)
+        .filter(GenerationOutput.generation_request_id == gen_id)
+        .order_by(GenerationOutput.variation_index)
+        .all()
+    )
+
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, "w") as zf:
+        for i, out in enumerate(db_outputs):
+            try:
+                image_bytes = storage.load(out.image_url)
+                filename = f"drapestudio_{gen_id}_{i + 1}.jpg"
+                zf.writestr(filename, image_bytes)
+            except Exception:
+                pass
+
+    zip_buffer.seek(0)
+    zip_bytes = zip_buffer.read()
+
+    return StreamingResponse(
+        iter([zip_bytes]),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="drapestudio_{gen_id}.zip"',
+            "Content-Length": str(len(zip_bytes)),
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/generations/{id}/fiton-details  (Virtual Fit-On module only)
+# ---------------------------------------------------------------------------
+@router.get("/generations/{gen_id}/fiton-details")
+def get_fiton_details(gen_id: str, db: Session = Depends(get_db)):
+    """Return size recommendation and fit details for a Virtual Fit-On generation."""
+    gen = db.query(GenerationRequest).filter(GenerationRequest.id == gen_id).first()
+    if not gen or gen.module != "fiton":
+        raise HTTPException(status_code=404, detail="Fit-on generation not found.")
+
+    fiton = (
+        db.query(FitonRequest)
+        .filter(FitonRequest.generation_request_id == gen_id)
+        .first()
+    )
+    if not fiton:
+        raise HTTPException(status_code=404, detail="Fit-on details not found.")
+
+    customer_photo_signed = None
+    if fiton.customer_photo_url:
+        try:
+            customer_photo_signed = storage.signed_download_url(
+                fiton.customer_photo_url, settings.OUTPUT_URL_EXPIRY_SECONDS
+            )
+        except Exception:
+            customer_photo_signed = None
+
+    return {
+        "recommended_size":  fiton.recommended_size,
+        "fit_confidence":    float(fiton.fit_confidence) if fiton.fit_confidence is not None else 0.0,
+        "fit_preference":    gen.model_params.get("fit_preference", "regular"),
+        "fit_details":       fiton.fit_details or {},
+        "garment_type":      gen.model_params.get("garment_type", "dress"),
+        "customer_photo_url": customer_photo_signed,
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/outputs/{output_id}/thumb  — 200 px wide WebP thumbnail
+# ---------------------------------------------------------------------------
+@router.get("/outputs/{output_id}/thumb")
+def get_output_thumb(output_id: str, width: int = 200, db: Session = Depends(get_db)):
+    """Return a WebP thumbnail (default 200 px wide) for a generation output image."""
+    output = db.query(GenerationOutput).filter(GenerationOutput.id == output_id).first()
+    if not output:
+        raise HTTPException(status_code=404, detail="Output not found.")
+
+    try:
+        image_bytes = storage.load(output.image_url)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail="Image data not found.") from exc
+
+    # Resize while preserving aspect ratio, then encode as WebP
+    img = Image.open(BytesIO(image_bytes)).convert("RGB")
+    aspect = img.height / img.width
+    thumb_h = int(width * aspect)
+    img = img.resize((width, thumb_h), Image.LANCZOS)
+
+    buf = BytesIO()
+    img.save(buf, format="WEBP", quality=75)
+    buf.seek(0)
+
+    return Response(
+        content=buf.read(),
+        media_type="image/webp",
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "Content-Disposition": f'inline; filename="thumb_{output_id}.webp"',
         },
     )

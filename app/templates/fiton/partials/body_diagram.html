@@ -1,0 +1,96 @@
+{#
+  Inline SVG body measurement diagram.
+  Usage: {% include "fiton/partials/body_diagram.html" %}
+  The active measurement is highlighted via Alpine.js binding on the parent.
+  Pass activeField (e.g. "bust", "waist", "hips", "height", "shoulder") from parent scope.
+#}
+<div class="flex flex-col items-center" aria-hidden="true">
+    <p class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Measurement Guide</p>
+
+    <svg viewBox="0 0 120 220" class="w-32 h-auto" xmlns="http://www.w3.org/2000/svg"
+         fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+        {# ─── Silhouette ──────────────────────────────────────────────────── #}
+
+        {# Head #}
+        <circle cx="60" cy="22" r="13" stroke="#D1D5DB" stroke-width="1.5" fill="#F9FAFB"/>
+
+        {# Neck #}
+        <line x1="55" y1="34" x2="55" y2="42" stroke="#D1D5DB" stroke-width="1.5"/>
+        <line x1="65" y1="34" x2="65" y2="42" stroke="#D1D5DB" stroke-width="1.5"/>
+
+        {# Shoulders (shoulder width) #}
+        <path d="M55 42 Q40 44 36 50" stroke="#D1D5DB" stroke-width="1.5"/>
+        <path d="M65 42 Q80 44 84 50" stroke="#D1D5DB" stroke-width="1.5"/>
+
+        {# Torso outline — simplified dress-form shape #}
+        {# Left side: shoulder→armpit→waist→hip #}
+        <path d="M36 50 L33 72 Q32 80 34 88 Q35 100 38 110 L42 140"
+              stroke="#D1D5DB" stroke-width="1.5"/>
+        {# Right side #}
+        <path d="M84 50 L87 72 Q88 80 86 88 Q85 100 82 110 L78 140"
+              stroke="#D1D5DB" stroke-width="1.5"/>
+
+        {# Hip/skirt outline #}
+        <path d="M42 140 Q50 148 60 148 Q70 148 78 140" stroke="#D1D5DB" stroke-width="1.5"/>
+
+        {# Arms #}
+        <path d="M36 50 L28 82" stroke="#D1D5DB" stroke-width="1.5"/>
+        <path d="M84 50 L92 82" stroke="#D1D5DB" stroke-width="1.5"/>
+
+        {# Legs #}
+        <line x1="51" y1="148" x2="48" y2="208" stroke="#D1D5DB" stroke-width="1.5"/>
+        <line x1="69" y1="148" x2="72" y2="208" stroke="#D1D5DB" stroke-width="1.5"/>
+
+        {# ─── Measurement lines + labels ───────────────────────────────── #}
+
+        {# Shoulder width line #}
+        <line x1="36" y1="50" x2="84" y2="50"
+              :stroke="activeField === 'shoulder_width_cm' ? '#6C3CE1' : '#E5E7EB'"
+              stroke-width="1.5" stroke-dasharray="3,2"/>
+        <text x="60" y="47" text-anchor="middle" font-size="6"
+              :fill="activeField === 'shoulder_width_cm' ? '#6C3CE1' : '#9CA3AF'"
+              font-family="system-ui, sans-serif" font-weight="600">Shoulder</text>
+
+        {# Bust line #}
+        <line x1="33" y1="68" x2="87" y2="68"
+              :stroke="activeField === 'bust_cm' ? '#6C3CE1' : '#E5E7EB'"
+              stroke-width="1.5" stroke-dasharray="3,2"/>
+        <text x="91" y="71" text-anchor="start" font-size="6"
+              :fill="activeField === 'bust_cm' ? '#6C3CE1' : '#9CA3AF'"
+              font-family="system-ui, sans-serif" font-weight="600">Bust</text>
+
+        {# Waist line #}
+        <line x1="32" y1="88" x2="88" y2="88"
+              :stroke="activeField === 'waist_cm' ? '#6C3CE1' : '#E5E7EB'"
+              stroke-width="1.5" stroke-dasharray="3,2"/>
+        <text x="91" y="91" text-anchor="start" font-size="6"
+              :fill="activeField === 'waist_cm' ? '#6C3CE1' : '#9CA3AF'"
+              font-family="system-ui, sans-serif" font-weight="600">Waist</text>
+
+        {# Hips line #}
+        <line x1="34" y1="110" x2="86" y2="110"
+              :stroke="activeField === 'hips_cm' ? '#6C3CE1' : '#E5E7EB'"
+              stroke-width="1.5" stroke-dasharray="3,2"/>
+        <text x="91" y="113" text-anchor="start" font-size="6"
+              :fill="activeField === 'hips_cm' ? '#6C3CE1' : '#9CA3AF'"
+              font-family="system-ui, sans-serif" font-weight="600">Hips</text>
+
+        {# Height arrow #}
+        <line x1="18" y1="9" x2="18" y2="208"
+              :stroke="activeField === 'height_cm' ? '#6C3CE1' : '#E5E7EB'"
+              stroke-width="1.5" stroke-dasharray="3,2"/>
+        <path d="M15 12 L18 8 L21 12"
+              :stroke="activeField === 'height_cm' ? '#6C3CE1' : '#E5E7EB'"
+              stroke-width="1.5"/>
+        <path d="M15 205 L18 209 L21 205"
+              :stroke="activeField === 'height_cm' ? '#6C3CE1' : '#E5E7EB'"
+              stroke-width="1.5"/>
+        <text x="7" y="114" text-anchor="middle" font-size="6" transform="rotate(-90,7,114)"
+              :fill="activeField === 'height_cm' ? '#6C3CE1' : '#9CA3AF'"
+              font-family="system-ui, sans-serif" font-weight="600">Height</text>
+
+    </svg>
+
+    <p class="text-[10px] text-gray-400 text-center mt-1">Tap a field to highlight</p>
+</div>

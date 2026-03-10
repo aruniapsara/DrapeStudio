@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Billing History — DrapeStudio{% endblock %}
+{% block page_title %}Billing &amp; Credits{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-6 space-y-6"
+     x-data="billingHistory()"
+     x-init="init()">
+
+    {# ── Loading state ────────────────────────────────────────────────────── #}
+    <template x-if="loading">
+        <div class="text-center py-12 text-gray-400 text-sm">Loading billing history…</div>
+    </template>
+
+    <template x-if="!loading">
+        <div class="space-y-6">
+
+            {# ── Current subscription card ─────────────────────────────── #}
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-6">
+                <h3 class="text-base font-bold text-dark mb-4">Current Subscription</h3>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-2xl font-bold text-dark" x-text="usage.plan_name || 'Free'"></p>
+                        <p class="text-sm text-gray-500 mt-0.5" x-text="planSubtitle"></p>
+                    </div>
+                    <a href="/pricing"
+                       class="px-4 py-2 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-dark transition-colors">
+                        Upgrade
+                    </a>
+                </div>
+
+                {# Usage meters #}
+                <div class="mt-4 space-y-3" x-show="usage.plan !== 'free'">
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Monthly credits</span>
+                            <span x-text="usage.monthly_used + ' / ' + usage.monthly_limit"></span>
+                        </div>
+                        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-2 bg-primary rounded-full transition-all"
+                                 :style="'width:' + Math.min(100, usage.monthly_limit ? (usage.monthly_used/usage.monthly_limit*100) : 0) + '%'"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3" x-show="usage.plan === 'free'">
+                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Daily usage</span>
+                        <span x-text="usage.daily_used + ' / ' + usage.daily_limit"></span>
+                    </div>
+                    <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div class="h-2 bg-primary rounded-full transition-all"
+                             :style="'width:' + Math.min(100, usage.daily_limit ? (usage.daily_used/usage.daily_limit*100) : 0) + '%'"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center gap-2 text-xs text-gray-400" x-show="usage.expires_at">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span>Next billing: <span x-text="usage.expires_at ? usage.expires_at.split('T')[0] : ''"></span></span>
+                </div>
+            </div>
+
+            {# ── Payment history ───────────────────────────────────────── #}
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-6">
+                <h3 class="text-base font-bold text-dark mb-4">Payment History</h3>
+
+                <template x-if="payments.length === 0">
+                    <p class="text-sm text-gray-400 text-center py-4">No payments yet.</p>
+                </template>
+
+                <div class="space-y-3" x-show="payments.length > 0">
+                    <template x-for="p in payments" :key="p.id">
+                        <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                            <div>
+                                <p class="text-sm font-medium text-dark" x-text="p.description || 'Payment'"></p>
+                                <p class="text-xs text-gray-400" x-text="p.created_at.split('T')[0]"></p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-dark" x-text="'Rs. ' + p.amount_lkr.toLocaleString()"></p>
+                                <span class="text-xs font-medium px-2 py-0.5 rounded-full"
+                                      :class="{
+                                          'bg-teal/10 text-teal': p.status === 'completed',
+                                          'bg-red-50 text-red-500': p.status === 'failed',
+                                          'bg-gray-100 text-gray-500': p.status === 'pending' || p.status === 'cancelled',
+                                      }"
+                                      x-text="p.status"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            {# ── Credit transaction log ────────────────────────────────── #}
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-6">
+                <h3 class="text-base font-bold text-dark mb-4">Credit Transactions</h3>
+
+                <template x-if="transactions.length === 0">
+                    <p class="text-sm text-gray-400 text-center py-4">No transactions yet.</p>
+                </template>
+
+                <div class="space-y-2" x-show="transactions.length > 0">
+                    <template x-for="t in transactions" :key="t.id">
+                        <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                                     :class="t.amount > 0 ? 'bg-teal/10 text-teal' : 'bg-primary/10 text-primary'">
+                                    <span x-text="t.amount > 0 ? '+' : '−'" class="text-sm font-bold"></span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-dark" x-text="t.description || t.transaction_type"></p>
+                                    <p class="text-xs text-gray-400" x-text="t.created_at.split('T')[0]"></p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold"
+                                   :class="t.amount > 0 ? 'text-teal' : 'text-primary'"
+                                   x-text="(t.amount > 0 ? '+' : '') + t.amount + ' cr'"></p>
+                                <p class="text-xs text-gray-400" x-text="'Balance: ' + t.balance_after"></p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
+</div>
+
+{% block scripts %}
+<script>
+function billingHistory() {
+    return {
+        loading: true,
+        usage: {},
+        payments: [],
+        transactions: [],
+
+        get planSubtitle() {
+            if (!this.usage.plan || this.usage.plan === 'free') {
+                return `${this.usage.daily_used || 0} / ${this.usage.daily_limit || 3} images used today`;
+            }
+            return `${this.usage.monthly_used || 0} / ${this.usage.monthly_limit || 0} credits used this month`;
+        },
+
+        async init() {
+            try {
+                const [usageRes, historyRes] = await Promise.all([
+                    fetch('/api/v1/billing/usage'),
+                    fetch('/api/v1/billing/history'),
+                ]);
+                if (usageRes.ok) this.usage = await usageRes.json();
+                if (historyRes.ok) {
+                    const h = await historyRes.json();
+                    this.payments = h.payments || [];
+                    this.transactions = h.transactions || [];
+                }
+            } catch (e) {
+                console.error('Billing history fetch failed:', e);
+            } finally {
+                this.loading = false;
+            }
+        },
+    };
+}
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,56 @@
+{# DrapeStudio — Mobile bottom navigation #}
+{%- set p = request.url.path -%}
+<div class="flex items-center justify-around px-2 safe-bottom" style="height:56px">
+
+    {# Home #}
+    <a href="/"
+       class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] transition-colors
+              {% if p == '/' %}text-[#6C3CE1]{% else %}text-gray-500 hover:text-[#6C3CE1]{% endif %}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="{% if p == '/' %}2.5{% else %}2{% endif %}" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        <span class="text-[9px] font-semibold">{{ t("nav.home", request.state.lang) }}</span>
+    </a>
+
+    {# Kids #}
+    <a href="/children"
+       class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] transition-colors
+              {% if p == '/children' or p.startswith('/children/') %}text-[#6C3CE1]{% else %}text-gray-500 hover:text-[#6C3CE1]{% endif %}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="{% if p == '/children' or p.startswith('/children/') %}2.5{% else %}2{% endif %}" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="3"/><path d="M6 20v-1a6 6 0 0112 0v1"/>
+        </svg>
+        <span class="text-[9px] font-semibold">{{ t("nav.kids", request.state.lang) }}</span>
+    </a>
+
+    {# Create — elevated center button #}
+    <a href="/upload" class="flex flex-col items-center -mt-6 min-w-[44px]">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95
+                    {% if p in ['/upload', '/configure', '/review'] %}bg-[#5A2FBF] shadow-lg shadow-[#6C3CE1]/50{% else %}bg-[#6C3CE1] shadow-lg shadow-[#6C3CE1]/40{% endif %}">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+        </div>
+        <span class="text-[9px] font-semibold text-[#6C3CE1] mt-0.5">{{ t("nav.create", request.state.lang) }}</span>
+    </a>
+
+    {# Accessories #}
+    <a href="/accessories"
+       class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] transition-colors
+              {% if p == '/accessories' or p.startswith('/accessories/') %}text-[#6C3CE1]{% else %}text-gray-500 hover:text-[#6C3CE1]{% endif %}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="{% if p == '/accessories' or p.startswith('/accessories/') %}2.5{% else %}2{% endif %}" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span class="text-[9px] font-semibold">{{ t("nav.accessories", request.state.lang) }}</span>
+    </a>
+
+    {# Profile #}
+    <a href="/profile"
+       class="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] transition-colors
+              {% if p == '/profile' %}text-[#6C3CE1]{% else %}text-gray-500 hover:text-[#6C3CE1]{% endif %}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="{% if p == '/profile' %}2.5{% else %}2{% endif %}" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span class="text-[9px] font-semibold">{{ t("common.profile", request.state.lang) }}</span>
+    </a>
+
+</div>

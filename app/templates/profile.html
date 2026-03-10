@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import stat_card %}
+
+{% block title %}Profile — DrapeStudio{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-6 space-y-6"
+     x-data="profilePage()"
+     x-init="init()">
+
+    {# ── User info card ──────────────────────────────────────────────── #}
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-6">
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-[#9B6DFF] flex items-center justify-center text-white text-2xl font-bold shadow-md">
+                {% if user %}
+                    {% if user.get('display_name') %}{{ user.display_name[0].upper() }}
+                    {% elif user.get('phone') %}{{ user.phone[-4:] }}
+                    {% else %}{{ user.get('username','U')[0].upper() }}
+                    {% endif %}
+                {% else %}U{% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <h2 class="text-lg font-bold text-dark truncate">
+                    <span x-text="displayName || '{{ user.get('phone', user.get('username', 'User')) if user else 'User' }}'"></span>
+                </h2>
+                <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full
+                             {% if user and user.get('role') == 'admin' %}bg-primary/10 text-primary{% else %}bg-gray-100 text-gray-500{% endif %}">
+                    {% if user and user.get('role') == 'admin' %}
+                    ⚡ Administrator
+                    {% else %}
+                    👤 Standard User
+                    {% endif %}
+                </span>
+            </div>
+            {# Edit toggle #}
+            <button @click="editing = !editing"
+                    class="flex-shrink-0 p-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors">
+                <template x-if="!editing">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+                    </svg>
+                </template>
+                <template x-if="editing">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </template>
+            </button>
+        </div>
+
+        {# ── Profile fields / edit form ─────────────────────────────── #}
+        <template x-if="!editing">
+            <dl class="space-y-3">
+                <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                    <dt class="text-sm text-gray-500">Mobile Number</dt>
+                    <dd class="text-sm font-medium text-dark" x-text="phone || '{{ user.get('phone', '—') if user else '—' }}'"></dd>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                    <dt class="text-sm text-gray-500">Display Name</dt>
+                    <dd class="text-sm font-medium text-dark" x-text="displayName || '—'"></dd>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                    <dt class="text-sm text-gray-500">Account Type</dt>
+                    <dd class="text-sm font-medium text-dark">
+                        {% if user and user.get('role') == 'admin' %}Admin{% else %}Standard{% endif %}
+                    </dd>
+                </div>
+                <div class="flex items-center justify-between py-2">
+                    <dt class="text-sm text-gray-500">Member Since</dt>
+                    <dd class="text-sm font-medium text-dark" x-text="memberSince || '2026'"></dd>
+                </div>
+            </dl>
+        </template>
+
+        <template x-if="editing">
+            <form @submit.prevent="saveProfile" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Display Name</label>
+                    <input type="text" x-model="displayNameEdit" maxlength="100" placeholder="Your name"
+                           class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
+                </div>
+                <template x-if="saveError">
+                    <p class="text-xs text-red-600" x-text="saveError"></p>
+                </template>
+                <div class="flex gap-2 pt-1">
+                    <button type="submit" :disabled="saving"
+                            class="flex-1 bg-primary hover:bg-primary-dark disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
+                        <span x-text="saving ? 'Saving…' : 'Save Changes'"></span>
+                    </button>
+                    <button type="button" @click="editing = false"
+                            class="px-4 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </template>
+    </div>
+
+    {# ── Credits & Usage ─────────────────────────────────────────────── #}
+    <div>
+        <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Credits &amp; Usage</h3>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-4 text-center">
+                <p class="text-2xl font-black text-primary" x-text="creditsRemaining !== null ? creditsRemaining : '—'"></p>
+                <p class="text-xs text-gray-400 mt-0.5">Credits Remaining</p>
+                <p class="text-[10px] text-gray-300 mt-1">💎</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-4 text-center">
+                <p class="text-2xl font-black text-dark" x-text="totalGenerations !== null ? totalGenerations : '—'"></p>
+                <p class="text-xs text-gray-400 mt-0.5">Total Generations</p>
+                <p class="text-[10px] text-gray-300 mt-1">🎨</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Plan ────────────────────────────────────────────────────────── #}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-dark">Current Plan</h3>
+            <span class="text-xs font-medium bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Free</span>
+        </div>
+        <p class="text-sm text-gray-500 mb-4 leading-relaxed">
+            Upgrade to a paid plan to unlock more credits and access all modules including Children's, Accessories and Virtual Fit-On.
+        </p>
+        <a href="/#pricing"
+           class="flex items-center justify-center gap-2 w-full bg-primary hover:bg-primary-dark text-white font-semibold text-sm py-3 rounded-xl transition-colors">
+            View Plans
+        </a>
+    </div>
+
+    {# ── Preferences ─────────────────────────────────────────────────── #}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+        <h3 class="font-semibold text-dark mb-4">Preferences</h3>
+        <div class="space-y-4">
+            {# Language #}
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-dark">Language</p>
+                    <p class="text-xs text-gray-400">Interface language</p>
+                </div>
+                <div class="flex gap-1">
+                    {% for code, name in SUPPORTED_LANGUAGES.items() %}
+                    <a href="/api/v1/set-language/{{ code }}"
+                       class="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors
+                              {% if code == request.state.lang %}bg-primary text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+                        {{ name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if user and user.get('auth_type') == 'jwt' %}
+            {# Notification toggles — JWT users only #}
+            <div class="border-t border-gray-100 pt-4 space-y-3" x-data="notificationPrefs()">
+
+                {# Push notifications #}
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-dark">Push Notifications</p>
+                        <p class="text-xs text-gray-400">Browser alerts when images are ready</p>
+                    </div>
+                    <button
+                        @click="togglePush()"
+                        :class="pushEnabled ? 'bg-primary' : 'bg-gray-200'"
+                        class="relative w-10 h-6 rounded-full transition-colors focus:outline-none">
+                        <span :class="pushEnabled ? 'translate-x-4' : 'translate-x-0.5'"
+                              class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"></span>
+                    </button>
+                </div>
+
+                {# SMS notifications #}
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-dark">SMS Notifications</p>
+                        <p class="text-xs text-gray-400">Text message when generation completes</p>
+                    </div>
+                    <button
+                        @click="toggleSms()"
+                        :class="smsEnabled ? 'bg-primary' : 'bg-gray-200'"
+                        class="relative w-10 h-6 rounded-full transition-colors focus:outline-none">
+                        <span :class="smsEnabled ? 'translate-x-4' : 'translate-x-0.5'"
+                              class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform"></span>
+                    </button>
+                </div>
+
+                <p x-show="prefError" x-text="prefError" class="text-xs text-red-500"></p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Actions ─────────────────────────────────────────────────────── #}
+    <div class="space-y-2">
+        {% if user and user.get('role') == "admin" %}
+        <a href="/admin/usage"
+           class="flex items-center gap-3 w-full px-5 py-3.5 bg-white border border-gray-100 rounded-2xl text-sm font-medium text-dark hover:bg-gray-50 transition-colors shadow-card">
+            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            Usage Report
+            <svg class="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+        {% endif %}
+        <a href="/logout"
+           class="flex items-center gap-3 w-full px-5 py-3.5 bg-white border border-red-100 rounded-2xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors shadow-card">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+            Sign Out
+        </a>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function profilePage() {
+    return {
+        phone: '',
+        displayName: '',
+        displayNameEdit: '',
+        creditsRemaining: null,
+        totalGenerations: null,
+        memberSince: '',
+        editing: false,
+        saving: false,
+        saveError: '',
+
+        async init() {
+            try {
+                const resp = await fetch('/api/v1/auth/me');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    this.phone          = data.phone || '';
+                    this.displayName    = data.display_name || '';
+                    this.displayNameEdit = data.display_name || '';
+                    this.creditsRemaining = data.credits_remaining ?? null;
+                    this.totalGenerations = data.total_generations ?? null;
+                    if (data.created_at) {
+                        this.memberSince = new Date(data.created_at).toLocaleDateString('en-LK', {
+                            year: 'numeric', month: 'long'
+                        });
+                    }
+                }
+            } catch (e) {
+                // Not a JWT user — legacy session, keep defaults
+            }
+        },
+
+        async saveProfile() {
+            this.saveError = '';
+            this.saving = true;
+            try {
+                const resp = await fetch('/api/v1/auth/me', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ display_name: this.displayNameEdit }),
+                });
+                if (!resp.ok) {
+                    const d = await resp.json();
+                    this.saveError = d.detail || 'Failed to save changes.';
+                    return;
+                }
+                this.displayName = this.displayNameEdit;
+                this.editing = false;
+            } catch (e) {
+                this.saveError = 'Network error. Please try again.';
+            } finally {
+                this.saving = false;
+            }
+        },
+    };
+}
+
+function notificationPrefs() {
+    return {
+        pushEnabled: false,
+        smsEnabled:  false,
+        prefError:   '',
+
+        async init() {
+            try {
+                const resp = await fetch('/api/v1/notifications/preferences');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    this.pushEnabled = data.push_notifications_enabled;
+                    this.smsEnabled  = data.sms_notifications_enabled;
+                }
+            } catch (_) {}
+        },
+
+        async togglePush() {
+            this.prefError = '';
+            if (!this.pushEnabled) {
+                // Request browser permission + subscribe
+                await this._subscribePush();
+            } else {
+                await this._savePrefs({ push_notifications_enabled: false });
+                this.pushEnabled = false;
+            }
+        },
+
+        async toggleSms() {
+            this.prefError = '';
+            const newVal = !this.smsEnabled;
+            if (await this._savePrefs({ sms_notifications_enabled: newVal })) {
+                this.smsEnabled = newVal;
+            }
+        },
+
+        async _subscribePush() {
+            if (!('serviceWorker' in navigator && 'PushManager' in window)) {
+                this.prefError = 'Push notifications are not supported in this browser.';
+                return;
+            }
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') {
+                this.prefError = 'Push notification permission was denied.';
+                return;
+            }
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const vapidKey = document.querySelector('meta[name="vapid-public-key"]')?.content;
+                if (!vapidKey) {
+                    this.prefError = 'Push notifications not configured on this server.';
+                    return;
+                }
+                const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: _urlBase64ToUint8Array(vapidKey),
+                });
+                const subJson = sub.toJSON();
+                const resp = await fetch('/api/v1/notifications/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
+                });
+                if (resp.ok) {
+                    this.pushEnabled = true;
+                } else {
+                    this.prefError = 'Failed to save push subscription.';
+                }
+            } catch (e) {
+                this.prefError = 'Could not subscribe to push notifications.';
+            }
+        },
+
+        async _savePrefs(body) {
+            try {
+                const resp = await fetch('/api/v1/notifications/preferences', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                return resp.ok;
+            } catch (_) {
+                this.prefError = 'Network error saving preferences.';
+                return false;
+            }
+        },
+    };
+}
+
+function _urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = window.atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+</script>
+{% endblock %}
