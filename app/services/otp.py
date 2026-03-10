@@ -122,6 +122,7 @@ class OTPService:
         if not settings.NOTIFY_LK_API_KEY:
             # Development / test mode — log instead of sending
             logger.info("[DEV OTP] phone=%s otp=%s", phone, otp)
+            print(f"\n{'='*50}\n[DEV OTP] phone={phone} otp={otp}\n{'='*50}\n", flush=True)
             return True
 
         url = "https://app.notify.lk/api/v1/send"

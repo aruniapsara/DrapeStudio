@@ -76,7 +76,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
 
-    {# ── Tailwind CDN ─────────────────────────────────────────────────── #}
+    {# ── Tailwind CDN — must load BEFORE config is set ──────────────── #}
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             corePlugins: { preflight: false },
@@ -106,7 +107,6 @@
             }
         };
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
 
     {# ── Alpine.js ─────────────────────────────────────────────────────── #}
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
