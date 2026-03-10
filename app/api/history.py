@@ -1,5 +1,7 @@
 """History endpoints — GET /v1/history, DELETE /v1/history/{gen_id}."""
 
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -7,11 +9,40 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user, get_or_create_session_id
+from app.middleware.auth import get_request_user
 from app.models.db import GenerationOutput, GenerationRequest, UsageCost
 from app.schemas.generation import HistoryItem, HistoryListResponse, HistoryOutputImage
 from app.services.storage import storage
 
 router = APIRouter(tags=["history"])
+
+# Minimum history retention: users can always see at least 7 days of history.
+HISTORY_RETENTION_DAYS = 7
+
+
+def _apply_ownership_filter(query, request: Request, response: Response):
+    """Apply user-based ownership filter to a GenerationRequest query.
+
+    Priority:
+      1. Admin users → no filter (see everything)
+      2. JWT-authenticated users → filter by user_id
+      3. Legacy/unauthenticated → filter by session_id (browser cookie)
+
+    Returns (filtered_query, is_admin).
+    """
+    user = get_request_user(request)
+    is_admin = user and user.get("role") == "admin"
+
+    if is_admin:
+        return query, True
+
+    # Authenticated user → filter by user_id
+    if user and user.get("auth_type") == "jwt" and user.get("user_id"):
+        return query.filter(GenerationRequest.user_id == user["user_id"]), False
+
+    # Legacy fallback → filter by session_id
+    session_id = get_or_create_session_id(request, response)
+    return query.filter(GenerationRequest.session_id == session_id), False
 
 
 # ---------------------------------------------------------------------------
@@ -25,11 +56,11 @@ def get_history(
     per_page: int = 12,
     db: Session = Depends(get_db),
 ):
-    """Return paginated generation history (admin sees all, others see own)."""
-    session_id = get_or_create_session_id(request, response)
-    user = get_current_user(request)
-    is_admin = user and user["role"] == "admin"
+    """Return paginated generation history filtered by user ownership.
 
+    Authenticated users see all their generations (across devices/sessions).
+    Admin users see all generations from all users.
+    """
     per_page = max(1, min(per_page, 50))
     page = max(page, 1)
     offset = (page - 1) * per_page
@@ -37,9 +68,8 @@ def get_history(
     count_query = db.query(func.count(GenerationRequest.id))
     list_query = db.query(GenerationRequest)
 
-    if not is_admin:
-        count_query = count_query.filter(GenerationRequest.session_id == session_id)
-        list_query = list_query.filter(GenerationRequest.session_id == session_id)
+    count_query, _ = _apply_ownership_filter(count_query, request, response)
+    list_query, _ = _apply_ownership_filter(list_query, request, response)
 
     total: int = count_query.scalar() or 0
 
@@ -119,13 +149,8 @@ def delete_history_item(
     db: Session = Depends(get_db),
 ):
     """Delete a generation and all its associated files (ownership enforced)."""
-    session_id = get_or_create_session_id(request, response)
-    user = get_current_user(request)
-    is_admin = user and user["role"] == "admin"
-
     query = db.query(GenerationRequest).filter(GenerationRequest.id == gen_id)
-    if not is_admin:
-        query = query.filter(GenerationRequest.session_id == session_id)  # ownership check
+    query, is_admin = _apply_ownership_filter(query, request, response)
 
     gen = query.first()
 

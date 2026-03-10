@@ -182,6 +182,7 @@ def create_generation(
     gen_request = GenerationRequest(
         id=gen_id,
         session_id=session_id,
+        user_id=generation_user_id,          # tie to authenticated user
         status="queued",
         module=body.module,
         garment_image_urls=body.garment_images,
