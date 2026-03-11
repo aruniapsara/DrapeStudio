@@ -170,7 +170,7 @@ def _call_gemini(
             contents=contents,
             config=types.GenerateContentConfig(
                 response_modalities=["TEXT", "IMAGE"],
-                image_generation_config=types.ImageGenerationConfig(
+                image_config=types.ImageConfig(
                     aspect_ratio=aspect_ratio,
                 ),
             ),
