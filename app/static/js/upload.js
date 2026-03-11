@@ -1,6 +1,7 @@
 /**
  * DrapeStudio — Upload page helper (vanilla JS)
- * Handles garment + model photo selection, validation, compression, preview, and upload.
+ * Handles garment + model photo selection, validation, compression, preview,
+ * upload, and "Load from Previous Uploads" history reuse.
  */
 
 const MAX_FILES       = 5;
@@ -10,7 +11,10 @@ const MAX_SIZE_MB     = 5;
 const COMPRESS_QUALITY = 0.82;
 const COMPRESS_MAX_PX  = 2048;
 
-let selectedFiles      = [];   // garment photos: [{file, dataUrl, width, height}]
+// Each entry in selectedFiles is either:
+//   { file: File, dataUrl: string, width: number, height: number, fromHistory: false }   — new upload
+//   { file: null, dataUrl: string, storageUrl: string, fromHistory: true, name: string } — from history
+let selectedFiles      = [];
 let selectedModelPhoto = null; // single optional model reference photo
 
 // ── Image compression ────────────────────────────────────────────────────────
@@ -30,7 +34,7 @@ async function compressImage(file) {
                 var w = img.width;
                 var h = img.height;
 
-                // Scale down so the longest side ≤ COMPRESS_MAX_PX
+                // Scale down so the longest side <= COMPRESS_MAX_PX
                 if (w > COMPRESS_MAX_PX || h > COMPRESS_MAX_PX) {
                     if (w >= h) {
                         h = Math.round((h / w) * COMPRESS_MAX_PX);
@@ -116,7 +120,14 @@ function validateAndAdd(file) {
                     'warning'
                 );
             }
-            selectedFiles.push({ file: file, dataUrl: e.target.result, width: img.width, height: img.height });
+            selectedFiles.push({
+                file: file,
+                dataUrl: e.target.result,
+                width: img.width,
+                height: img.height,
+                fromHistory: false,
+                name: file.name,
+            });
             renderPreviews();
             updateNextButton();
         };
@@ -138,8 +149,13 @@ function renderPreviews() {
     if (!grid) return;
 
     grid.innerHTML = selectedFiles.map(function(f, i) {
+        var displayName = f.fromHistory ? (f.name || 'History image') : (f.file ? f.file.name : 'Image');
+        var badge = f.fromHistory
+            ? '<span class="absolute top-1 left-1 bg-primary/80 text-white text-[8px] px-1.5 py-0.5 rounded-full font-medium">History</span>'
+            : '';
         return '<div class="relative aspect-square rounded-xl overflow-hidden bg-gray-100">' +
-            '<img src="' + f.dataUrl + '" alt="' + f.file.name + '" class="w-full h-full object-cover">' +
+            '<img src="' + f.dataUrl + '" alt="' + displayName + '" class="w-full h-full object-cover">' +
+            badge +
             '<button onclick="removeFile(' + i + ')" ' +
                     'class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs ' +
                            'flex items-center justify-center hover:bg-black/80 transition-colors" ' +
@@ -147,7 +163,7 @@ function renderPreviews() {
                 '&times;' +
             '</button>' +
             '<p class="absolute bottom-0 inset-x-0 bg-black/40 text-white text-[9px] px-1 py-0.5 truncate">' +
-                f.file.name +
+                displayName +
             '</p>' +
         '</div>';
     }).join('');
@@ -161,6 +177,79 @@ function renderPreviews() {
             label.classList.add('hidden');
         }
     }
+}
+
+// ── History: Load from Previous Uploads ──────────────────────────────────────
+async function loadHistoryImages() {
+    var loadingEl = document.getElementById('history-loading');
+    var emptyEl   = document.getElementById('history-empty');
+    var gridEl    = document.getElementById('history-grid');
+
+    try {
+        var resp = await fetch('/v1/uploads/history?image_type=garment&per_page=20');
+        if (!resp.ok) throw new Error('Failed to load history');
+        var data = await resp.json();
+
+        if (loadingEl) loadingEl.classList.add('hidden');
+
+        if (!data.items || data.items.length === 0) {
+            if (emptyEl) emptyEl.classList.remove('hidden');
+            return;
+        }
+
+        if (gridEl) {
+            gridEl.innerHTML = data.items.map(function(img) {
+                var label = img.original_filename || 'Image';
+                // Encode the item as a data attribute for the click handler
+                return '<div class="relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer ' +
+                           'ring-2 ring-transparent hover:ring-primary/40 transition-all" ' +
+                       'onclick=\'addFromHistory(' + JSON.stringify({
+                           image_url: img.image_url,
+                           storage_url: img.storage_url,
+                           name: img.original_filename || 'History image'
+                       }).replace(/'/g, '&#39;') + ')\'>' +
+                    '<img src="' + img.image_url + '" alt="' + label + '" class="w-full h-full object-cover">' +
+                    '<p class="absolute bottom-0 inset-x-0 bg-black/40 text-white text-[8px] px-1 py-0.5 truncate">' +
+                        label +
+                    '</p>' +
+                '</div>';
+            }).join('');
+        }
+
+    } catch (err) {
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (emptyEl) {
+            emptyEl.classList.remove('hidden');
+            emptyEl.innerHTML = '<p class="text-xs text-gray-400">Could not load previous uploads.</p>';
+        }
+    }
+}
+
+function addFromHistory(img) {
+    if (selectedFiles.length >= MAX_FILES) {
+        showToast('Maximum ' + MAX_FILES + ' photos allowed.', 'error');
+        return;
+    }
+
+    // Check if this storage URL is already selected
+    for (var i = 0; i < selectedFiles.length; i++) {
+        if (selectedFiles[i].storageUrl === img.storage_url) {
+            showToast('This image is already selected.', 'warning');
+            return;
+        }
+    }
+
+    selectedFiles.push({
+        file: null,
+        dataUrl: img.image_url,
+        storageUrl: img.storage_url,
+        fromHistory: true,
+        name: img.name || 'History image',
+    });
+
+    renderPreviews();
+    updateNextButton();
+    showToast('Added "' + (img.name || 'image') + '" from history.', 'default');
 }
 
 // ── Model photo handling ──────────────────────────────────────────────────────
@@ -271,31 +360,42 @@ async function proceedToConfigure() {
         '</svg>Uploading...';
 
     try {
-        // 1. Sign garment photo uploads
-        var signResp = await fetch('/v1/uploads/sign', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                files: selectedFiles.map(function(f) {
-                    return { kind: 'image', filename: f.file.name, content_type: f.file.type };
-                }),
-            }),
-        });
-        if (!signResp.ok) {
-            var err = await signResp.json();
-            throw new Error(err.detail || 'Failed to get upload URLs');
-        }
-        var signData = await signResp.json();
+        // Split selected files into new uploads and history reuses
+        var newFiles = selectedFiles.filter(function(f) { return !f.fromHistory; });
+        var historyFiles = selectedFiles.filter(function(f) { return f.fromHistory; });
 
-        // 2. Upload garment photos
         var fileUrls = [];
-        for (var i = 0; i < signData.uploads.length; i++) {
-            var upload = signData.uploads[i];
-            var formData = new FormData();
-            formData.append('file', selectedFiles[i].file);
-            var uploadResp = await fetch(upload.upload_url, { method: 'POST', body: formData });
-            if (!uploadResp.ok) throw new Error('Upload failed for ' + selectedFiles[i].file.name);
-            fileUrls.push(upload.file_url);
+
+        // 1. History files: already uploaded — use their storage URLs directly
+        for (var h = 0; h < historyFiles.length; h++) {
+            fileUrls.push(historyFiles[h].storageUrl);
+        }
+
+        // 2. New files: sign + upload
+        if (newFiles.length > 0) {
+            var signResp = await fetch('/v1/uploads/sign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files: newFiles.map(function(f) {
+                        return { kind: 'image', filename: f.file.name, content_type: f.file.type };
+                    }),
+                }),
+            });
+            if (!signResp.ok) {
+                var err = await signResp.json();
+                throw new Error(err.detail || 'Failed to get upload URLs');
+            }
+            var signData = await signResp.json();
+
+            for (var i = 0; i < signData.uploads.length; i++) {
+                var upload = signData.uploads[i];
+                var formData = new FormData();
+                formData.append('file', newFiles[i].file);
+                var uploadResp = await fetch(upload.upload_url, { method: 'POST', body: formData });
+                if (!uploadResp.ok) throw new Error('Upload failed for ' + newFiles[i].file.name);
+                fileUrls.push(upload.file_url);
+            }
         }
 
         // 3. Upload model reference photo (optional)
