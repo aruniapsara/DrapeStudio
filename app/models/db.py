@@ -289,6 +289,21 @@ class CreditTransaction(Base):
     user = relationship("User", back_populates="credit_transactions")
 
 
+class SourceImage(Base):
+    """Tracked source image (garment, accessory, or model photo) uploaded by a user."""
+
+    __tablename__ = "source_image"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    user_id = Column(String(26), ForeignKey("user.id"), nullable=True, index=True)
+    session_id = Column(String, nullable=False, index=True)
+    image_url = Column(String(500), nullable=False, unique=True)
+    image_type = Column(String(20), nullable=False)  # garment | model_photo | accessory
+    original_filename = Column(String(255), nullable=True)
+    file_size_bytes = Column(Integer, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 class PushSubscription(Base):
     """Web Push API subscription stored per user device."""
 

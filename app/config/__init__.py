@@ -76,6 +76,12 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""           # Server-side DSN
     SENTRY_DSN_JS: str = ""        # Client-side DSN (can be same as server DSN)
 
+    # Image retention and cleanup
+    OUTPUT_RETENTION_DAYS: int = 7       # Auto-delete generated outputs after N days
+    SOURCE_RETENTION_DAYS: int = 30      # Auto-delete uploaded source images after N days
+    MAX_OUTPUTS_PER_USER: int = 20       # Keep only the newest N generations per user
+    CLEANUP_INTERVAL_SECONDS: int = 3600 # Run cleanup every N seconds (1 hour)
+
     # App versioning (used in Sentry release tag and cache-busting)
     APP_VERSION: str = "2.0.0"
 
