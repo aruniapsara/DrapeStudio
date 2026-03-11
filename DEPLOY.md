@@ -1,7 +1,31 @@
 # Deploy DrapeStudio to Hostinger VPS
 
 **Target URL:** https://drapestudio.demostudio.cc
-**Repository:** https://github.com/aruniapsara/DrapeStudio
+**Repository:** https://github.com/aruniapsara/DrapeStudio (branch: `main`)
+
+---
+
+## Architecture
+
+```
+Internet
+   |
+   v
+Nginx (port 443/SSL)  -->  drapestudio.demostudio.cc
+   |
+   v
+Docker: api (port 8000)  -- FastAPI + Jinja2 + HTMX
+   |            |
+   v            v
+Docker: redis   Docker: worker (RQ background jobs)
+                           |
+                           v
+                  Google Gemini API  (image generation)
+
+Persistent volumes:
+  ./data/db/           -- SQLite database
+  ./data/storage/      -- uploaded garment images + generated outputs
+```
 
 ---
 
@@ -10,8 +34,8 @@
 The VPS must have:
 - Ubuntu 22.04+ (or any Debian-based Linux)
 - Docker Engine 24+ and Docker Compose v2
-- Nginx (for reverse proxy + SSL)
-- Certbot (for Let's Encrypt SSL)
+- Nginx (reverse proxy + SSL)
+- Certbot (Let's Encrypt SSL)
 - Git
 
 ### Install prerequisites (if not already installed)
@@ -32,7 +56,7 @@ Log out and back in after adding yourself to the docker group.
 
 ---
 
-## Step 1: Clone the Repository
+## Step 1 -- Clone the Repository
 
 ```bash
 cd /opt
@@ -43,59 +67,93 @@ cd /opt/DrapeStudio
 
 ---
 
-## Step 2: Create the `.env` File
+## Step 2 -- Create the `.env` File
 
 ```bash
+cd /opt/DrapeStudio
 cp .env.example .env
 nano .env
 ```
 
-Set these values in `.env`:
+Set these **required** values:
 
 ```bash
-APP_ENV=production
-SECRET_KEY=<generate-a-random-string-here>
+# -- REQUIRED -------------------------------------------------------
 
-# Database (SQLite is fine for single-server)
+APP_ENV=production
+SECRET_KEY=<run: python3 -c "import secrets; print(secrets.token_urlsafe(32))">
+
+# Database (SQLite is fine for single-server deployment)
 DATABASE_URL=sqlite:///./drapestudio.db
 
-# Redis (Docker internal)
+# Redis (Docker internal -- overridden by docker-compose)
 REDIS_URL=redis://localhost:6379
 
-# OpenRouter API key (REQUIRED for image generation)
-OPENROUTER_API_KEY=<your-openrouter-api-key>
-OPENROUTER_MODEL=google/gemini-3.1-flash-image-preview
+# Google Gemini -- REQUIRED for image generation
+GOOGLE_API_KEY=<your-google-api-key>
+GEMINI_MODEL=gemini-2.0-flash-exp-image-generation
+GEMINI_IMAGE_MODEL=gemini-3.1-flash-image-preview
 
 # Storage
 STORAGE_BACKEND=local
 STORAGE_ROOT=./storage
 
+# JWT authentication
+JWT_SECRET=<run: python3 -c "import secrets; print(secrets.token_hex(32))">
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+REFRESH_TOKEN_EXPIRE_DAYS=30
+
+# Google OAuth -- REQUIRED for "Sign in with Google"
+GOOGLE_CLIENT_ID=<from Google Cloud Console>
+GOOGLE_CLIENT_SECRET=<from Google Cloud Console>
+GOOGLE_REDIRECT_URI=https://drapestudio.demostudio.cc/auth/callback
+
+# Public URL (used for OAuth callbacks, PayHere, etc.)
+BASE_URL=https://drapestudio.demostudio.cc
+
 # Cost controls
 DAILY_COST_LIMIT_USD=10.00
+
+# -- OPTIONAL (leave empty to disable) -----------------------------
+
+# PayHere payment gateway (Sri Lanka)
+PAYHERE_MERCHANT_ID=
+PAYHERE_MERCHANT_SECRET=
+PAYHERE_SANDBOX=false
+
+# Web Push notifications (VAPID keys)
+VAPID_PRIVATE_KEY=
+VAPID_PUBLIC_KEY=
+VAPID_EMAIL=admin@drapestudio.lk
+
+# Google Analytics 4
+GA4_MEASUREMENT_ID=
+
+# Sentry error tracking
+SENTRY_DSN=
+SENTRY_DSN_JS=
+
+# App version
+APP_VERSION=2.0.0
 ```
 
-> **Important:** You MUST set a real `OPENROUTER_API_KEY` for image generation to work. Get one from https://openrouter.ai/keys
-
-To generate a random SECRET_KEY:
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-```
+> **Critical:** `GOOGLE_API_KEY` must be a valid key from https://aistudio.google.com/apikey.
+> `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` come from Google Cloud Console -> Credentials -> OAuth 2.0 Client.
+> `GOOGLE_REDIRECT_URI` **must** match the authorized redirect URI in Google Cloud Console -- use the production URL.
 
 ---
 
-## Step 3: Create the Production Docker Compose Override
-
-Create `docker-compose.prod.yml`:
+## Step 3 -- Create the Production Docker Compose Override
 
 ```bash
-cat > docker-compose.prod.yml << 'EOF'
-version: "3.9"
+cd /opt/DrapeStudio
+cat > docker-compose.prod.yml << 'DEOF'
 services:
 
   redis:
     image: redis:7-alpine
     restart: always
-    ports: []
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -140,20 +198,20 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-EOF
+DEOF
 ```
 
-Key differences from dev:
-- No source code volume mount (uses built image)
+Key differences from dev `docker-compose.yml`:
+- No source code volume mount (uses code baked into Docker image)
 - No `--reload` flag (production mode)
-- `--workers 2` for better concurrency
-- Binds to `127.0.0.1:8000` (only accessible via Nginx, not directly)
+- `--workers 2` for concurrency
+- API bound to `127.0.0.1:8000` (only accessible via Nginx)
 - `restart: always` for auto-recovery
 - Redis port not exposed externally
 
 ---
 
-## Step 4: Create Data Directories
+## Step 4 -- Create Data Directories
 
 ```bash
 cd /opt/DrapeStudio
@@ -162,7 +220,7 @@ mkdir -p data/storage/uploads data/storage/outputs data/db
 
 ---
 
-## Step 5: Build and Start the Containers
+## Step 5 -- Build and Start
 
 ```bash
 cd /opt/DrapeStudio
@@ -175,37 +233,32 @@ Verify all 3 containers are running:
 docker compose -f docker-compose.prod.yml ps
 ```
 
-You should see `api`, `worker`, and `redis` all in `running` state.
+You should see `api`, `worker`, and `redis` all in **Running** state.
 
-Test the API is responding:
+Test the API locally:
 ```bash
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/login
-# Should return: 200
+# Expected: 200
 ```
 
 ---
 
-## Step 6: Configure Nginx Reverse Proxy
+## Step 6 -- Configure Nginx + SSL
 
 ### 6a. Point DNS
 
-In your Hostinger DNS settings (or wherever `demostudio.cc` DNS is managed), create an **A record**:
+In your DNS settings for `demostudio.cc`, create an A record:
 
-| Type | Name | Value |
-|------|------|-------|
-| A | drapestudio | `<VPS-IP-ADDRESS>` |
+| Type | Name          | Value              |
+|------|---------------|--------------------|
+| A    | drapestudio   | `<VPS-IP-ADDRESS>` |
 
-Wait for DNS propagation (can take up to a few minutes).
+Wait for DNS propagation (usually 1-5 minutes).
 
 ### 6b. Create Nginx config
 
 ```bash
-sudo nano /etc/nginx/sites-available/drapestudio
-```
-
-Paste this:
-
-```nginx
+sudo tee /etc/nginx/sites-available/drapestudio > /dev/null << 'NEOF'
 server {
     listen 80;
     server_name drapestudio.demostudio.cc;
@@ -219,24 +272,24 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # WebSocket support (for HTMX SSE if needed)
+        # WebSocket support (HTMX SSE)
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        # Timeouts for image generation (can take 30-60s)
+        # Image generation can take 30-60s per variation
         proxy_read_timeout 120s;
         proxy_send_timeout 120s;
     }
 }
+NEOF
 ```
 
 Enable the site:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/drapestudio /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
+sudo ln -sf /etc/nginx/sites-available/drapestudio /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ### 6c. Install SSL Certificate
@@ -245,21 +298,17 @@ sudo systemctl reload nginx
 sudo certbot --nginx -d drapestudio.demostudio.cc
 ```
 
-Follow the prompts. Certbot will:
-- Obtain a Let's Encrypt certificate
-- Auto-configure Nginx for HTTPS
-- Set up auto-renewal
+Certbot will obtain a Let's Encrypt certificate, configure HTTPS in Nginx, and set up auto-renewal.
 
 ---
 
-## Step 7: Verify Deployment
+## Step 7 -- Verify Deployment
 
-1. Open https://drapestudio.demostudio.cc in a browser
-2. You should see the login page with the DrapeStudio logo
-3. Login with credentials:
-   - **Admin:** username `aruni`, password `Fashion#2026`
-   - **Tester:** username `tester`, password `Fa#shion$2026`
-4. Test the full flow: Upload garment images, configure model, generate
+1. Open **https://drapestudio.demostudio.cc** in a browser
+2. You should see the login page
+3. Sign in with Google (or test credentials if seeded)
+4. Upload a garment image -> Configure model -> Generate
+5. Verify 3 images are generated successfully
 
 ---
 
@@ -268,14 +317,9 @@ Follow the prompts. Certbot will:
 ### View logs
 ```bash
 cd /opt/DrapeStudio
-docker compose -f docker-compose.prod.yml logs -f api
-docker compose -f docker-compose.prod.yml logs -f worker
-```
-
-### Restart services
-```bash
-cd /opt/DrapeStudio
-docker compose -f docker-compose.prod.yml restart
+docker compose -f docker-compose.prod.yml logs -f api      # API logs
+docker compose -f docker-compose.prod.yml logs -f worker   # Worker/generation logs
+docker compose -f docker-compose.prod.yml logs -f redis    # Redis logs
 ```
 
 ### Pull updates and redeploy
@@ -286,6 +330,12 @@ docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
 ```
 
+### Restart services
+```bash
+cd /opt/DrapeStudio
+docker compose -f docker-compose.prod.yml restart
+```
+
 ### Stop everything
 ```bash
 cd /opt/DrapeStudio
@@ -294,7 +344,14 @@ docker compose -f docker-compose.prod.yml down
 
 ### Backup database
 ```bash
-cp /opt/DrapeStudio/data/db/drapestudio.db /opt/DrapeStudio/data/db/drapestudio.db.backup-$(date +%Y%m%d)
+cp /opt/DrapeStudio/data/db/drapestudio.db \
+   /opt/DrapeStudio/data/db/drapestudio.db.backup-$(date +%Y%m%d)
+```
+
+### Run database migrations manually
+```bash
+cd /opt/DrapeStudio
+docker compose -f docker-compose.prod.yml exec api alembic upgrade head
 ```
 
 ---
@@ -303,34 +360,12 @@ cp /opt/DrapeStudio/data/db/drapestudio.db /opt/DrapeStudio/data/db/drapestudio.
 
 | Issue | Fix |
 |-------|-----|
-| 502 Bad Gateway | Check if containers are running: `docker compose -f docker-compose.prod.yml ps` |
-| Login page doesn't load | Check API logs: `docker compose -f docker-compose.prod.yml logs api` |
-| Image generation fails | Check worker logs and verify `OPENROUTER_API_KEY` is set in `.env` |
-| SSL certificate error | Run `sudo certbot renew --dry-run` to test renewal |
-| Port 8000 already in use | Check: `sudo lsof -i :8000` and stop the conflicting process |
-| Permission denied on data/ | Run: `sudo chown -R $USER:$USER /opt/DrapeStudio/data` |
-
----
-
-## Architecture Summary
-
-```
-Internet
-   |
-   v
-Nginx (port 443/SSL) --> drapestudio.demostudio.cc
-   |
-   v
-Docker: api (port 8000) -- FastAPI + Jinja2 + HTMX
-   |            |
-   v            v
-Docker: redis   Docker: worker (RQ background jobs)
-   |                      |
-   v                      v
-SQLite DB          OpenRouter/Gemini API
-(data/db/)         (image generation)
-   |
-   v
-Local Storage
-(data/storage/)
-```
+| 502 Bad Gateway | `docker compose -f docker-compose.prod.yml ps` -- check containers are running |
+| Login page doesn't load | `docker compose -f docker-compose.prod.yml logs api --tail=50` |
+| Google OAuth fails | Verify `GOOGLE_REDIRECT_URI` in `.env` matches Google Cloud Console exactly |
+| Image generation fails | Check worker logs: `docker compose -f docker-compose.prod.yml logs worker --tail=50` |
+| "GOOGLE_API_KEY is not configured" | Set `GOOGLE_API_KEY` in `.env` and restart |
+| SSL certificate error | `sudo certbot renew --dry-run` |
+| Port 8000 already in use | `sudo lsof -i :8000` and stop the conflicting process |
+| Permission denied on data/ | `sudo chown -R $USER:$USER /opt/DrapeStudio/data` |
+| Database locked errors | Restart: `docker compose -f docker-compose.prod.yml restart api worker` |
