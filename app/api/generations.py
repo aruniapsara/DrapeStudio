@@ -136,18 +136,18 @@ def create_generation(
             generation_user_id, body.module or "adult", db
         )
         if not can_generate:
-            templates_ = _get_templates()
-            usage_summary = BillingService.get_usage_summary(generation_user_id, db)
-            return templates_.TemplateResponse(
-                "usage_limit.html",
-                {
-                    "request": request,
-                    "user": request_user,
-                    "reason": reason,
-                    "usage": usage_summary,
-                },
-                status_code=402,
-            )
+            # Map internal reason codes to user-friendly messages
+            if reason.startswith("daily_limit"):
+                detail = "You've reached your daily generation limit. Please try again tomorrow or upgrade your plan."
+            elif reason.startswith("monthly_limit"):
+                detail = "You've used all your monthly credits. Please upgrade your plan for more."
+            elif reason == "fiton_not_enabled":
+                detail = "Virtual Fit-On is not available on your current plan. Please upgrade to access this feature."
+            elif reason.startswith("fiton_daily_limit"):
+                detail = "You've reached your daily Fit-On limit. Please try again tomorrow."
+            else:
+                detail = "Generation limit reached. Please try again later or upgrade your plan."
+            raise HTTPException(status_code=402, detail=detail)
 
     # ── Idempotency check ─────────────────────────────────────────────────────
     if body.idempotency_key:
