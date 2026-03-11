@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DrapeStudio — User &amp; Tester Guide</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, Helvetica, sans-serif; font-size: 10.5pt; color: #1a1a2e; line-height: 1.55; }
+
+  /* Cover page */
+  .cover { page-break-after: always; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 90vh; text-align: center; }
+  .cover-logo { font-size: 52pt; margin-bottom: 12px; }
+  .cover h1 { font-size: 28pt; color: #6C3AED; margin-bottom: 6px; letter-spacing: -0.5px; }
+  .cover h2 { font-size: 14pt; color: #64748b; font-weight: 400; margin-bottom: 30px; }
+  .cover .meta { font-size: 9.5pt; color: #94a3b8; }
+  .cover .meta span { display: block; margin-top: 3px; }
+  .cover-bar { width: 60px; height: 4px; background: #6C3AED; border-radius: 2px; margin: 24px auto; }
+
+  /* TOC */
+  .toc { page-break-after: always; padding-top: 10px; }
+  .toc h2 { font-size: 16pt; color: #6C3AED; border-bottom: 2px solid #6C3AED; padding-bottom: 6px; margin-bottom: 16px; }
+  .toc ol { counter-reset: toc-counter; list-style: none; padding-left: 0; }
+  .toc ol li { counter-increment: toc-counter; padding: 6px 0; border-bottom: 1px dotted #e2e8f0; font-size: 10.5pt; }
+  .toc ol li::before { content: counter(toc-counter) "."; font-weight: 700; color: #6C3AED; margin-right: 8px; display: inline-block; width: 24px; }
+
+  /* Section headings */
+  h2.section { font-size: 15pt; color: #6C3AED; border-bottom: 2px solid #6C3AED; padding-bottom: 4px; margin: 28px 0 12px 0; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; color: #1e293b; margin: 16px 0 6px 0; page-break-after: avoid; }
+  h4 { font-size: 10.5pt; color: #475569; margin: 10px 0 4px 0; }
+
+  /* Body */
+  p { margin-bottom: 8px; }
+  ul, ol { margin: 6px 0 10px 22px; }
+  li { margin-bottom: 3px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 14px 0; font-size: 9.5pt; }
+  th { background: #6C3AED; color: #fff; padding: 6px 8px; text-align: left; font-weight: 600; font-size: 9pt; }
+  td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* Callouts */
+  .tip { background: #f0fdf4; border-left: 4px solid #22c55e; padding: 8px 12px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 9.5pt; }
+  .tip strong { color: #15803d; }
+  .warn { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 9.5pt; }
+  .warn strong { color: #b45309; }
+  .info { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 8px 12px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 9.5pt; }
+  .info strong { color: #1d4ed8; }
+
+  /* Steps */
+  .step { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; }
+  .step-num { flex-shrink: 0; width: 26px; height: 26px; background: #6C3AED; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11pt; margin-top: 1px; }
+  .step-body { flex: 1; }
+  .step-body strong { color: #1e293b; }
+
+  /* Badge */
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 8pt; font-weight: 600; vertical-align: middle; }
+  .badge-purple { background: #ede9fe; color: #6C3AED; }
+  .badge-green { background: #dcfce7; color: #16a34a; }
+  .badge-amber { background: #fef3c7; color: #d97706; }
+  .badge-red { background: #fee2e2; color: #dc2626; }
+
+  /* Checklist */
+  .checklist { list-style: none; padding-left: 4px; }
+  .checklist li { padding: 3px 0 3px 22px; position: relative; }
+  .checklist li::before { content: "☐"; position: absolute; left: 0; color: #6C3AED; font-size: 12pt; line-height: 1.2; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; justify-content: center; gap: 0; margin: 14px 0; flex-wrap: wrap; }
+  .flow-step { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 6px 12px; text-align: center; font-size: 9pt; font-weight: 600; color: #334155; }
+  .flow-step.active { background: #6C3AED; color: #fff; border-color: #6C3AED; }
+  .flow-arrow { color: #cbd5e1; font-size: 14pt; margin: 0 3px; }
+
+  /* Page break helpers */
+  .page-break { page-break-before: always; }
+
+  /* Footer */
+  .doc-footer { text-align: center; font-size: 8pt; color: #94a3b8; margin-top: 40px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- COVER PAGE                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">👗</div>
+  <h1>DrapeStudio</h1>
+  <h2>User &amp; Tester Guide</h2>
+  <div class="cover-bar"></div>
+  <div class="meta">
+    <span>AI-Powered Garment Model Image Generator</span>
+    <span>Version 2.0 &nbsp;|&nbsp; March 2026</span>
+    <span style="margin-top:10px;">https://drapestudio.demostudio.cc</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li>What is DrapeStudio?</li>
+    <li>Getting Started &amp; Login</li>
+    <li>The Generation Flow (5 Steps)</li>
+    <li>Module: Adult Fashion</li>
+    <li>Module: Children's Fashion</li>
+    <li>Module: Accessories</li>
+    <li>Module: Virtual Fit-On</li>
+    <li>History &amp; Managing Generations</li>
+    <li>Profile &amp; Account</li>
+    <li>Credits, Plans &amp; Billing</li>
+    <li>Configuration Options Reference</li>
+    <li>Tester Checklist</li>
+    <li>Troubleshooting</li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 1. WHAT IS DRAPESTUDIO                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">1. What is DrapeStudio?</h2>
+<p>
+DrapeStudio is an AI-powered garment model image generator designed for clothing sellers. You upload photos of your garment, configure a virtual model and scene, and receive photorealistic catalogue-quality images &mdash; no photoshoot required.
+</p>
+<p>Images are generated using Google's Gemini AI image generation model. Each generation produces <strong>3 images</strong> (adult/children modules) or <strong>2 images</strong> (accessories module), each from a different camera angle.</p>
+
+<h3>Key Features</h3>
+<ul>
+  <li><strong>4 Modules:</strong> Adult Fashion, Children's Fashion, Accessories, Virtual Fit-On</li>
+  <li><strong>Customisable Models:</strong> Gender, age, ethnicity, body type, hair, skin tone</li>
+  <li><strong>Scene Control:</strong> Environment, pose, framing, and lighting</li>
+  <li><strong>Multi-language:</strong> English, Sinhala, Hindi, Tamil</li>
+  <li><strong>History &amp; Reuse:</strong> Past generations and uploaded images are saved</li>
+  <li><strong>Download:</strong> Individual images or download all as a ZIP file</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 2. GETTING STARTED                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">2. Getting Started &amp; Login</h2>
+
+<h3>Accessing the App</h3>
+<p>Open <strong>https://drapestudio.demostudio.cc</strong> in any modern browser (Chrome, Edge, Safari, or Firefox).</p>
+
+<h3>Login Methods</h3>
+<table>
+  <tr><th>Method</th><th>How</th></tr>
+  <tr><td><strong>Google OAuth</strong> (recommended)</td><td>Click "Sign in with Google" and use your Google account</td></tr>
+  <tr><td><strong>Dev Login</strong> (testing only)</td><td>Visit <code>/auth/dev-login</code> to auto-create a test account (local dev only)</td></tr>
+</table>
+
+<h3>First-Time Users</h3>
+<p>After your first login, you will be redirected to the <strong>Profile</strong> page with a welcome banner. You receive <strong>3 free credits</strong> to start. You can set your display name and preferred language.</p>
+
+<div class="tip"><strong>Tip:</strong> The Google OAuth redirect URI must match the configured value exactly. For production this is <code>https://drapestudio.demostudio.cc/auth/callback</code>.</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 3. THE GENERATION FLOW                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">3. The Generation Flow (5 Steps)</h2>
+
+<p>The adult and fit-on modules follow a <strong>5-step process</strong>. Children and accessories use a streamlined <strong>4-step</strong> variant.</p>
+
+<div class="flow">
+  <div class="flow-step">1. Upload</div><span class="flow-arrow">&#x276F;</span>
+  <div class="flow-step">2. Configure</div><span class="flow-arrow">&#x276F;</span>
+  <div class="flow-step">3. Review</div><span class="flow-arrow">&#x276F;</span>
+  <div class="flow-step">4. Generate</div><span class="flow-arrow">&#x276F;</span>
+  <div class="flow-step">5. Results</div>
+</div>
+
+<p>Each step has a visual progress indicator at the top of the page. You can navigate back to previous steps using the "Back" button. All selections are preserved when going back and forward.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 4. ADULT FASHION MODULE                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">4. Module: Adult Fashion</h2>
+
+<h3>Step 1 &mdash; Upload Garment Photos</h3>
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-body">
+    <strong>Select a garment type</strong> from the category cards: Casual, Formal, Saree, Shalwar Kameez, Batik, or Sarong.
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-body">
+    <strong>Choose the model gender:</strong> Feminine, Masculine, or Unisex.
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-body">
+    <strong>Upload 1&ndash;5 garment photos</strong> by dragging and dropping, clicking the upload area, or using the camera (mobile). Accepted formats: JPG, PNG, WEBP. Minimum 400&times;400 px.
+  </div>
+</div>
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-body">
+    <strong>(Optional) Load from Previous Uploads</strong> &mdash; expand the history section to reuse previously uploaded garment images without re-uploading.
+  </div>
+</div>
+
+<div class="info"><strong>Info:</strong> Images larger than 5 MB are automatically compressed. You can remove individual photos by clicking the &times; button on each thumbnail.</div>
+
+<h3>Step 2 &mdash; Configure Model &amp; Scene</h3>
+<p>This page has three collapsible panels:</p>
+
+<h4>Panel 1: Model Appearance <span class="badge badge-purple">Required</span></h4>
+<table>
+  <tr><th>Setting</th><th>Options</th></tr>
+  <tr><td>Gender</td><td>Set in upload step (displayed read-only)</td></tr>
+  <tr><td>Age Range</td><td>18&ndash;24, 25&ndash;34, 35&ndash;44, 45&ndash;54, 55+</td></tr>
+  <tr><td>Ethnicity</td><td>Sri Lankan, South Indian, Mid Eastern, African, European</td></tr>
+  <tr><td>Skin Tone</td><td>Very Light, Light, Medium, Dark, Very Dark (colour swatches)</td></tr>
+  <tr><td>Body Type</td><td>Slim, Average, Athletic, Plus</td></tr>
+  <tr><td>Hair Style</td><td>Gender-dependent options (e.g. Long Straight, Short Bob, Braided, etc.)</td></tr>
+  <tr><td>Hair Color</td><td>Black, Dark Brown, Brown, Auburn, Blonde, Gray, White</td></tr>
+  <tr><td>Additional Description</td><td>Free text (max 300 chars) e.g. "wearing glasses"</td></tr>
+</table>
+
+<h4>Panel 2: Scene Settings <span class="badge badge-purple">Required</span></h4>
+<table>
+  <tr><th>Setting</th><th>Options</th></tr>
+  <tr><td>Environment</td><td>White Studio, Urban Street, Beach, Garden, Office, Coffee Shop, Traditional Room</td></tr>
+  <tr><td>Pose</td><td>Fashion Stand, Casual Walk, Seated, Dynamic</td></tr>
+  <tr><td>Framing</td><td>Full Body, Half Body, Close-Up</td></tr>
+</table>
+
+<h4>Panel 3: Advanced Options <span class="badge badge-amber">Optional</span></h4>
+<table>
+  <tr><th>Setting</th><th>Details</th></tr>
+  <tr><td>Measurements</td><td>Height, Chest/Bust, Waist, Hips (all in cm). Helps the AI match garment fit.</td></tr>
+  <tr><td>Lighting</td><td>Auto, Soft Natural, Studio Flash, Golden Hour</td></tr>
+</table>
+
+<p>A <strong>Quick Preview</strong> card at the bottom summarises your choices (e.g. "Female &middot; 25&ndash;34 &middot; Sri Lankan | Garden &middot; Standing &middot; full body").</p>
+
+<div class="tip"><strong>Tip:</strong> Smart defaults are applied based on garment type. For example, selecting "Saree" automatically defaults to Traditional Room + Standing pose.</div>
+
+<h3>Step 3 &mdash; Review</h3>
+<p>Review all your settings before generating:</p>
+<ul>
+  <li>Garment photos (scrollable thumbnails)</li>
+  <li>Model appearance summary</li>
+  <li>Scene settings summary</li>
+  <li>Measurements (if provided)</li>
+  <li>Credit cost estimate and remaining credits</li>
+</ul>
+<p>Click <strong>"Generate Images"</strong> to start.</p>
+
+<h3>Step 4 &mdash; Generating</h3>
+<p>A polling screen shows real-time status updates:</p>
+<ul>
+  <li><span class="badge badge-amber">Queued</span> &mdash; Waiting for a worker</li>
+  <li><span class="badge badge-purple">Running</span> &mdash; AI is generating your images</li>
+  <li><span class="badge badge-green">Succeeded</span> &mdash; Redirects to Results</li>
+  <li><span class="badge badge-red">Failed</span> &mdash; Shows error message (credits not deducted)</li>
+</ul>
+<p>Generation typically takes <strong>30&ndash;90 seconds</strong> depending on complexity.</p>
+
+<div class="warn"><strong>Note:</strong> Do not close the browser tab during generation. The page polls the server every 1&ndash;2 seconds for status updates.</div>
+
+<h3>Step 5 &mdash; Results</h3>
+<p>View your generated images:</p>
+<ul>
+  <li><strong>3 images</strong> from different camera angles: Front view, Three-quarter view, Back view</li>
+  <li>Navigate between images using arrow buttons or swipe (mobile)</li>
+  <li>Generation cost displayed (e.g. "$0.003")</li>
+  <li><strong>Download:</strong> Individual image or "Download All as ZIP"</li>
+  <li><strong>Try Again:</strong> Re-generate with the same settings</li>
+  <li><strong>New Upload:</strong> Start a completely new generation</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 5. CHILDREN'S MODULE                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section page-break">5. Module: Children's Fashion</h2>
+
+<p>Access via the <strong>"Kids"</strong> card on the home page, or navigate to <code>/children</code>.</p>
+
+<h3>Age Group Selection</h3>
+<table>
+  <tr><th>Group</th><th>Age</th><th>Allowed Poses</th><th>Backgrounds</th></tr>
+  <tr><td>Baby</td><td>0&ndash;2 yrs</td><td>Sitting, lying, held</td><td>Nursery, soft blanket, pastel studio</td></tr>
+  <tr><td>Toddler</td><td>2&ndash;5 yrs</td><td>Standing, walking, playing, sitting</td><td>Playground, garden, colourful studio</td></tr>
+  <tr><td>Kid</td><td>6&ndash;12 yrs</td><td>Standing, casual, school, active</td><td>Park, studio, bedroom, school</td></tr>
+  <tr><td>Teen</td><td>13&ndash;17 yrs</td><td>Fashion standing, casual, urban, seated</td><td>Urban, studio, campus, outdoor, beach</td></tr>
+</table>
+
+<h3>Configuration</h3>
+<p>Similar to the adult module, but with age-group-specific options for poses, backgrounds, hair styles, and expressions (happy, curious, laughing, etc.).</p>
+
+<p>The children's module uses <strong>softer camera angle descriptions</strong> and <strong>3 output images</strong> per generation.</p>
+
+<div class="info"><strong>Safety:</strong> A built-in safety validator rejects invalid parameter combinations to ensure appropriate imagery for minors.</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 6. ACCESSORIES MODULE                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">6. Module: Accessories</h2>
+
+<p>Access via the <strong>"Accessories"</strong> card on the home page, or navigate to <code>/accessories</code>.</p>
+
+<h3>Accessory Categories</h3>
+<table>
+  <tr><td>Necklaces / Chains</td><td>Earrings</td><td>Bracelets / Bangles</td></tr>
+  <tr><td>Rings</td><td>Handbags / Purses</td><td>Hats / Headwear</td></tr>
+  <tr><td>Scarves / Shawls</td><td>Crochet Items</td><td>Hair Accessories</td></tr>
+</table>
+
+<h3>Display Modes</h3>
+<table>
+  <tr><th>Mode</th><th>Description</th><th>Aspect Ratio</th></tr>
+  <tr><td><strong>On Model</strong></td><td>Accessory worn on a virtual model</td><td>1:1 square</td></tr>
+  <tr><td><strong>Flat Lay</strong></td><td>Product on a styled surface (marble, wood, velvet, etc.)</td><td>1:1 square</td></tr>
+  <tr><td><strong>Lifestyle</strong></td><td>Product in a real-world scene context</td><td>1:1 square</td></tr>
+</table>
+
+<p>Accessories generate <strong>2 images</strong> per generation (vs. 3 for adult/children).</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 7. VIRTUAL FIT-ON                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">7. Module: Virtual Fit-On</h2>
+
+<p>Access via the <strong>"Virtual Fit-On"</strong> card on the home page, or navigate to <code>/fiton</code>.</p>
+
+<h3>How It Works</h3>
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-body"><strong>Upload Garment:</strong> Upload garment photos, select garment type, optionally provide garment measurements (size label, chest, waist, hips, length).</div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-body"><strong>Customer Details:</strong> Upload a customer photo (required), enter customer measurements (height, chest, waist, hips, shoulder width), and select fit preference (Regular, Tight, Loose, Oversized).</div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-body"><strong>Results:</strong> View the virtual try-on image plus a <strong>size recommendation</strong> with fit confidence score (e.g. "Size M &mdash; 92% confident").</div>
+</div>
+
+<div class="info"><strong>Info:</strong> The Fit-On module requires more credits than standard generation due to the additional sizing analysis.</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 8. HISTORY                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">8. History &amp; Managing Generations</h2>
+
+<p>Access via the sidebar or navigate to <code>/history</code>.</p>
+
+<h3>Features</h3>
+<ul>
+  <li><strong>Paginated list</strong> of all past generations (12 per page)</li>
+  <li><strong>Filter</strong> by module (Adult, Children, Accessories, Fit-On) and status</li>
+  <li>Each entry shows: thumbnail, status badge, date, configuration summary, cost, and duration</li>
+</ul>
+
+<h3>Actions</h3>
+<table>
+  <tr><th>Action</th><th>Description</th></tr>
+  <tr><td>View</td><td>Open the full results page for a generation</td></tr>
+  <tr><td>Download ZIP</td><td>Download all images from a generation as a ZIP file</td></tr>
+  <tr><td>Delete</td><td>Remove a generation and its output images (source garment images are kept)</td></tr>
+</table>
+
+<h3>Image Retention</h3>
+<table>
+  <tr><th>Type</th><th>Retention Period</th></tr>
+  <tr><td>Generated output images</td><td>7 days (max 20 per user)</td></tr>
+  <tr><td>Uploaded source images</td><td>30 days</td></tr>
+</table>
+
+<div class="warn"><strong>Note:</strong> An automated cleanup runs hourly. Download images you want to keep before they expire.</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 9. PROFILE                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">9. Profile &amp; Account</h2>
+
+<p>Access via the avatar icon in the sidebar or navigate to <code>/profile</code>.</p>
+
+<h3>Editable Fields</h3>
+<ul>
+  <li><strong>Display Name</strong></li>
+  <li><strong>Language Preference:</strong> English, Sinhala, Hindi, Tamil</li>
+  <li><strong>Phone</strong> (optional)</li>
+</ul>
+
+<h3>Account Information (Read-Only)</h3>
+<ul>
+  <li>Email (from Google account)</li>
+  <li>Role (Admin or Standard User)</li>
+  <li>Current subscription plan and billing date</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 10. CREDITS & BILLING                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section page-break">10. Credits, Plans &amp; Billing</h2>
+
+<h3>Plans</h3>
+<table>
+  <tr><th>Feature</th><th>Free</th><th>Basic (Rs. 990/mo)</th><th>Pro (Rs. 2,490/mo)</th></tr>
+  <tr><td>Monthly Credits</td><td>Daily allowance</td><td>150</td><td>500</td></tr>
+  <tr><td>Daily Limit</td><td>3/day</td><td>30/day</td><td>100/day</td></tr>
+  <tr><td>Watermark</td><td>Yes</td><td>No</td><td>No</td></tr>
+  <tr><td>Fit-On Module</td><td>Disabled</td><td>3/day</td><td>Unlimited</td></tr>
+  <tr><td>Priority Queue</td><td>No</td><td>No</td><td>Yes</td></tr>
+</table>
+
+<h3>How Credits Work</h3>
+<ul>
+  <li>Credits are checked <strong>before</strong> a generation starts</li>
+  <li>If a generation <strong>fails</strong>, credits are <strong>not deducted</strong></li>
+  <li>The review page shows the estimated credit cost before you confirm</li>
+</ul>
+
+<h3>Payment</h3>
+<p>Payments are processed via <strong>PayHere</strong> (LKR). After subscribing, you are redirected back to DrapeStudio with a confirmation page.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 11. OPTIONS REFERENCE                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">11. Configuration Options Reference</h2>
+
+<h3>Garment Types</h3>
+<table>
+  <tr><th>Value</th><th>Label</th></tr>
+  <tr><td>casual</td><td>Casual Wear</td></tr>
+  <tr><td>formal</td><td>Formal / Office</td></tr>
+  <tr><td>saree</td><td>Saree</td></tr>
+  <tr><td>shalwar</td><td>Shalwar Kameez</td></tr>
+  <tr><td>batik</td><td>Batik</td></tr>
+  <tr><td>sarong</td><td>Sarong</td></tr>
+</table>
+
+<h3>Environments</h3>
+<table>
+  <tr><th>Value</th><th>Label</th><th>Best For</th></tr>
+  <tr><td>studio_white</td><td>White Studio</td><td>Clean product shots, e-commerce</td></tr>
+  <tr><td>urban_street</td><td>Urban Street</td><td>Casual and streetwear</td></tr>
+  <tr><td>beach</td><td>Beach</td><td>Swimwear, sarongs, casual</td></tr>
+  <tr><td>garden</td><td>Garden</td><td>Batik, flowing garments</td></tr>
+  <tr><td>indoor_office</td><td>Office</td><td>Formal and business wear</td></tr>
+  <tr><td>coffee_shop</td><td>Coffee Shop</td><td>Casual lifestyle</td></tr>
+  <tr><td>traditional_room</td><td>Traditional Room</td><td>Sarees, shalwar kameez</td></tr>
+</table>
+
+<h3>Camera Angles (Auto-Applied)</h3>
+<table>
+  <tr><th>Variation</th><th>Adult</th><th>Children</th></tr>
+  <tr><td>Image 1</td><td>Front view &mdash; facing camera</td><td>Front view &mdash; natural expression</td></tr>
+  <tr><td>Image 2</td><td>Three-quarter view &mdash; 45&deg; turn</td><td>Gentle side view &mdash; 45&deg;</td></tr>
+  <tr><td>Image 3</td><td>Back view &mdash; looking over shoulder</td><td>Back view &mdash; natural head turn</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 12. TESTER CHECKLIST                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section page-break">12. Tester Checklist</h2>
+
+<h3>Authentication</h3>
+<ul class="checklist">
+  <li>Google OAuth login (first-time user &rarr; profile onboarding)</li>
+  <li>Google OAuth login (returning user &rarr; goes to home)</li>
+  <li>Logout clears session and redirects to login</li>
+  <li>Unauthenticated access to /upload redirects to /login</li>
+</ul>
+
+<h3>Adult Module &mdash; Full Flow</h3>
+<ul class="checklist">
+  <li>Select garment type (e.g. Casual)</li>
+  <li>Select gender (Feminine)</li>
+  <li>Upload 1 garment photo &rarr; preview appears</li>
+  <li>Upload 5 garment photos (max) &rarr; 6th is rejected</li>
+  <li>Upload non-image file &rarr; error toast</li>
+  <li>Remove a photo from preview grid</li>
+  <li>Load image from "Previous Uploads" history</li>
+  <li>Configure: change age, ethnicity, body type, hair</li>
+  <li>Configure: select environment, pose, framing</li>
+  <li>Configure: Quick Preview card shows correct summary</li>
+  <li>Configure: garment thumbnail shows (not a broken icon)</li>
+  <li>Review: all settings displayed correctly</li>
+  <li>Review: credit cost shown</li>
+  <li>Generate: status transitions (queued &rarr; running &rarr; succeeded)</li>
+  <li>Results: 3 images displayed, gallery navigation works</li>
+  <li>Results: download individual image</li>
+  <li>Results: download all as ZIP</li>
+  <li>Results: "Try Again" regenerates with same config</li>
+</ul>
+
+<h3>Children's Module</h3>
+<ul class="checklist">
+  <li>Select each age group (Baby, Toddler, Kid, Teen)</li>
+  <li>Configure child-specific options (expression, pose)</li>
+  <li>Generate &rarr; 3 images with appropriate child model</li>
+  <li>Invalid age/pose combination is rejected by safety validator</li>
+</ul>
+
+<h3>Accessories Module</h3>
+<ul class="checklist">
+  <li>Select accessory category (e.g. Necklaces)</li>
+  <li>Select display mode (On-Model, Flat-Lay, Lifestyle)</li>
+  <li>Generate &rarr; 2 images with 1:1 aspect ratio</li>
+  <li>Flat-lay images show correct surface (marble, wood, etc.)</li>
+</ul>
+
+<h3>Virtual Fit-On</h3>
+<ul class="checklist">
+  <li>Upload garment + enter garment measurements</li>
+  <li>Upload customer photo + enter customer measurements</li>
+  <li>Results show virtual try-on image</li>
+  <li>Size recommendation with confidence score displayed</li>
+</ul>
+
+<h3>History &amp; Management</h3>
+<ul class="checklist">
+  <li>History page lists past generations</li>
+  <li>Filter by module and status works</li>
+  <li>Pagination works</li>
+  <li>Delete a generation &rarr; removed from list</li>
+  <li>Download ZIP from history</li>
+</ul>
+
+<h3>Profile &amp; Billing</h3>
+<ul class="checklist">
+  <li>Profile page shows correct user info</li>
+  <li>Edit display name &rarr; saves</li>
+  <li>Change language &rarr; UI updates</li>
+  <li>Free tier: 4th generation in a day is blocked</li>
+  <li>Credit balance displays correctly on review page</li>
+</ul>
+
+<h3>Error Handling</h3>
+<ul class="checklist">
+  <li>Generation fails &rarr; error message shown, credits NOT deducted</li>
+  <li>Network disconnect during polling &rarr; recovers on reconnect</li>
+  <li>Upload oversized file (&gt;20 MB) &rarr; rejected</li>
+  <li>Upload undersized image (&lt;400px) &rarr; warning shown</li>
+</ul>
+
+<h3>Mobile</h3>
+<ul class="checklist">
+  <li>Responsive layout on phone-sized screen</li>
+  <li>Camera capture works in upload step</li>
+  <li>Touch swipe works in results gallery</li>
+  <li>Buttons are tap-friendly (no tiny targets)</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 13. TROUBLESHOOTING                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<h2 class="section">13. Troubleshooting</h2>
+
+<table>
+  <tr><th style="width:35%">Problem</th><th>Solution</th></tr>
+  <tr><td>Login button does nothing</td><td>Check that Google OAuth is configured and the redirect URI matches.</td></tr>
+  <tr><td>Broken image icon on Configure page</td><td>This was a known bug (fixed). Hard-refresh the page (Ctrl+Shift+R).</td></tr>
+  <tr><td>"GOOGLE_API_KEY is not configured"</td><td>The server's .env file is missing the Google API key. Contact the admin.</td></tr>
+  <tr><td>Generation stuck on "Queued"</td><td>The worker container may be down. Check with admin.</td></tr>
+  <tr><td>Generation fails immediately</td><td>Check the error message. Common causes: invalid API key, rate limit, or model not available.</td></tr>
+  <tr><td>Images look wrong or low quality</td><td>Try different environment/pose combinations. Use higher quality source photos (well-lit, plain background).</td></tr>
+  <tr><td>ZIP download is empty</td><td>Output images may have expired (7-day retention). Generate again.</td></tr>
+  <tr><td>Language not changing</td><td>Clear browser cookies and log in again, then set language from Profile.</td></tr>
+  <tr><td>"Daily limit exceeded"</td><td>Free tier allows 3 generations/day. Upgrade to Basic or Pro for more.</td></tr>
+</table>
+
+<div class="doc-footer">
+  DrapeStudio User &amp; Tester Guide &nbsp;|&nbsp; v2.0 &nbsp;|&nbsp; March 2026<br>
+  Generated for internal testing purposes
+</div>
+
+</body>
+</html>
