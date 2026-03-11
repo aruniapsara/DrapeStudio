@@ -169,12 +169,10 @@ def delete_history_item(
         except Exception:
             pass  # Don't fail if file is already gone
 
-    # Delete uploaded garment images from storage
-    for garment_url in gen.garment_image_urls or []:
-        try:
-            storage.delete(garment_url)
-        except Exception:
-            pass
+    # NOTE: Source images (garment photos, model photos) are NOT deleted here.
+    # They are managed by the cleanup service (app/services/cleanup.py) which
+    # handles 30-day expiration and checks for references before deleting.
+    # This allows users to reuse previously uploaded garment images.
 
     # Remove DB records — children first (no cascade configured)
     db.query(GenerationOutput).filter(
