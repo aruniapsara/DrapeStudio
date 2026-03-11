@@ -136,7 +136,8 @@ function configureState() {
 
             var files = [];
             try { files = JSON.parse(sessionStorage.getItem('uploadedFiles') || '[]'); } catch(e) {}
-            this.garment_preview = files[0] || '';
+            var raw = files[0] || '';
+            this.garment_preview = raw.startsWith('local://') ? '/v1/files/' + raw.replace('local://', '') : raw;
 
             // Smart defaults based on product type chosen in upload step
             var SMART = {
