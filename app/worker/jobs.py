@@ -378,3 +378,37 @@ def _get_image_dimensions(img_bytes: bytes) -> tuple[int | None, int | None]:
         return img.width, img.height
     except Exception:
         return None, None
+
+
+# ── Scheduled cleanup job ────────────────────────────────────────────────────
+
+def run_scheduled_cleanup() -> None:
+    """Run the full image cleanup and re-enqueue itself for the next cycle.
+
+    This function is enqueued as an RQ job. After completing the cleanup
+    it schedules itself to run again after CLEANUP_INTERVAL_SECONDS.
+    """
+    try:
+        from app.services.cleanup import run_full_cleanup
+        summary = run_full_cleanup()
+        logger.info("Scheduled cleanup completed: %s", summary)
+    except Exception as exc:
+        logger.exception("Scheduled cleanup failed: %s", exc)
+
+    # Re-enqueue self for next cycle
+    try:
+        import redis as redis_lib
+        from rq import Queue
+
+        redis_conn = redis_lib.from_url(settings.REDIS_URL)
+        queue = Queue("drapestudio", connection=redis_conn)
+        queue.enqueue_in(
+            timedelta(seconds=settings.CLEANUP_INTERVAL_SECONDS),
+            "app.worker.jobs.run_scheduled_cleanup",
+            job_timeout=300,
+        )
+        logger.info(
+            "Next cleanup scheduled in %d seconds", settings.CLEANUP_INTERVAL_SECONDS
+        )
+    except Exception as exc:
+        logger.warning("Failed to re-enqueue cleanup job: %s", exc)

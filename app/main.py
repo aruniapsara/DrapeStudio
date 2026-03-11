@@ -2,6 +2,7 @@
 
 import logging
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import sentry_sdk
@@ -52,10 +53,33 @@ templates.env.globals.update(
 # Rate limiter (keyed by remote IP)
 limiter = Limiter(key_func=get_remote_address)
 
+
+# ── Lifespan: run scheduled cleanup on startup ────────────────────────────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Enqueue the first scheduled cleanup job when the app starts."""
+    try:
+        import redis as redis_lib
+        from rq import Queue
+
+        redis_conn = redis_lib.from_url(settings.REDIS_URL)
+        queue = Queue("drapestudio", connection=redis_conn)
+        queue.enqueue(
+            "app.worker.jobs.run_scheduled_cleanup",
+            job_timeout=300,
+        )
+        logger.info("Enqueued initial scheduled cleanup job")
+    except Exception as exc:
+        logger.warning("Failed to enqueue initial cleanup job: %s", exc)
+
+    yield
+
+
 app = FastAPI(
     title="DrapeStudio",
     description="AI-powered garment model image generator",
     version=settings.APP_VERSION,
+    lifespan=lifespan,
 )
 
 # Expose rate limiter on the app state so slowapi can access it
