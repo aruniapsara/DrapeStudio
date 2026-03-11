@@ -1,13 +1,20 @@
-"""Upload endpoints — POST /v1/uploads/sign and direct upload for local dev."""
+"""Upload endpoints — POST /v1/uploads/sign, direct upload, and upload history."""
 
+import logging
 import re
 
-from fastapi import APIRouter, HTTPException, Request, Response, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, UploadFile, File
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.database import get_db
 from app.dependencies import get_or_create_session_id
+from app.middleware.auth import get_request_user
+from app.models.db import SourceImage, generate_ulid
 from app.services.storage import storage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["uploads"])
 
@@ -99,8 +106,17 @@ async def sign_upload_urls(body: SignRequest, request: Request, response: Respon
 # (model-photos/{session_id}/{filename}).
 # ---------------------------------------------------------------------------
 @router.post("/uploads/direct/{file_path:path}")
-async def direct_upload(file_path: str, file: UploadFile = File(...)):
-    """Direct file upload endpoint for local development."""
+async def direct_upload(
+    file_path: str,
+    request: Request,
+    response: Response,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Direct file upload endpoint for local development.
+
+    Also records a SourceImage row so the user can reuse this image later.
+    """
     if settings.STORAGE_BACKEND != "local":
         raise HTTPException(status_code=404, detail="Direct upload only available in local mode.")
 
@@ -124,7 +140,43 @@ async def direct_upload(file_path: str, file: UploadFile = File(...)):
         path = f"uploads/{file_path}"
 
     storage.save(data, path)
-    return {"status": "ok", "file_url": f"local://{path}"}
+    file_url = f"local://{path}"
+
+    # ── Record SourceImage row ────────────────────────────────────────────
+    try:
+        session_id = get_or_create_session_id(request, response)
+        user = get_request_user(request)
+        user_id = user["user_id"] if user and user.get("auth_type") == "jwt" else None
+
+        # Determine image type from path prefix
+        if "model-photos/" in path:
+            image_type = "model_photo"
+        else:
+            image_type = "garment"
+
+        # Upsert: only insert if image_url doesn't already exist
+        existing = db.query(SourceImage).filter(SourceImage.image_url == file_url).first()
+        if not existing:
+            source_img = SourceImage(
+                id=generate_ulid(),
+                user_id=user_id,
+                session_id=session_id,
+                image_url=file_url,
+                image_type=image_type,
+                original_filename=file.filename,
+                file_size_bytes=len(data),
+            )
+            db.add(source_img)
+            db.commit()
+    except Exception as exc:
+        logger.warning("Failed to record SourceImage for %s: %s", file_url, exc)
+        # Don't fail the upload if tracking fails
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+    return {"status": "ok", "file_url": file_url}
 
 
 # ---------------------------------------------------------------------------
@@ -152,3 +204,69 @@ async def serve_file(file_path: str):
     content_type = content_types.get(ext, "application/octet-stream")
 
     return Response(content=data, media_type=content_type)
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/uploads/history  — previously uploaded source images
+# ---------------------------------------------------------------------------
+@router.get("/uploads/history")
+def get_upload_history(
+    request: Request,
+    response: Response,
+    image_type: str = "garment",
+    page: int = 1,
+    per_page: int = 20,
+    db: Session = Depends(get_db),
+):
+    """Return paginated list of previously uploaded source images.
+
+    Authenticated users see their own uploads (by user_id).
+    Legacy/unauthenticated users see uploads from their session.
+    """
+    per_page = max(1, min(per_page, 50))
+    page = max(page, 1)
+    offset = (page - 1) * per_page
+
+    user = get_request_user(request)
+
+    query = db.query(SourceImage).filter(SourceImage.image_type == image_type)
+
+    # Filter by ownership
+    if user and user.get("auth_type") == "jwt" and user.get("user_id"):
+        query = query.filter(SourceImage.user_id == user["user_id"])
+    else:
+        session_id = get_or_create_session_id(request, response)
+        query = query.filter(SourceImage.session_id == session_id)
+
+    total = query.count()
+
+    items = (
+        query
+        .order_by(SourceImage.created_at.desc())
+        .offset(offset)
+        .limit(per_page)
+        .all()
+    )
+
+    # Use 1-hour expiry for history thumbnails
+    history_url_expiry = 3600
+
+    result_items = []
+    for img in items:
+        signed_url = storage.signed_download_url(img.image_url, history_url_expiry)
+        result_items.append({
+            "id": img.id,
+            "image_url": signed_url,
+            "storage_url": img.image_url,
+            "original_filename": img.original_filename,
+            "file_size_bytes": img.file_size_bytes,
+            "created_at": img.created_at.isoformat() if img.created_at else None,
+        })
+
+    return {
+        "items": result_items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "has_more": (offset + per_page) < total,
+    }

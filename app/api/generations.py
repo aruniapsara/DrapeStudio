@@ -18,7 +18,7 @@ from app.config import settings
 from app.database import get_db
 from app.dependencies import get_or_create_session_id
 from app.middleware.auth import get_request_user
-from app.models.db import AccessoryParams, ChildParams, FitonRequest, GenerationRequest, GenerationOutput, generate_gen_id, generate_ulid
+from app.models.db import AccessoryParams, ChildParams, FitonRequest, GenerationRequest, GenerationOutput, SourceImage, generate_gen_id, generate_ulid
 from app.schemas.generation import (
     CreateGenerationRequest,
     GenerationCreatedResponse,
@@ -259,6 +259,38 @@ def create_generation(
 
     db.commit()
     db.refresh(gen_request)
+
+    # ── Safety-net: ensure SourceImage rows exist for all referenced images ──
+    try:
+        all_source_urls = list(body.garment_images)
+        # Also track model photo if present
+        model_photo_url = model_params_dict.get("model_photo_url") or model_params_dict.get("customer_photo_url")
+        if model_photo_url:
+            all_source_urls.append(model_photo_url)
+
+        for src_url in all_source_urls:
+            existing = db.query(SourceImage).filter(SourceImage.image_url == src_url).first()
+            if not existing:
+                # Determine image type
+                if "model-photos/" in src_url or "customer_photo" in src_url:
+                    img_type = "model_photo"
+                else:
+                    img_type = "garment"
+
+                db.add(SourceImage(
+                    id=generate_ulid(),
+                    user_id=generation_user_id,
+                    session_id=session_id,
+                    image_url=src_url,
+                    image_type=img_type,
+                ))
+        db.commit()
+    except Exception as exc:
+        logger.warning("SourceImage safety-net upsert failed for %s: %s", gen_id, exc)
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
     # ── Enqueue worker job ────────────────────────────────────────────────────
     try:
