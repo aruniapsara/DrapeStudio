@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # Google Gemini (direct API for image generation)
     GOOGLE_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash-exp-image-generation"
+    GEMINI_IMAGE_MODEL: str = "gemini-3.1-flash-image-preview"
 
     # Google Cloud Storage (production only)
     GCS_BUCKET_UPLOADS: str = ""

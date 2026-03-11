@@ -238,7 +238,7 @@ def generate_garment_images(
         garment_image_bytes: List of garment image bytes (1-5 images).
         prompt_text: Assembled prompt string (used for all variations unless
                      prompt_texts is also supplied).
-        model_name: Gemini model name. Defaults to settings.GEMINI_MODEL.
+        model_name: Gemini model name. Defaults to settings.GEMINI_IMAGE_MODEL.
         max_retries: Number of retries per call on transient errors.
         model_photo_bytes: Optional bytes of a real-person model reference photo.
         module: "adult", "children", "accessories", or "fiton".
@@ -253,7 +253,7 @@ def generate_garment_images(
         GeminiError: On persistent API failure.
     """
     if model_name is None:
-        model_name = settings.GEMINI_MODEL
+        model_name = settings.GEMINI_IMAGE_MODEL
 
     if not settings.GOOGLE_API_KEY:
         raise GeminiError("GOOGLE_API_KEY is not configured.")
