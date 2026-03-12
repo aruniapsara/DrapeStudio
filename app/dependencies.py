@@ -48,9 +48,10 @@ def get_current_user(request: Request) -> dict | None:
 
     Priority:
     1. JWT access_token cookie  → {"user_id", "phone", "role", "username", "auth_type": "jwt"}
-    2. Legacy username/role cookies → {"username", "role", "auth_type": "legacy"}
+    2. Admin JWT admin_token cookie → {"user_id", "email", "role": "admin", "auth_type": "admin_jwt"}
+    3. Legacy username/role cookies → {"username", "role", "auth_type": "legacy"}
     """
-    # 1. JWT
+    # 1. JWT (user access token)
     access_token = request.cookies.get("access_token")
     if access_token:
         try:
@@ -70,7 +71,24 @@ def get_current_user(request: Request) -> dict | None:
         except Exception:
             pass
 
-    # 2. Legacy cookie fallback
+    # 2. Admin JWT (admin_token cookie from /admin/login)
+    admin_token = request.cookies.get("admin_token")
+    if admin_token:
+        try:
+            from app.services.admin_auth import AdminAuthService
+            payload = AdminAuthService.verify_admin_token(admin_token)
+            if payload:
+                return {
+                    "user_id": payload["sub"],
+                    "email": payload.get("email", ""),
+                    "username": payload.get("email", ""),
+                    "role": "admin",
+                    "auth_type": "admin_jwt",
+                }
+        except Exception:
+            pass
+
+    # 3. Legacy cookie fallback
     username = request.cookies.get("username")
     role = request.cookies.get("role")
     if username and role and username in USERS:

@@ -52,14 +52,15 @@ def get_request_user(request: Request) -> dict | None:
 
     Priority:
     1. JWT `access_token` cookie
-    2. Legacy `username` / `role` cookies (backward compatibility)
+    2. Admin JWT `admin_token` cookie (from /admin/login)
+    3. Legacy `username` / `role` cookies (backward compatibility)
 
     Returns a dict with at minimum: {role, auth_type}.
     """
     from app.services.auth import AuthService
     from app.dependencies import USERS
 
-    # 1. JWT
+    # 1. JWT (user access token)
     access_token = request.cookies.get("access_token")
     if access_token:
         payload = AuthService.verify_access_token(access_token)
@@ -76,7 +77,24 @@ def get_request_user(request: Request) -> dict | None:
                 "auth_type": "jwt",
             }
 
-    # 2. Legacy username/role cookies (dev / test fallback)
+    # 2. Admin JWT (admin_token cookie from /admin/login)
+    admin_token = request.cookies.get("admin_token")
+    if admin_token:
+        try:
+            from app.services.admin_auth import AdminAuthService
+            payload = AdminAuthService.verify_admin_token(admin_token)
+            if payload:
+                return {
+                    "user_id": payload["sub"],
+                    "email": payload.get("email", ""),
+                    "username": payload.get("email", ""),
+                    "role": "admin",
+                    "auth_type": "admin_jwt",
+                }
+        except Exception:
+            pass
+
+    # 3. Legacy username/role cookies (dev / test fallback)
     username = request.cookies.get("username")
     role = request.cookies.get("role")
     if username and role and username in USERS:
