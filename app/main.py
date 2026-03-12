@@ -382,11 +382,13 @@ from app.api.auth import router as auth_router  # noqa: E402
 from app.api.billing import router as billing_router  # noqa: E402
 from app.api.notifications import router as notifications_router  # noqa: E402
 from app.api.health import router as health_router  # noqa: E402
+from app.api.wallet import router as wallet_router  # noqa: E402
 
 app.include_router(auth_router)               # prefix is already /api/v1/auth
 app.include_router(billing_router)            # prefix is already /api/v1/billing
 app.include_router(notifications_router)      # prefix is already /api/v1/notifications
 app.include_router(health_router)             # /health, /health/detailed, /metrics
+app.include_router(wallet_router, prefix="/api/v1")
 app.include_router(uploads_router, prefix="/v1")
 app.include_router(generations_router, prefix="/v1")
 app.include_router(history_router, prefix="/v1")
@@ -619,6 +621,11 @@ async def fiton_results_page(request: Request, gen_id: str):
 
 @app.get("/pricing")
 async def pricing_page(request: Request):
+    return templates.TemplateResponse("pricing.html", _ctx(request))
+
+
+@app.get("/wallet")
+async def wallet_page(request: Request):
     return templates.TemplateResponse("pricing.html", _ctx(request))
 
 

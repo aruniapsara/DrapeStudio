@@ -1,171 +1,417 @@
 {% extends "base.html" %}
 
 {% block title %}Pricing — DrapeStudio{% endblock %}
-{% block page_title %}Choose Your Plan{% endblock %}
+{% block page_title %}Wallet & Pricing{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-6 space-y-8"
-     x-data="pricingPage()"
+     x-data="walletPricingPage()"
      x-init="init()">
 
     {# ── Header ──────────────────────────────────────────────────────────── #}
     <div class="text-center space-y-2">
-        <p class="text-gray-500 text-sm">All prices in Sri Lankan Rupees (LKR) · Cancel anytime</p>
-        <div x-show="currentPlan" class="inline-flex items-center gap-2 bg-primary/10 text-primary text-sm font-medium px-3 py-1 rounded-full">
-            <span>Your current plan:</span>
-            <span x-text="currentPlanName" class="font-bold"></span>
+        <p class="text-gray-500 text-sm">Prepaid wallet &middot; No subscriptions &middot; Pay only for what you use</p>
+        <p class="text-xs text-gray-400">All prices in Sri Lankan Rupees (LKR)</p>
+    </div>
+
+    {# ── Wallet Balance Card (logged-in users) ───────────────────────────── #}
+    <div x-show="isLoggedIn" x-cloak
+         class="bg-gradient-to-br from-[#1A1A2E] via-[#2D1B69] to-[#6C3CE1] rounded-3xl p-6 text-white relative overflow-hidden">
+        <div class="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5"></div>
+        <div class="absolute -right-4 -bottom-12 w-56 h-56 rounded-full bg-white/5"></div>
+        <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">Your Wallet Balance</p>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl sm:text-4xl font-bold" x-text="'Rs. ' + Number(balance).toLocaleString()">Rs. 0</span>
+                </div>
+                <p class="text-white/50 text-xs mt-1">
+                    <span x-show="balanceImages > 0">Enough for ~<strong x-text="balanceImages"></strong> standard images</span>
+                    <span x-show="balanceImages === 0">Reload your wallet to start generating</span>
+                </p>
+            </div>
+            <a href="#reload-packages"
+               class="inline-flex items-center gap-2 bg-white text-primary font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-white/90 transition-colors shadow-lg flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/>
+                </svg>
+                Reload Now
+            </a>
         </div>
     </div>
 
-    {# ── Plan cards ──────────────────────────────────────────────────────── #}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-        {# Free #}
-        <div class="bg-white rounded-3xl border-2 shadow-card p-6 flex flex-col"
-             :class="currentPlan === 'free' ? 'border-primary' : 'border-gray-100'">
-            <div class="mb-4">
-                <div class="flex items-center justify-between mb-1">
-                    <h3 class="text-lg font-bold text-dark">Free</h3>
-                    <template x-if="currentPlan === 'free'">
-                        <span class="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Current</span>
-                    </template>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-dark">Rs. 0</span>
-                    <span class="text-sm text-gray-400">/month</span>
+    {# ── Trial Banner (new users) ────────────────────────────────────────── #}
+    <div x-show="showTrialBanner" x-cloak x-transition
+         class="bg-gradient-to-r from-teal/10 to-primary/10 border border-teal/20 rounded-2xl p-5">
+        <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-teal/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-bold text-dark text-sm mb-1">7-Day Free Trial</h3>
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    New to DrapeStudio? Get <strong class="text-primary">5 free images</strong> during your 7-day trial period.
+                    No credit card required &mdash; just sign up and start creating professional product photos.
+                </p>
+                <div class="flex gap-2 mt-3">
+                    <a href="/login"
+                       class="text-xs font-semibold text-white bg-teal px-4 py-2 rounded-lg hover:bg-teal/90 transition-colors">
+                        Start Free Trial
+                    </a>
+                    <button @click="showTrialBanner = false"
+                            class="text-xs font-medium text-gray-500 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        Dismiss
+                    </button>
                 </div>
             </div>
-            <ul class="space-y-2 flex-1 mb-6">
-                <li class="flex items-center gap-2 text-sm text-gray-600">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    3 images per day
-                </li>
-                <li class="flex items-center gap-2 text-sm text-gray-600">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    Adult, Kids &amp; Accessories
-                </li>
-                <li class="flex items-center gap-2 text-sm text-gray-400">
-                    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    Watermark on images
-                </li>
-                <li class="flex items-center gap-2 text-sm text-gray-400">
-                    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    Virtual Fit-On
-                </li>
-            </ul>
-            <button disabled
-                    class="w-full py-2.5 rounded-xl text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed">
-                Always free
-            </button>
+        </div>
+    </div>
+
+    {# ── Reload Packages ─────────────────────────────────────────────────── #}
+    <section id="reload-packages">
+        <div class="flex items-center gap-3 mb-4">
+            <h2 class="text-lg font-bold text-dark">Reload Packages</h2>
+            <span class="text-xs text-gray-400 hidden sm:inline">One-time top-ups &middot; Never expires</span>
         </div>
 
-        {# Basic #}
-        <div class="bg-white rounded-3xl border-2 shadow-card p-6 flex flex-col relative"
-             :class="currentPlan === 'basic' ? 'border-primary' : 'border-primary/30'">
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span class="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow">Popular</span>
-            </div>
-            <div class="mb-4 mt-2">
-                <div class="flex items-center justify-between mb-1">
-                    <h3 class="text-lg font-bold text-dark">Basic</h3>
-                    <template x-if="currentPlan === 'basic'">
-                        <span class="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Current</span>
-                    </template>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+
+            {# Starter #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:border-primary/20 p-5 flex flex-col transition-all">
+                <div class="mb-4">
+                    <h3 class="text-sm font-bold text-dark">Starter</h3>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span class="text-2xl font-bold text-dark">Rs. 500</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Rs. 500 loaded to wallet</p>
                 </div>
-                <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-dark">Rs. 990</span>
-                    <span class="text-sm text-gray-400">/month</span>
-                </div>
+                <ul class="space-y-1.5 flex-1 mb-4">
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        ~12 standard images
+                    </li>
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        No watermark
+                    </li>
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        Try all features
+                    </li>
+                </ul>
+                <button @click="buyPackage('starter')"
+                        :disabled="buyLoading === 'starter'"
+                        class="w-full py-2.5 rounded-xl text-sm font-semibold border border-primary text-primary hover:bg-primary hover:text-white active:scale-95 transition-all disabled:opacity-60">
+                    <span x-show="buyLoading !== 'starter'">Buy Rs. 500</span>
+                    <span x-show="buyLoading === 'starter'">Processing...</span>
+                </button>
             </div>
-            <ul class="space-y-2 flex-1 mb-6">
-                <li class="flex items-center gap-2 text-sm text-gray-600">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    150 images per month
-                </li>
-                <li class="flex items-center gap-2 text-sm text-gray-600">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    No watermark
-                </li>
-                <li class="flex items-center gap-2 text-sm text-gray-600">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    Virtual Fit-On (3/day)
-                </li>
-                <li class="flex items-center gap-2 text-sm text-gray-600">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    All modules
-                </li>
-            </ul>
-            <template x-if="currentPlan !== 'basic'">
-                <button @click="startCheckout('basic')"
-                        :disabled="checkoutLoading"
+
+            {# Popular #}
+            <div class="bg-white rounded-2xl border-2 border-primary/30 shadow-card hover:shadow-card-hover p-5 flex flex-col transition-all relative">
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span class="bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full shadow">Best Value</span>
+                </div>
+                <div class="mb-4 mt-1">
+                    <h3 class="text-sm font-bold text-dark">Popular</h3>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span class="text-2xl font-bold text-dark">Rs. 1,000</span>
+                    </div>
+                    <p class="text-xs text-teal font-semibold mt-1">Rs. 1,100 loaded (+Rs. 100 bonus)</p>
+                </div>
+                <ul class="space-y-1.5 flex-1 mb-4">
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        ~27 standard images
+                    </li>
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        10% bonus value
+                    </li>
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        Most popular choice
+                    </li>
+                </ul>
+                <button @click="buyPackage('popular')"
+                        :disabled="buyLoading === 'popular'"
                         class="w-full py-2.5 rounded-xl text-sm font-semibold bg-primary text-white hover:bg-primary-dark active:scale-95 transition-all disabled:opacity-60">
-                    <span x-show="!checkoutLoading">Upgrade to Basic</span>
-                    <span x-show="checkoutLoading">Redirecting…</span>
+                    <span x-show="buyLoading !== 'popular'">Buy Rs. 1,000</span>
+                    <span x-show="buyLoading === 'popular'">Processing...</span>
                 </button>
-            </template>
-            <template x-if="currentPlan === 'basic'">
-                <button @click="cancelSubscription()"
-                        class="w-full py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-all">
-                    Cancel plan
+            </div>
+
+            {# Value #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:border-primary/20 p-5 flex flex-col transition-all">
+                <div class="mb-4">
+                    <h3 class="text-sm font-bold text-dark">Value</h3>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span class="text-2xl font-bold text-dark">Rs. 2,500</span>
+                    </div>
+                    <p class="text-xs text-teal font-semibold mt-1">Rs. 2,850 loaded (+Rs. 350 bonus)</p>
+                </div>
+                <ul class="space-y-1.5 flex-1 mb-4">
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        ~71 standard images
+                    </li>
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        14% bonus value
+                    </li>
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        Great for regular sellers
+                    </li>
+                </ul>
+                <button @click="buyPackage('value')"
+                        :disabled="buyLoading === 'value'"
+                        class="w-full py-2.5 rounded-xl text-sm font-semibold border border-primary text-primary hover:bg-primary hover:text-white active:scale-95 transition-all disabled:opacity-60">
+                    <span x-show="buyLoading !== 'value'">Buy Rs. 2,500</span>
+                    <span x-show="buyLoading === 'value'">Processing...</span>
                 </button>
-            </template>
+            </div>
+
+            {# Bulk #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:border-primary/20 p-5 flex flex-col transition-all">
+                <div class="mb-4">
+                    <h3 class="text-sm font-bold text-dark">Bulk</h3>
+                    <div class="flex items-baseline gap-1 mt-1">
+                        <span class="text-2xl font-bold text-dark">Rs. 5,000</span>
+                    </div>
+                    <p class="text-xs text-teal font-semibold mt-1">Rs. 6,000 loaded (+Rs. 1,000 bonus)</p>
+                </div>
+                <ul class="space-y-1.5 flex-1 mb-4">
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        ~150 standard images
+                    </li>
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        20% bonus value
+                    </li>
+                    <li class="flex items-center gap-2 text-xs text-gray-600">
+                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        Best for power sellers
+                    </li>
+                </ul>
+                <button @click="buyPackage('bulk')"
+                        :disabled="buyLoading === 'bulk'"
+                        class="w-full py-2.5 rounded-xl text-sm font-semibold border border-primary text-primary hover:bg-primary hover:text-white active:scale-95 transition-all disabled:opacity-60">
+                    <span x-show="buyLoading !== 'bulk'">Buy Rs. 5,000</span>
+                    <span x-show="buyLoading === 'bulk'">Processing...</span>
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+    {# ── Per-Image Pricing Table ─────────────────────────────────────────── #}
+    <section>
+        <div class="flex items-center gap-3 mb-4">
+            <h2 class="text-lg font-bold text-dark">Per-Image Pricing</h2>
+            <span class="text-xs text-gray-400 hidden sm:inline">Deducted from your wallet balance</span>
         </div>
 
-        {# Pro #}
-        <div class="bg-gradient-to-br from-primary to-[#9B6DFF] rounded-3xl shadow-card p-6 flex flex-col text-white"
-             :class="currentPlan === 'pro' ? 'ring-4 ring-accent' : ''">
-            <div class="mb-4">
-                <div class="flex items-center justify-between mb-1">
-                    <h3 class="text-lg font-bold">Pro</h3>
-                    <template x-if="currentPlan === 'pro'">
-                        <span class="text-xs font-semibold text-white/80 bg-white/20 px-2 py-0.5 rounded-full">Current</span>
-                    </template>
-                </div>
-                <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold">Rs. 2,490</span>
-                    <span class="text-sm text-white/60">/month</span>
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-surface border-b border-gray-100">
+                            <th class="text-left px-5 py-3.5 font-semibold text-dark text-xs uppercase tracking-wider">Quality</th>
+                            <th class="text-center px-5 py-3.5 font-semibold text-dark text-xs uppercase tracking-wider">Price/Image</th>
+                            <th class="text-left px-5 py-3.5 font-semibold text-dark text-xs uppercase tracking-wider hidden sm:table-cell">Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        <tr class="hover:bg-surface/50 transition-colors">
+                            <td class="px-5 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-4 h-4 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-dark">1K Standard</p>
+                                        <p class="text-[11px] text-gray-400 sm:hidden">Social media</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <span class="font-bold text-dark">Rs. 40</span>
+                            </td>
+                            <td class="px-5 py-4 hidden sm:table-cell">
+                                <span class="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">Social media posts</span>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-surface/50 transition-colors">
+                            <td class="px-5 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-dark">2K HD</p>
+                                        <p class="text-[11px] text-gray-400 sm:hidden">Online shops</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <span class="font-bold text-dark">Rs. 60</span>
+                            </td>
+                            <td class="px-5 py-4 hidden sm:table-cell">
+                                <span class="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">Online shop listings</span>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-surface/50 transition-colors">
+                            <td class="px-5 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-dark">4K Ultra</p>
+                                        <p class="text-[11px] text-gray-400 sm:hidden">Print catalogues</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <span class="font-bold text-dark">Rs. 100</span>
+                            </td>
+                            <td class="px-5 py-4 hidden sm:table-cell">
+                                <span class="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">Print catalogues &amp; banners</span>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-surface/50 transition-colors">
+                            <td class="px-5 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-[#9B6DFF]/10 flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-4 h-4 text-[#9B6DFF]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-dark">Virtual Fit-On</p>
+                                        <p class="text-[11px] text-gray-400 sm:hidden">Try on your photo</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <span class="font-bold text-dark">Rs. 80</span>
+                            </td>
+                            <td class="px-5 py-4 hidden sm:table-cell">
+                                <span class="text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full">Customer try-on previews</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    {# ── Premium Monthly Plan ────────────────────────────────────────────── #}
+    <section>
+        <div class="flex items-center gap-3 mb-4">
+            <h2 class="text-lg font-bold text-dark">Premium Monthly</h2>
+            <span class="text-[10px] font-semibold bg-accent/10 text-accent px-2.5 py-1 rounded-full">For Power Sellers</span>
+        </div>
+
+        <div class="bg-gradient-to-br from-primary to-[#9B6DFF] rounded-3xl shadow-card p-6 text-white relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/5"></div>
+            <div class="absolute left-1/3 -bottom-10 w-48 h-48 rounded-full bg-white/5"></div>
+
+            <div class="relative z-10">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-bold">Rs. 5,000</span>
+                                <span class="text-sm text-white/60">/month</span>
+                            </div>
+                            <p class="text-sm text-white/80 mt-1">
+                                Get <strong class="text-white">Rs. 8,000</strong> loaded to your wallet every month
+                            </p>
+                        </div>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-sm text-white/90">
+                                <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Rs. 8,000 wallet credit (60% bonus)
+                            </li>
+                            <li class="flex items-center gap-2 text-sm text-white/90">
+                                <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Priority queue &mdash; 2x faster generation
+                            </li>
+                            <li class="flex items-center gap-2 text-sm text-white/90">
+                                <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                No watermark on all images
+                            </li>
+                            <li class="flex items-center gap-2 text-sm text-white/90">
+                                <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Unlimited Virtual Fit-On
+                            </li>
+                            <li class="flex items-center gap-2 text-sm text-white/90">
+                                <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Unused balance rolls over
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <button @click="buyPackage('premium_monthly')"
+                                :disabled="buyLoading === 'premium_monthly'"
+                                class="w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-bold bg-white text-primary hover:bg-surface active:scale-95 transition-all disabled:opacity-60 shadow-lg">
+                            <span x-show="buyLoading !== 'premium_monthly'">Subscribe Monthly</span>
+                            <span x-show="buyLoading === 'premium_monthly'">Processing...</span>
+                        </button>
+                        <p class="text-xs text-white/50 mt-2 text-center">Cancel anytime &middot; No lock-in</p>
+                    </div>
                 </div>
             </div>
-            <ul class="space-y-2 flex-1 mb-6">
-                <li class="flex items-center gap-2 text-sm text-white/90">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    500 images per month
-                </li>
-                <li class="flex items-center gap-2 text-sm text-white/90">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    No watermark
-                </li>
-                <li class="flex items-center gap-2 text-sm text-white/90">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    Unlimited Virtual Fit-On
-                </li>
-                <li class="flex items-center gap-2 text-sm text-white/90">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    Priority queue (2× faster)
-                </li>
-                <li class="flex items-center gap-2 text-sm text-white/90">
-                    <svg class="w-4 h-4 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    WhatsApp share templates
-                </li>
-            </ul>
-            <template x-if="currentPlan !== 'pro'">
-                <button @click="startCheckout('pro')"
-                        :disabled="checkoutLoading"
-                        class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white text-primary hover:bg-surface active:scale-95 transition-all disabled:opacity-60">
-                    <span x-show="!checkoutLoading">Upgrade to Pro</span>
-                    <span x-show="checkoutLoading">Redirecting…</span>
-                </button>
-            </template>
-            <template x-if="currentPlan === 'pro'">
-                <button @click="cancelSubscription()"
-                        class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white/20 text-white hover:bg-white/30 transition-all">
-                    Cancel plan
-                </button>
-            </template>
         </div>
-    </div>
+    </section>
 
-    {# ── FAQ accordion ───────────────────────────────────────────────────── #}
+    {# ── How It Works ────────────────────────────────────────────────────── #}
+    <section>
+        <h2 class="text-lg font-bold text-dark mb-4">How the Wallet Works</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 text-center">
+                <div class="w-10 h-10 mx-auto rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-bold text-dark mb-1">1. Reload</h3>
+                <p class="text-xs text-gray-500 leading-relaxed">Choose a package and pay securely via PayHere. Your wallet tops up instantly.</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 text-center">
+                <div class="w-10 h-10 mx-auto rounded-xl bg-teal/10 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5L12 3Z"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-bold text-dark mb-1">2. Generate</h3>
+                <p class="text-xs text-gray-500 leading-relaxed">Upload your garment, pick a model, and generate stunning catalogue photos with AI.</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 text-center">
+                <div class="w-10 h-10 mx-auto rounded-xl bg-accent/10 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                </div>
+                <h3 class="text-sm font-bold text-dark mb-1">3. Download</h3>
+                <p class="text-xs text-gray-500 leading-relaxed">Download HD images and use them on Facebook, Instagram, Daraz, or your online store.</p>
+            </div>
+        </div>
+    </section>
+
+    {# ── FAQ Accordion ───────────────────────────────────────────────────── #}
     <div class="bg-white rounded-3xl border border-gray-100 shadow-card p-6 space-y-4"
          x-data="{ open: null }">
         <h3 class="text-base font-bold text-dark">Frequently Asked Questions</h3>
@@ -194,63 +440,96 @@
 
 {% block scripts %}
 <script>
-function pricingPage() {
+function walletPricingPage() {
     return {
-        currentPlan: null,
-        currentPlanName: 'Free',
-        checkoutLoading: false,
+        isLoggedIn: false,
+        balance: 0,
+        balanceImages: 0,
+        showTrialBanner: false,
+        buyLoading: null,
         checkoutFields: {},
+
         faqs: [
             {
                 q: 'What payment methods are accepted?',
-                a: 'We accept Visa, Mastercard, Amex, and Sri Lankan bank cards via PayHere. USSD and eZ Cash payments are also available.'
+                a: 'We accept Visa, Mastercard, Amex, and all Sri Lankan bank cards via PayHere. USSD, eZ Cash, mCash, and bank transfers are also supported.'
             },
             {
-                q: 'Can I cancel anytime?',
-                a: 'Yes. Cancel from your billing page and you keep access until the end of your billing period. No refunds for the current month.'
+                q: 'Does my wallet balance expire?',
+                a: 'No! Your prepaid wallet balance never expires. Use it whenever you need new product photos — no monthly pressure.'
             },
             {
-                q: 'Do unused credits roll over?',
-                a: 'Credits reset on your monthly billing date. Unused credits do not carry over to the next month.'
+                q: 'What is the bonus credit?',
+                a: 'When you reload Rs. 1,000 or more, we add extra bonus credit to your wallet for free. The more you reload, the bigger the bonus. For example, a Rs. 1,000 reload gives you Rs. 1,100 in your wallet.'
             },
             {
-                q: 'What is the watermark?',
-                a: 'Free plan images include a small DrapeStudio watermark. Paid plans produce clean, watermark-free images ready for your product listings.'
+                q: 'How is the cost per image calculated?',
+                a: 'Each image generation deducts from your wallet based on the quality you choose: Rs. 40 for 1K Standard, Rs. 60 for 2K HD, Rs. 100 for 4K Ultra, and Rs. 80 for Virtual Fit-On.'
+            },
+            {
+                q: 'What is the difference between quality levels?',
+                a: '1K Standard (1024px) is perfect for Facebook and Instagram posts. 2K HD (2048px) is ideal for Daraz, PickMe Market, and online shop listings. 4K Ultra (4096px) is best for print catalogues and large banners.'
+            },
+            {
+                q: 'What is the Premium Monthly plan?',
+                a: 'Premium Monthly is a recurring subscription that loads Rs. 8,000 to your wallet each month for only Rs. 5,000. You also get priority processing, no watermarks, and unlimited Virtual Fit-On. Unused balance carries over. Cancel anytime.'
+            },
+            {
+                q: 'Is the free trial really free?',
+                a: 'Yes! New users get 5 free images during a 7-day trial. No credit card required. After the trial, simply reload your wallet to continue generating images.'
             },
             {
                 q: 'Is my payment secure?',
-                a: 'Yes. All payments are processed by PayHere, a PCI-DSS compliant Sri Lankan payment gateway. DrapeStudio never stores card details.'
+                a: 'Yes. All payments are processed by PayHere, a PCI-DSS compliant Sri Lankan payment gateway. DrapeStudio never stores your card details.'
+            },
+            {
+                q: 'Can I get a refund?',
+                a: 'Wallet reloads are non-refundable since the balance never expires. If you experience a technical issue with a generation, contact us and we will credit the amount back to your wallet.'
             },
         ],
 
         async init() {
             try {
-                const res = await fetch('/api/v1/billing/usage');
+                const res = await fetch('/api/v1/wallet/balance');
                 if (res.ok) {
                     const data = await res.json();
-                    this.currentPlan = data.plan || 'free';
-                    this.currentPlanName = data.plan_name || 'Free';
+                    this.isLoggedIn = true;
+                    this.balance = data.balance || 0;
+                    // Estimate images at standard rate (Rs. 40)
+                    this.balanceImages = Math.floor(this.balance / 40);
+                    this.showTrialBanner = data.is_trial === true;
+                } else if (res.status === 401) {
+                    this.isLoggedIn = false;
+                    this.showTrialBanner = true;
                 }
             } catch (e) {
-                this.currentPlan = 'free';
+                this.isLoggedIn = false;
+                this.showTrialBanner = true;
             }
         },
 
-        async startCheckout(plan) {
-            this.checkoutLoading = true;
+        async buyPackage(packageKey) {
+            if (!this.isLoggedIn) {
+                window.location.href = '/login?next=/pricing';
+                return;
+            }
+
+            this.buyLoading = packageKey;
             try {
-                const res = await fetch(`/api/v1/billing/subscribe/${plan}`, { method: 'POST' });
+                const res = await fetch(`/api/v1/wallet/topup/${packageKey}`, { method: 'POST' });
                 if (!res.ok) {
                     const err = await res.json();
-                    alert(err.detail || 'Checkout failed. Please try again.');
+                    alert(err.detail || 'Could not start checkout. Please try again.');
                     return;
                 }
                 const data = await res.json();
                 const checkoutUrl = data._checkout_url;
-                // Remove internal meta fields
-                delete data._plan_key;
-                delete data._checkout_url;
-                this.checkoutFields = data;
+
+                // Build form fields (exclude internal meta keys)
+                const fields = { ...data };
+                delete fields._checkout_url;
+                delete fields._package_key;
+                this.checkoutFields = fields;
 
                 // Submit PayHere form
                 await this.$nextTick();
@@ -258,27 +537,9 @@ function pricingPage() {
                 form.action = checkoutUrl;
                 form.submit();
             } catch (e) {
-                alert('Network error. Please try again.');
+                alert('Network error. Please check your connection and try again.');
             } finally {
-                this.checkoutLoading = false;
-            }
-        },
-
-        async cancelSubscription() {
-            if (!confirm('Cancel your subscription? You keep access until the end of the current billing period.')) return;
-            try {
-                const res = await fetch('/api/v1/billing/cancel', { method: 'POST' });
-                if (res.ok) {
-                    const data = await res.json();
-                    alert('Subscription cancelled. Access continues until ' + (data.expires_at ? data.expires_at.split('T')[0] : 'period end') + '.');
-                    this.currentPlan = 'free';
-                    this.currentPlanName = 'Free';
-                } else {
-                    const err = await res.json();
-                    alert(err.detail || 'Cancellation failed.');
-                }
-            } catch (e) {
-                alert('Network error.');
+                this.buyLoading = null;
             }
         },
     };
