@@ -227,6 +227,17 @@ def generate_images(generation_request_id: str) -> None:
                 _fail_generation(db, gen, "Fiton: garment image URL is missing.")
                 return
 
+            # Sanity check: customer photo and garment must be different files
+            clean_cust = customer_photo_path.replace("local://", "")
+            clean_garm = garment_photo_path.replace("local://", "")
+            if clean_cust == clean_garm:
+                _fail_generation(
+                    db, gen,
+                    "Fiton: customer photo and garment image are the same file. "
+                    "Please upload a separate full-body photo of the customer."
+                )
+                return
+
             # Load raw bytes from storage
             try:
                 customer_photo_bytes = storage.load(customer_photo_path)
@@ -242,9 +253,12 @@ def generate_images(generation_request_id: str) -> None:
             fashn_category = _garment_type_to_fashn_category(garment_type)
 
             logger.info(
-                "Generation %s: calling FASHN.ai — customer=%d bytes, garment=%d bytes, category=%s",
+                "Generation %s: calling FASHN.ai — "
+                "customer_photo=%s (%d bytes), garment=%s (%d bytes), category=%s",
                 generation_request_id,
+                customer_photo_path,
                 len(customer_photo_bytes),
+                garment_photo_path,
                 len(garment_photo_bytes),
                 fashn_category,
             )
