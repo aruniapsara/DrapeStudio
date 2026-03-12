@@ -156,44 +156,78 @@
         <p class="text-xs text-center text-gray-400 mt-3">{{ t("home.gallery.sample_note", request.state.lang) }}</p>
     </section>
 
-    {# ── Pricing ──────────────────────────────────────────────────── #}
+    {# ── Pricing (Wallet-Based Prepaid) ────────────────────────────── #}
     <section class="px-4 py-5">
-        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">{{ t("home.pricing_heading", request.state.lang) }}</h2>
-        <p class="text-xs text-gray-400 mb-4">{{ t("home.pricing_subtitle", request.state.lang) }}</p>
+        <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">{{ t("pricing.title", request.state.lang) }}</h2>
+        <p class="text-xs text-gray-400 mb-4">{{ t("pricing.no_commitment", request.state.lang) }} {{ t("pricing.buy_when_needed", request.state.lang) }}</p>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {% set plans = [
-                (t("home.plan_free", request.state.lang),  "Rs. 0",     t("home.plan_per_month", request.state.lang),  t("home.plan_free_sub", request.state.lang),      [t("home.plan_free_f1", request.state.lang), t("home.plan_free_f2", request.state.lang),  t("home.plan_free_f3", request.state.lang),          t("home.plan_free_f4", request.state.lang)],        False),
-                (t("home.plan_basic", request.state.lang), "Rs. 990",   t("home.plan_per_month", request.state.lang),  t("home.plan_basic_sub", request.state.lang),     [t("home.plan_basic_f1", request.state.lang), t("home.plan_basic_f2", request.state.lang),  t("home.plan_basic_f3", request.state.lang),       t("home.plan_basic_f4", request.state.lang)],       True),
-                (t("home.plan_pro", request.state.lang),   "Rs. 2,490", t("home.plan_per_month", request.state.lang),  t("home.plan_pro_sub", request.state.lang),       [t("home.plan_pro_f1", request.state.lang), t("home.plan_pro_f2", request.state.lang),  t("home.plan_pro_f3", request.state.lang),     t("home.plan_pro_f4", request.state.lang)],   False),
-            ] %}
-            {% for name, price, period, sub, features, popular in plans %}
-            <div class="relative bg-white rounded-2xl border p-5
-                        {% if popular %}border-primary shadow-card-hover{% else %}border-gray-100 shadow-card{% endif %}">
-                {% if popular %}
-                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">{{ t("home.plan_most_popular", request.state.lang) }}</div>
-                {% endif %}
-                <h3 class="font-bold text-dark">{{ name }}</h3>
-                <div class="flex items-baseline gap-1 mt-2 mb-0.5">
-                    <span class="text-2xl font-bold {% if popular %}text-primary{% else %}text-dark{% endif %}">{{ price }}</span>
-                    <span class="text-xs text-gray-400">{{ period }}</span>
+        {# Trial banner #}
+        <div class="bg-gradient-to-r from-[#6C3CE1]/10 to-[#FF6B35]/10 border border-[#6C3CE1]/20 rounded-2xl px-5 py-4 mb-4">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">🎉</span>
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-dark">{{ t("pricing.try_free", request.state.lang) }}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">{{ t("pricing.balance_never_expires", request.state.lang) }}</p>
                 </div>
-                <p class="text-xs text-gray-400 mb-4">{{ sub }}</p>
-                <ul class="space-y-1.5 mb-5">
-                    {% for f in features %}
-                    <li class="flex items-center gap-2 text-xs text-gray-600">
-                        <svg class="w-3.5 h-3.5 text-teal flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                        {{ f }}
-                    </li>
-                    {% endfor %}
-                </ul>
-                <a href="/profile"
-                   class="block text-center text-xs font-semibold py-2.5 rounded-xl transition-colors
-                          {% if popular %}bg-primary text-white hover:bg-primary-dark{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
-                    {{ t("home.plan_get_started", request.state.lang) }}
+                <a href="/upload"
+                   class="flex-shrink-0 bg-primary text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-primary-dark transition-colors">
+                    {{ t("pricing.start_trial", request.state.lang) }}
                 </a>
             </div>
+        </div>
+
+        {# Per-image pricing #}
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{{ t("generation.image_quality", request.state.lang) }}</h3>
+        <div class="grid grid-cols-3 gap-2 mb-4">
+            {% set tiers = [
+                ("1K", t("views_quality.standard", request.state.lang), "Rs. 40", t("views_quality.best_for_social", request.state.lang), "📱"),
+                ("2K", t("views_quality.hd", request.state.lang), "Rs. 60", t("views_quality.best_for_shops", request.state.lang), "🛒"),
+                ("4K", t("views_quality.ultra", request.state.lang), "Rs. 100", t("views_quality.best_for_print", request.state.lang), "🖨️"),
+            ] %}
+            {% for res, label, price, desc, emoji in tiers %}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-4 text-center">
+                <span class="text-xl">{{ emoji }}</span>
+                <p class="text-xs font-bold text-dark mt-1">{{ label }} ({{ res }})</p>
+                <p class="text-lg font-bold text-primary mt-1">{{ price }}</p>
+                <p class="text-[10px] text-gray-400">{{ t("wallet.per_image", request.state.lang) }}</p>
+                <p class="text-[10px] text-gray-500 mt-1">{{ desc }}</p>
+            </div>
             {% endfor %}
+        </div>
+
+        {# Reload packages #}
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{{ t("pricing.reload_packages", request.state.lang) }}</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            {% set packages = [
+                ("Starter", "Rs. 500", "", false),
+                ("Popular", "Rs. 1,000", "+Rs. 100", true),
+                ("Value",   "Rs. 2,500", "+Rs. 350", false),
+                ("Bulk",    "Rs. 5,000", "+Rs. 1,000", false),
+            ] %}
+            {% for name, price, bonus, popular in packages %}
+            <div class="relative bg-white rounded-2xl border p-4 text-center
+                        {% if popular %}border-primary shadow-card-hover{% else %}border-gray-100 shadow-card{% endif %}">
+                {% if popular %}
+                <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap">{{ t("wallet.best_value", request.state.lang) }}</div>
+                {% endif %}
+                <p class="text-xs font-bold text-dark">{{ name }}</p>
+                <p class="text-lg font-bold {% if popular %}text-primary{% else %}text-dark{% endif %} mt-1">{{ price }}</p>
+                {% if bonus %}
+                <p class="text-[10px] font-semibold text-emerald-600 mt-0.5">{{ t("pricing.bonus", request.state.lang) }} {{ bonus }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center">
+            <a href="/pricing"
+               class="inline-flex items-center gap-2 bg-primary text-white font-semibold text-sm px-6 py-2.5 rounded-xl hover:bg-primary-dark transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+                </svg>
+                {{ t("wallet.reload", request.state.lang) }}
+            </a>
+            <p class="text-[10px] text-gray-400 mt-2">{{ t("pricing.balance_never_expires", request.state.lang) }}</p>
         </div>
     </section>
 
