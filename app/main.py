@@ -514,6 +514,17 @@ async def admin_usage_page(request: Request):
     )
 
 
+@app.get("/admin/wallet")
+async def admin_wallet_page(request: Request):
+    user = get_request_user(request)
+    if not user or user["role"] != "admin":
+        return RedirectResponse(url="/", status_code=302)
+    return templates.TemplateResponse(
+        "admin_wallet.html",
+        _ctx(request),
+    )
+
+
 @app.get("/profile")
 async def profile_page(request: Request):
     return templates.TemplateResponse("profile.html", _ctx(request))

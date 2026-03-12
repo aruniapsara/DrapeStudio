@@ -88,6 +88,15 @@
             </svg>
             Usage Report
         </a>
+
+        <a href="/admin/wallet"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                  {% if p == '/admin/wallet' %}bg-white/15 text-white{% else %}text-gray-300 hover:bg-white/10 hover:text-white{% endif %}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M16 14h2"/>
+            </svg>
+            Wallet Management
+        </a>
         {% endif %}
 
     </nav>
