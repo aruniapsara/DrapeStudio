@@ -49,6 +49,8 @@ hair_styles:
   medium_length: "medium-length straight hair"
   shaved: "closely shaved head"
   natural_curly: "natural curly hair"
+  bun: "hair styled in a neat bun or updo"
+  side_part: "medium-length hair with a clean side part"
 
 hair_colors:
   black: "jet black hair"
@@ -71,8 +73,16 @@ environments:
 poses:
   front_standing: "standing facing camera, arms relaxed at sides, weight evenly balanced"
   walking: "mid-stride walking pose, natural movement, slight body angle to camera"
+  casual_walking: "mid-stride walking pose, natural movement, slight body angle to camera"
   three_quarter: "45-degree body turn toward camera, one shoulder forward, natural stance"
   seated: "seated naturally on a stool or bench, upright posture, feet flat"
+  dynamic: "dynamic fashion pose with natural movement and energy"
+  fashion_standing: "elegant standing pose, one foot slightly forward, confident fashion stance"
+  seated_elegant: "seated elegantly, legs crossed or angled, poised upright posture"
+  hand_on_hip: "standing with one hand resting on hip, confident and stylish"
+  standing_confident: "standing tall with confident posture, shoulders back, relaxed arms"
+  hands_in_pockets: "standing casually with hands in pockets, relaxed confident stance"
+  seated_casual: "seated in a relaxed casual pose, one ankle on knee or leaning slightly"
 
 framing:
   full_body: "full body shot from head to toe, model fully visible, slight space above head and below feet"

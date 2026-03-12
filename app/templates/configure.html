@@ -13,12 +13,7 @@
     {"value": "55+",   "label": "55+"},
 ] %}
 
-{% set body_types = [
-    {"value": "slim",     "label": "Slim",    "icon": "🧍"},
-    {"value": "average",  "label": "Average", "icon": "🚶"},
-    {"value": "athletic", "label": "Athletic","icon": "🏃"},
-    {"value": "plus",     "label": "Plus",    "icon": "🤸"},
-] %}
+{# body_types — now loaded from backend via window.GENDER_OPTIONS (gender-aware) #}
 
 {% set environments = [
     {"value": "studio_white",    "label": "White Studio",     "icon": "🏛️", "bg": "#F5F5F5"},
@@ -30,12 +25,7 @@
     {"value": "traditional_room","label": "Traditional Room", "icon": "🏮", "bg": "#F87171"},
 ] %}
 
-{% set poses = [
-    {"value": "front_standing", "label": "Fashion Stand", "icon": "🧍"},
-    {"value": "casual_walking", "label": "Casual Walk",   "icon": "🚶"},
-    {"value": "seated",         "label": "Seated",        "icon": "🪑"},
-    {"value": "dynamic",        "label": "Dynamic",       "icon": "💃"},
-] %}
+{# poses — now loaded from backend via window.GENDER_OPTIONS (gender-aware) #}
 
 {% set framings = [
     {"value": "full_body",  "label": "Full Body"},
@@ -161,21 +151,21 @@
                         </div>
                     </div>
 
-                    {# Body Type — 4 cards #}
+                    {# Body Type — gender-aware cards (Alpine x-for) #}
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Body Type</p>
                         <div class="grid grid-cols-4 gap-2">
-                            {% for bt in body_types %}
-                            <label @click="body_type = '{{ bt.value }}'" class="cursor-pointer">
-                                <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
-                                     :class="body_type === '{{ bt.value }}'
-                                         ? 'border-primary bg-primary/5'
-                                         : 'border-gray-200 hover:border-primary/30'">
-                                    <p class="text-xl mb-0.5">{{ bt.icon }}</p>
-                                    <p class="text-[10px] font-semibold text-dark">{{ bt.label }}</p>
-                                </div>
-                            </label>
-                            {% endfor %}
+                            <template x-for="bt in currentBodyTypes" :key="bt.value">
+                                <label @click="body_type = bt.value" class="cursor-pointer">
+                                    <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
+                                         :class="body_type === bt.value
+                                             ? 'border-primary bg-primary/5'
+                                             : 'border-gray-200 hover:border-primary/30'">
+                                        <p class="text-xl mb-0.5" x-text="bt.icon"></p>
+                                        <p class="text-[10px] font-semibold text-dark" x-text="bt.label"></p>
+                                    </div>
+                                </label>
+                            </template>
                         </div>
                     </div>
 
@@ -286,21 +276,21 @@
                         </div>
                     </div>
 
-                    {# Pose — 4 cards #}
+                    {# Pose — gender-aware cards (Alpine x-for) #}
                     <div>
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pose</p>
-                        <div class="grid grid-cols-4 gap-2">
-                            {% for pose in poses %}
-                            <label @click="pose_preset = '{{ pose.value }}'" class="cursor-pointer">
-                                <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
-                                     :class="pose_preset === '{{ pose.value }}'
-                                         ? 'border-primary bg-primary/5'
-                                         : 'border-gray-200 hover:border-primary/30'">
-                                    <p class="text-xl mb-0.5">{{ pose.icon }}</p>
-                                    <p class="text-[10px] font-semibold text-dark leading-tight">{{ pose.label }}</p>
-                                </div>
-                            </label>
-                            {% endfor %}
+                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            <template x-for="pose in currentPoses" :key="pose.value">
+                                <label @click="pose_preset = pose.value" class="cursor-pointer">
+                                    <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1"
+                                         :class="pose_preset === pose.value
+                                             ? 'border-primary bg-primary/5'
+                                             : 'border-gray-200 hover:border-primary/30'">
+                                        <p class="text-xl mb-0.5" x-text="pose.icon"></p>
+                                        <p class="text-[10px] font-semibold text-dark leading-tight" x-text="pose.label"></p>
+                                    </div>
+                                </label>
+                            </template>
                         </div>
                     </div>
 
@@ -463,20 +453,34 @@
                         <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Measurements</p>
                         <p class="text-xs text-gray-400 mb-3">Leave blank if unknown. Helps the AI match garment fit.</p>
                         <div class="grid grid-cols-2 gap-3">
-                            {% for field, label, placeholder in [
-                                ("m_height_cm",    "Height (cm)",     "e.g. 165"),
-                                ("m_chest_bust_cm","Chest / Bust cm", "e.g. 88"),
-                                ("m_waist_cm",     "Waist (cm)",      "e.g. 68"),
-                                ("m_hips_cm",      "Hips (cm)",       "e.g. 94"),
-                            ] %}
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 mb-1">{{ label }}</label>
-                                <input type="number" x-model="{{ field }}"
-                                       inputmode="numeric" placeholder="{{ placeholder }}"
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Height (cm)</label>
+                                <input type="number" x-model="m_height_cm"
+                                       inputmode="numeric" placeholder="e.g. 165"
                                        class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900
                                               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
                             </div>
-                            {% endfor %}
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1" x-text="measurementLabel"></label>
+                                <input type="number" x-model="m_chest_bust_cm"
+                                       inputmode="numeric" placeholder="e.g. 88"
+                                       class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900
+                                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Waist (cm)</label>
+                                <input type="number" x-model="m_waist_cm"
+                                       inputmode="numeric" placeholder="e.g. 68"
+                                       class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900
+                                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Hips (cm)</label>
+                                <input type="number" x-model="m_hips_cm"
+                                       inputmode="numeric" placeholder="e.g. 94"
+                                       class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900
+                                              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
+                            </div>
                         </div>
                     </div>
 
@@ -552,5 +556,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script>window.GENDER_OPTIONS = {{ gender_options_json | safe }};</script>
 <script src="/static/js/configure.js"></script>
 {% endblock %}

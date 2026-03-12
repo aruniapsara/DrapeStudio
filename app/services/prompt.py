@@ -88,6 +88,19 @@ def _build_measurements_text(measurements: dict) -> str:
     return ", ".join(parts)
 
 
+# Human-readable body type descriptions for prompt generation.
+# Maps option IDs to natural-language descriptions used in the prompt.
+BODY_TYPE_DESCRIPTIONS = {
+    "slim": "slim build",
+    "average": "average build",
+    "curvy": "curvy, fuller figure",
+    "plus_size": "plus-size, fuller figure",
+    "athletic": "athletic, muscular build",
+    "heavy": "heavy, broad muscular build",
+    "plus": "plus-size build",  # legacy value from older sessions
+}
+
+
 def assemble_prompt(
     model_params: dict,
     scene_params: dict,
@@ -153,7 +166,8 @@ def assemble_prompt(
 
         model_desc = (
             f"A {gender} model, age {age_range}, "
-            f"Fitzpatrick skin tone {skin_tone}, {body_type} body type"
+            f"Fitzpatrick skin tone {skin_tone}, "
+            f"{BODY_TYPE_DESCRIPTIONS.get(body_type, body_type + ' build')}"
         )
         if sri_lankan_identity:
             model_desc += f". {sri_lankan_identity}"

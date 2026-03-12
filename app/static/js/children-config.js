@@ -118,6 +118,9 @@ function childrenConfig(initialAgeGroup) {
         },
     };
 
+    // Gender-aware hair options loaded from backend config
+    var CHILDREN_HAIR = (window.CHILDREN_HAIR_OPTIONS) || {};
+
     var initial = AGE_CONFIG[initialAgeGroup] || AGE_CONFIG.kid;
 
     return {
@@ -143,6 +146,11 @@ function childrenConfig(initialAgeGroup) {
         initFromSession() {
             var cg = sessionStorage.getItem('childGender');
             if (cg) this.childGender = cg;
+            // Validate hair selection against gender-filtered options
+            var validHair = this.currentHairOptions.map(function(h) { return h.id; });
+            if (!validHair.includes(this.selectedHair)) {
+                this.selectedHair = validHair[0] || this.config.hairOptions[0].id;
+            }
         },
 
         // ── Change age group: update config and reset selections ───────────
@@ -152,7 +160,8 @@ function childrenConfig(initialAgeGroup) {
             this.config             = this.AGE_CONFIG[newGroup];
             this.selectedPose       = this.config.poses[0].id;
             this.selectedBackground = this.config.backgrounds[0].id;
-            this.selectedHair       = this.config.hairOptions[0].id;
+            var genderHair = this.currentHairOptions;
+            this.selectedHair       = genderHair.length > 0 ? genderHair[0].id : this.config.hairOptions[0].id;
             this.selectedExpression = this.config.expressions[0].id;
             // Update URL so back-button preserves the selected age group
             history.replaceState(null, '', '/children/configure?age_group=' + newGroup);
@@ -173,6 +182,13 @@ function childrenConfig(initialAgeGroup) {
         },
 
         // ── Summary for display ───────────────────────────────────────────
+        get currentHairOptions() {
+            var ageHair = CHILDREN_HAIR[this.ageGroup];
+            if (!ageHair) return this.config.hairOptions;  // fallback to hardcoded
+            var opts = ageHair[this.childGender] || ageHair['unisex'] || this.config.hairOptions;
+            return opts.map(function(o) { return { id: o.id, label: o.label ? o.label.en : o.id, icon: o.icon || '' }; });
+        },
+
         get summary() {
             var pose = this.config.poses.find(function(p) { return p.id === this.selectedPose; }.bind(this));
             var bg   = this.config.backgrounds.find(function(b) { return b.id === this.selectedBackground; }.bind(this));

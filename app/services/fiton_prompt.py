@@ -157,14 +157,16 @@ class FitonPromptBuilder:
             height_desc = "very tall"
 
         waist_cm = measurements.get("waist_cm", 72.0)
+        gender = measurements.get("gender", "female")
+
         if waist_cm < 66:
             build = "slim"
         elif waist_cm < 78:
             build = "medium"
         elif waist_cm < 90:
-            build = "curvy"
+            build = "curvy" if gender == "female" else "athletic"
         else:
-            build = "plus-size"
+            build = "plus-size" if gender == "female" else "heavy build"
 
         template: str = self.config["customer_description_template"]
         return template.format(

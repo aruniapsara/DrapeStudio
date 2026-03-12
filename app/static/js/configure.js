@@ -61,31 +61,10 @@ function configureState() {
             { value: 'white',      label: 'White',    hex: '#E8E8E8' },
         ],
 
-        hairStyleOptions: {
-            feminine: [
-                { value: 'long_straight',  label: 'Long Straight', icon: '💇‍♀️' },
-                { value: 'long_wavy',      label: 'Long Wavy',     icon: '🌊'  },
-                { value: 'medium_layered', label: 'Med Layered',   icon: '✂️'  },
-                { value: 'short_bob',      label: 'Short Bob',     icon: '👩'  },
-                { value: 'curly',          label: 'Curly',         icon: '🌀'  },
-                { value: 'braided',        label: 'Braided',       icon: '🎀'  },
-            ],
-            masculine: [
-                { value: 'short_crop',   label: 'Short Crop',   icon: '💇‍♂️' },
-                { value: 'side_part',    label: 'Side Part',    icon: '💈'   },
-                { value: 'slicked_back', label: 'Slicked Back', icon: '⬅️'   },
-                { value: 'curly_short',  label: 'Curly Short',  icon: '🌀'   },
-                { value: 'buzz_cut',     label: 'Buzz Cut',     icon: '⚡'   },
-                { value: 'long',         label: 'Long',         icon: '🎸'   },
-            ],
-            neutral: [
-                { value: 'short_straight', label: 'Short',        icon: '✂️' },
-                { value: 'medium_length',  label: 'Medium',       icon: '💁' },
-                { value: 'long_straight',  label: 'Long Straight',icon: '💇' },
-                { value: 'shaved',         label: 'Shaved',       icon: '⚡' },
-                { value: 'natural_curly',  label: 'Curly',        icon: '🌀' },
-            ],
-        },
+        // Gender-aware options loaded from backend config
+        hairStyleOptions:  (window.GENDER_OPTIONS && window.GENDER_OPTIONS.HAIR_STYLES) || {},
+        bodyTypeOptions:   (window.GENDER_OPTIONS && window.GENDER_OPTIONS.BODY_TYPES)  || {},
+        poseOptions:       (window.GENDER_OPTIONS && window.GENDER_OPTIONS.POSES)       || {},
 
         viewOptions: [
             { value: 'front', label: 'Front',  icon: '👤' },
@@ -102,7 +81,22 @@ function configureState() {
         // ── Computed getters ──────────────────────────────────────────────────
 
         get currentHairStyles() {
-            return this.hairStyleOptions[this.gender] || this.hairStyleOptions.neutral;
+            var opts = this.hairStyleOptions[this.gender] || this.hairStyleOptions.neutral || [];
+            return opts.map(function(o) { return { value: o.id, label: o.label ? o.label.en : o.id, icon: o.icon || '' }; });
+        },
+
+        get currentBodyTypes() {
+            var opts = this.bodyTypeOptions[this.gender] || this.bodyTypeOptions.neutral || [];
+            return opts.map(function(o) { return { value: o.id, label: o.label ? o.label.en : o.id, icon: o.icon || '' }; });
+        },
+
+        get currentPoses() {
+            var opts = this.poseOptions[this.gender] || this.poseOptions.neutral || [];
+            return opts.map(function(o) { return { value: o.id, label: o.label ? o.label.en : o.id, icon: o.icon || '' }; });
+        },
+
+        get measurementLabel() {
+            return this.gender === 'masculine' ? 'Chest (cm)' : this.gender === 'feminine' ? 'Bust (cm)' : 'Chest / Bust (cm)';
         },
 
         get appearanceSummary() {
@@ -141,10 +135,16 @@ function configureState() {
                 traditional_room: 'Traditional Room',
             };
             var poseMap = {
-                front_standing: 'Standing',
-                casual_walking: 'Walking',
-                seated:         'Seated',
-                dynamic:        'Dynamic',
+                front_standing:     'Standing',
+                casual_walking:     'Walking',
+                seated:             'Seated',
+                dynamic:            'Dynamic',
+                fashion_standing:   'Fashion Stand',
+                seated_elegant:     'Seated Elegant',
+                hand_on_hip:        'Hand on Hip',
+                standing_confident: 'Confident Stand',
+                hands_in_pockets:   'Hands in Pockets',
+                seated_casual:      'Seated Casual',
             };
             return (envMap[this.environment]   || this.environment)  + ' · ' +
                    (poseMap[this.pose_preset]  || this.pose_preset)  + ' · ' +
@@ -194,6 +194,18 @@ function configureState() {
             var validStyles = this.currentHairStyles.map(function(s) { return s.value; });
             if (!validStyles.includes(this.hair_style)) {
                 this.hair_style = validStyles[0] || '';
+            }
+
+            // Validate body_type is valid for current gender
+            var validBodyTypes = this.currentBodyTypes.map(function(b) { return b.value; });
+            if (!validBodyTypes.includes(this.body_type)) {
+                this.body_type = validBodyTypes[0] || 'average';
+            }
+
+            // Validate pose_preset is valid for current gender
+            var validPoses = this.currentPoses.map(function(p) { return p.value; });
+            if (!validPoses.includes(this.pose_preset)) {
+                this.pose_preset = validPoses[0] || 'front_standing';
             }
         },
 

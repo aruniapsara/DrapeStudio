@@ -18,6 +18,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.config.gender_options import get_adult_options_json, get_children_hair_json, get_fiton_build_json
 from app.database import get_db
 from app.dependencies import get_current_user, verify_credentials
 from app.middleware.auth import AuthMiddleware, get_request_user
@@ -480,7 +481,9 @@ async def upload_page(request: Request):
 
 @app.get("/configure")
 async def configure_page(request: Request):
-    return templates.TemplateResponse("configure.html", _ctx(request))
+    ctx = _ctx(request)
+    ctx["gender_options_json"] = get_adult_options_json()
+    return templates.TemplateResponse("configure.html", ctx)
 
 
 @app.get("/review")
@@ -639,10 +642,9 @@ async def children_configure_page(request: Request, age_group: str = "kid"):
     from app.children_config import AGE_GROUPS
     if age_group not in AGE_GROUPS:
         age_group = "kid"
-    return templates.TemplateResponse(
-        "children/configure.html",
-        _ctx(request, age_group=age_group, age_groups=AGE_GROUPS),
-    )
+    ctx = _ctx(request, age_group=age_group, age_groups=AGE_GROUPS)
+    ctx["children_hair_json"] = get_children_hair_json()
+    return templates.TemplateResponse("children/configure.html", ctx)
 
 
 @app.get("/children/review")
@@ -703,7 +705,9 @@ async def fiton_upload_page(request: Request):
 
 @app.get("/fiton/customer")
 async def fiton_customer_page(request: Request):
-    return templates.TemplateResponse("fiton/customer_details.html", _ctx(request))
+    ctx = _ctx(request)
+    ctx["fiton_build_json"] = get_fiton_build_json()
+    return templates.TemplateResponse("fiton/customer_details.html", ctx)
 
 
 @app.get("/fiton/results/{gen_id}")
