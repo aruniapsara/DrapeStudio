@@ -15,6 +15,7 @@ from app.models.db import (
     UsageCost,
     generate_ulid,
 )
+from app.services.fashn import FashnError, FashnService
 from app.services.gemini import GeminiError, generate_garment_images
 from app.services.prompt import (
     assemble_prompt,
@@ -119,7 +120,6 @@ def generate_images(generation_request_id: str) -> None:
                 output_count = len(views_list)
 
         adult_prompts = None  # Only set for adult module with multiple views
-        fiton_system_instruction = ""  # Only set for fiton module
         try:
             if module == "accessories":
                 # Accessories module: rebuild accessory_params dict from stored JSON
@@ -172,50 +172,12 @@ def generate_images(generation_request_id: str) -> None:
                 )
 
             elif module == "fiton":
-                # Fiton module: build prompt via FitonPromptBuilder
-                from app.services.fiton_prompt import FitonPromptBuilder
-                from app.models.db import FitonRequest as FitonRequestModel
-
-                garment_type = gen.model_params.get("garment_type", "dress")
-                customer_measurements = gen.model_params.get("customer_measurements", {})
-                fit_preference = gen.model_params.get("fit_preference", "regular")
-                garment_description = gen.model_params.get("garment_description") or {}
-
-                # Load fit_details from the FitonRequest record (computed at API time)
-                fiton_record = (
-                    db.query(FitonRequestModel)
-                    .filter(FitonRequestModel.generation_request_id == gen.id)
-                    .first()
-                )
-                fit_details = fiton_record.fit_details if fiton_record else {}
-
-                builder = FitonPromptBuilder()
-                prompt_data = builder.build_prompt(
-                    garment_type=garment_type,
-                    customer_measurements=customer_measurements,
-                    fit_preference=fit_preference,
-                    fit_details=fit_details,
-                    garment_description=garment_description,
-                )
-                prompt_text = prompt_data["prompt"]
-                fiton_system_instruction = prompt_data.get("system_context", "")
-                fiton_negative_prompt = prompt_data.get("negative_prompt", "")
-
-                # Append negative prompt to the main prompt text so Gemini
-                # knows what to avoid (identity changes, beautification, etc.)
-                if fiton_negative_prompt:
-                    prompt_text += (
-                        "\n\nNEGATIVE — Do NOT include any of the following in "
-                        "the generated image: " + fiton_negative_prompt
-                    )
-
+                # Fiton module: handled by FASHN.ai (no prompt needed)
+                # Just set a placeholder — the actual API call is done below.
+                prompt_text = ""
                 logger.info(
-                    "Generation %s (fiton/%s): prompt assembled (%d chars, "
-                    "system_instruction %d chars)",
+                    "Generation %s (fiton): will use FASHN.ai virtual try-on",
                     generation_request_id,
-                    garment_type,
-                    len(prompt_text),
-                    len(fiton_system_instruction),
                 )
 
             else:
@@ -249,120 +211,196 @@ def generate_images(generation_request_id: str) -> None:
             _fail_generation(db, gen, f"Prompt assembly failed: {e}")
             return
 
-        # Load reference photo:
-        #   - adult module: optional model reference photo (model_photo_url)
-        #   - fiton module: customer photo to preserve appearance (customer_photo_url)
-        model_photo_bytes = None
+        # ── Step 6–9 branch: FASHN (fiton) vs Gemini (everything else) ──────
+
         if module == "fiton":
-            photo_url = gen.model_params.get("customer_photo_url")
-        else:
-            photo_url = gen.model_params.get("model_photo_url")
+            # ── FASHN.ai virtual try-on path ────────────────────────────────
+            # FASHN needs publicly accessible URLs for customer + garment.
+            # Build full URLs from storage paths.
+            customer_photo_path = gen.model_params.get("customer_photo_url", "")
+            if not customer_photo_path:
+                _fail_generation(db, gen, "Fiton: customer photo URL is missing.")
+                return
 
-        if photo_url:
-            try:
-                model_photo_bytes = storage.load(photo_url)
-                logger.info(
-                    "Generation %s: loaded reference photo from %s",
-                    generation_request_id,
-                    photo_url,
-                )
-            except FileNotFoundError:
-                logger.warning(
-                    "Generation %s: reference photo not found at %s — proceeding without it",
-                    generation_request_id,
-                    photo_url,
-                )
+            garment_photo_path = gen.garment_image_urls[0] if gen.garment_image_urls else ""
+            if not garment_photo_path:
+                _fail_generation(db, gen, "Fiton: garment image URL is missing.")
+                return
 
-        logger.info(
-            "Generation %s: calling Gemini with %d garment image(s)%s, module=%s, prompt length %d",
-            generation_request_id,
-            len(garment_image_bytes_list),
-            " + model photo" if model_photo_bytes else "",
-            module,
-            len(prompt_text),
-        )
+            # Convert storage paths to publicly accessible URLs
+            base_url = settings.BASE_URL.rstrip("/")
+            customer_url = _to_public_url(customer_photo_path, base_url)
+            garment_url = _to_public_url(garment_photo_path, base_url)
 
-        # Step 6: Call Gemini API (pass module + output_count + display_mode)
-        try:
-            extra_kwargs = {}
-            if module == "accessories":
-                # Pass both prompts (one per camera angle) so each variation
-                # gets the correct angle instruction embedded in its prompt text.
-                extra_kwargs["prompt_texts"] = accessory_prompts
-                extra_kwargs["display_mode"] = display_mode
-            elif module == "fiton":
-                # Pass system instruction for identity preservation
-                if fiton_system_instruction:
-                    extra_kwargs["system_instruction"] = fiton_system_instruction
-            elif module == "adult" and adult_prompts is not None:
-                # Multiple views: pass per-view prompts so each gets the right angle
-                extra_kwargs["prompt_texts"] = adult_prompts
+            # Map garment_type to FASHN category
+            garment_type = gen.model_params.get("garment_type", "dress")
+            fashn_category = _garment_type_to_fashn_category(garment_type)
 
-            result = generate_garment_images(
-                garment_image_bytes=garment_image_bytes_list,
-                prompt_text=prompt_text,
-                model_photo_bytes=model_photo_bytes,
-                module=module,
-                output_count=output_count,
-                **extra_kwargs,
+            logger.info(
+                "Generation %s: calling FASHN.ai — customer=%s, garment=%s, category=%s",
+                generation_request_id,
+                customer_url[:80],
+                garment_url[:80],
+                fashn_category,
             )
-        except GeminiError as e:
-            _fail_generation(db, gen, f"Gemini API error: {e}")
-            return
-        except Exception as e:
-            _fail_generation(db, gen, f"Unexpected error during generation: {e}")
-            return
 
-        # Step 7: Upload output images to storage
-        output_paths = []
-        for i, img_bytes in enumerate(result.images):
-            output_path = f"outputs/{generation_request_id}/variation_{i}.jpg"
-            storage.save(img_bytes, output_path)
-            output_paths.append(output_path)
+            try:
+                fashn_svc = FashnService()
+                fashn_result = fashn_svc.generate_tryon(
+                    customer_photo_url=customer_url,
+                    garment_photo_url=garment_url,
+                    category=fashn_category,
+                )
+            except FashnError as e:
+                _fail_generation(db, gen, f"FASHN API error: {e}")
+                return
+            except Exception as e:
+                _fail_generation(db, gen, f"Unexpected error during FASHN try-on: {e}")
+                return
 
-        # Step 8: Insert GenerationOutput rows
-        for i, path in enumerate(output_paths):
-            # Try to get image dimensions
-            width, height = _get_image_dimensions(result.images[i])
+            # Save the single output image
+            output_path = f"outputs/{generation_request_id}/variation_0.png"
+            storage.save(fashn_result.image_bytes, output_path)
 
+            width, height = _get_image_dimensions(fashn_result.image_bytes)
             output = GenerationOutput(
                 id=generate_ulid(),
                 generation_request_id=generation_request_id,
-                image_url=f"local://{path}" if settings.STORAGE_BACKEND == "local" else path,
-                variation_index=i,
+                image_url=f"local://{output_path}" if settings.STORAGE_BACKEND == "local" else output_path,
+                variation_index=0,
                 width=width,
                 height=height,
                 created_at=datetime.utcnow(),
             )
             db.add(output)
 
-        # Step 9: Insert UsageCost row
-        # Cost scales with number of images generated
-        total_usd_cost = ESTIMATED_COST_PER_CALL_USD * len(result.images)
-        usage = UsageCost(
-            id=generate_ulid(),
-            generation_request_id=generation_request_id,
-            provider="google_gemini",
-            model_name=result.model_name,
-            input_tokens=result.input_tokens,
-            output_tokens=result.output_tokens,
-            estimated_cost_usd=total_usd_cost,
-            duration_ms=result.duration_ms,
-            recorded_at=datetime.utcnow(),
-        )
-        db.add(usage)
+            # FASHN cost tracking — flat rate per call
+            FASHN_COST_PER_CALL_USD = Decimal("0.05")
+            usage = UsageCost(
+                id=generate_ulid(),
+                generation_request_id=generation_request_id,
+                provider="fashn",
+                model_name="tryon-v1.6",
+                input_tokens=0,
+                output_tokens=0,
+                estimated_cost_usd=FASHN_COST_PER_CALL_USD,
+                duration_ms=fashn_result.duration_ms,
+                recorded_at=datetime.utcnow(),
+            )
+            db.add(usage)
 
-        # Step 10: Set status = "succeeded"
-        gen.status = "succeeded"
-        gen.updated_at = datetime.utcnow()
-        db.commit()
+            gen.status = "succeeded"
+            gen.updated_at = datetime.utcnow()
+            db.commit()
 
-        logger.info(
-            "Generation %s succeeded: %d images in %dms",
-            generation_request_id,
-            len(result.images),
-            result.duration_ms,
-        )
+            logger.info(
+                "Generation %s (fiton/FASHN) succeeded: 1 image, %d bytes in %dms",
+                generation_request_id,
+                len(fashn_result.image_bytes),
+                fashn_result.duration_ms,
+            )
+
+        else:
+            # ── Gemini path (adult, children, accessories) ──────────────────
+            # Load optional reference photo (adult module only)
+            model_photo_bytes = None
+            photo_url = gen.model_params.get("model_photo_url")
+
+            if photo_url:
+                try:
+                    model_photo_bytes = storage.load(photo_url)
+                    logger.info(
+                        "Generation %s: loaded reference photo from %s",
+                        generation_request_id,
+                        photo_url,
+                    )
+                except FileNotFoundError:
+                    logger.warning(
+                        "Generation %s: reference photo not found at %s — proceeding without it",
+                        generation_request_id,
+                        photo_url,
+                    )
+
+            logger.info(
+                "Generation %s: calling Gemini with %d garment image(s)%s, module=%s, prompt length %d",
+                generation_request_id,
+                len(garment_image_bytes_list),
+                " + model photo" if model_photo_bytes else "",
+                module,
+                len(prompt_text),
+            )
+
+            # Step 6: Call Gemini API
+            try:
+                extra_kwargs = {}
+                if module == "accessories":
+                    extra_kwargs["prompt_texts"] = accessory_prompts
+                    extra_kwargs["display_mode"] = display_mode
+                elif module == "adult" and adult_prompts is not None:
+                    extra_kwargs["prompt_texts"] = adult_prompts
+
+                result = generate_garment_images(
+                    garment_image_bytes=garment_image_bytes_list,
+                    prompt_text=prompt_text,
+                    model_photo_bytes=model_photo_bytes,
+                    module=module,
+                    output_count=output_count,
+                    **extra_kwargs,
+                )
+            except GeminiError as e:
+                _fail_generation(db, gen, f"Gemini API error: {e}")
+                return
+            except Exception as e:
+                _fail_generation(db, gen, f"Unexpected error during generation: {e}")
+                return
+
+            # Step 7: Upload output images to storage
+            output_paths = []
+            for i, img_bytes in enumerate(result.images):
+                output_path = f"outputs/{generation_request_id}/variation_{i}.jpg"
+                storage.save(img_bytes, output_path)
+                output_paths.append(output_path)
+
+            # Step 8: Insert GenerationOutput rows
+            for i, path in enumerate(output_paths):
+                width, height = _get_image_dimensions(result.images[i])
+                output = GenerationOutput(
+                    id=generate_ulid(),
+                    generation_request_id=generation_request_id,
+                    image_url=f"local://{path}" if settings.STORAGE_BACKEND == "local" else path,
+                    variation_index=i,
+                    width=width,
+                    height=height,
+                    created_at=datetime.utcnow(),
+                )
+                db.add(output)
+
+            # Step 9: Insert UsageCost row
+            total_usd_cost = ESTIMATED_COST_PER_CALL_USD * len(result.images)
+            usage = UsageCost(
+                id=generate_ulid(),
+                generation_request_id=generation_request_id,
+                provider="google_gemini",
+                model_name=result.model_name,
+                input_tokens=result.input_tokens,
+                output_tokens=result.output_tokens,
+                estimated_cost_usd=total_usd_cost,
+                duration_ms=result.duration_ms,
+                recorded_at=datetime.utcnow(),
+            )
+            db.add(usage)
+
+            # Step 10: Set status = "succeeded"
+            gen.status = "succeeded"
+            gen.updated_at = datetime.utcnow()
+            db.commit()
+
+            logger.info(
+                "Generation %s succeeded: %d images in %dms",
+                generation_request_id,
+                len(result.images),
+                result.duration_ms,
+            )
 
         # Step 11: Send completion notifications (push + SMS)
         if gen.user_id:
@@ -393,6 +431,43 @@ def generate_images(generation_request_id: str) -> None:
             pass
     finally:
         db.close()
+
+
+def _to_public_url(storage_path: str, base_url: str) -> str:
+    """Convert a storage path to a publicly accessible URL for FASHN.
+
+    For local storage: prepend BASE_URL to the /v1/files/ path.
+    For GCS storage: return a signed download URL (already public).
+    """
+    if settings.STORAGE_BACKEND == "gcs":
+        return storage.signed_download_url(
+            storage_path,
+            expiry_seconds=settings.OUTPUT_URL_EXPIRY_SECONDS,
+        )
+    # Local storage: build full URL from base_url + local path
+    clean_path = storage_path.replace("local://", "")
+    return f"{base_url}/v1/files/{clean_path}"
+
+
+def _garment_type_to_fashn_category(garment_type: str) -> str:
+    """Map DrapeStudio garment_type to FASHN category.
+
+    FASHN categories: "tops", "bottoms", "one-piece", "auto".
+    """
+    tops = {"shirt", "blouse", "t-shirt", "tshirt", "top", "jacket", "coat",
+            "hoodie", "sweater", "polo", "crop_top", "tank_top", "vest"}
+    bottoms = {"pants", "trousers", "jeans", "shorts", "skirt", "leggings"}
+    one_piece = {"dress", "saree", "sari", "jumpsuit", "romper", "gown",
+                 "overalls", "frock"}
+
+    gt = garment_type.lower().strip().replace(" ", "_")
+    if gt in tops:
+        return "tops"
+    if gt in bottoms:
+        return "bottoms"
+    if gt in one_piece:
+        return "one-piece"
+    return "auto"
 
 
 def _fail_generation(db: Session, gen: GenerationRequest, error_message: str) -> None:

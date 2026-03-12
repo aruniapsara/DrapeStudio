@@ -118,17 +118,15 @@ def _call_gemini(
         model_name:          Gemini model name.
         variation_index:     Which camera angle variation (0, 1, 2).
         model_photo_bytes:   Optional model reference photo bytes.
-        module:              "adult", "children", "accessories", or "fiton".
+        module:              "adult", "children", or "accessories" (fiton uses FASHN.ai).
         display_mode:        For accessories — "on_model", "flat_lay", or "lifestyle".
-        system_instruction:  Optional system-level instruction (used for fiton identity preservation).
+        system_instruction:  Optional system-level instruction.
 
     Returns:
         Tuple of (image_bytes, usage_dict).
     """
     # Determine camera angle instruction
     if module == "accessories":
-        view_instruction = ""
-    elif module == "fiton":
         view_instruction = ""
     elif module == "children":
         views = CHILDREN_VARIATION_VIEWS
@@ -141,44 +139,26 @@ def _call_gemini(
     full_prompt = prompt_text + (f"\n\n{view_instruction}" if view_instruction else "")
 
     # Build the contents list: text + images (PIL Image objects)
-    # For fiton module: add explicit image labels so Gemini knows which
-    # image is the customer reference and which is the garment
+    # NOTE: Fiton module is now handled by FASHN.ai, not Gemini.
     contents: list = []
-
-    if module == "fiton" and model_photo_bytes:
-        # Fiton: customer photo FIRST with explicit label, then garment
-        contents.append(
-            "CUSTOMER REFERENCE PHOTO — This is the real person. "
-            "You MUST preserve this EXACT person's face, skin tone, hair, "
-            "and all physical features in the generated image:"
-        )
+    contents.append(full_prompt)
+    if model_photo_bytes:
         contents.append(_bytes_to_pil(model_photo_bytes))
-        contents.append(
-            "GARMENT PHOTO — Put this garment on the customer shown above:"
-        )
-        for img_bytes in garment_image_bytes:
-            contents.append(_bytes_to_pil(img_bytes))
-        contents.append(full_prompt)
-    else:
-        # Non-fiton modules: original order (prompt first, then images)
-        contents.append(full_prompt)
-        if model_photo_bytes:
-            contents.append(_bytes_to_pil(model_photo_bytes))
-        for img_bytes in garment_image_bytes:
-            contents.append(_bytes_to_pil(img_bytes))
+    for img_bytes in garment_image_bytes:
+        contents.append(_bytes_to_pil(img_bytes))
 
     # Create the Gemini client
     client = genai.Client(api_key=settings.GOOGLE_API_KEY)
 
     # Determine aspect ratio per module
-    # - adult/children/fiton: 3:4 portrait (ideal for fashion catalogue)
+    # - adult/children: 3:4 portrait (ideal for fashion catalogue)
     # - accessories: 1:1 square (product-focused)
     if module == "accessories":
         aspect_ratio = "1:1"
     else:
         aspect_ratio = "3:4"
 
-    # Build config — include system_instruction for fiton identity preservation
+    # Build config
     config_kwargs = {
         "response_modalities": ["TEXT", "IMAGE"],
         "image_config": types.ImageConfig(aspect_ratio=aspect_ratio),
@@ -260,11 +240,11 @@ def generate_garment_images(
         model_name: Gemini model name. Defaults to settings.GEMINI_IMAGE_MODEL.
         max_retries: Number of retries per call on transient errors.
         model_photo_bytes: Optional bytes of a real-person model reference photo.
-        module: "adult", "children", "accessories", or "fiton".
+        module: "adult", "children", or "accessories" (fiton uses FASHN.ai).
         output_count: Number of image variations to generate.
         display_mode: For module="accessories" — "on_model", "flat_lay", or "lifestyle".
         prompt_texts: Optional per-variation prompt list.
-        system_instruction: Optional system-level instruction for identity preservation (fiton).
+        system_instruction: Optional system-level instruction.
 
     Returns:
         GeminiResult with generated images and usage metadata.

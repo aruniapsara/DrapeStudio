@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-2.0-flash-exp-image-generation"
     GEMINI_IMAGE_MODEL: str = "gemini-3.1-flash-image-preview"
 
+    # FASHN.ai virtual try-on API (replaces Gemini for fiton module)
+    FASHN_API_KEY: str = ""
+    FASHN_API_URL: str = "https://api.fashn.ai/v1"
+
     # Google Cloud Storage (production only)
     GCS_BUCKET_UPLOADS: str = ""
     GCS_BUCKET_OUTPUTS: str = ""
