@@ -449,25 +449,22 @@ def _to_public_url(storage_path: str, base_url: str) -> str:
     return f"{base_url}/v1/files/{clean_path}"
 
 
+GARMENT_TO_FASHN_CATEGORY = {
+    "top": "tops",
+    "bottom": "bottoms",
+    "dress": "one-pieces",
+    "saree": "one-pieces",
+    "full_outfit": "one-pieces",
+}
+
+
 def _garment_type_to_fashn_category(garment_type: str) -> str:
     """Map DrapeStudio garment_type to FASHN category.
 
-    FASHN categories: "tops", "bottoms", "one-piece", "auto".
+    FASHN categories: "tops", "bottoms", "one-pieces", "auto".
     """
-    tops = {"shirt", "blouse", "t-shirt", "tshirt", "top", "jacket", "coat",
-            "hoodie", "sweater", "polo", "crop_top", "tank_top", "vest"}
-    bottoms = {"pants", "trousers", "jeans", "shorts", "skirt", "leggings"}
-    one_piece = {"dress", "saree", "sari", "jumpsuit", "romper", "gown",
-                 "overalls", "frock"}
-
     gt = garment_type.lower().strip().replace(" ", "_")
-    if gt in tops:
-        return "tops"
-    if gt in bottoms:
-        return "bottoms"
-    if gt in one_piece:
-        return "one-piece"
-    return "auto"
+    return GARMENT_TO_FASHN_CATEGORY.get(gt, "auto")
 
 
 def _fail_generation(db: Session, gen: GenerationRequest, error_message: str) -> None:
