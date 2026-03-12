@@ -101,8 +101,10 @@ def generate_images(generation_request_id: str) -> None:
         # Step 4 & 5: Load template and assemble prompt (module-aware)
         module = gen.module or "adult"
 
-        # Determine output image count: accessories → 2, fiton → 1, others → stored value (default 3)
+        # Determine output image count and views
         display_mode = ""
+        views_list = ["front"]  # default
+        selected_quality = "1k"  # default
         if module == "accessories":
             output_count = 2
             display_mode = gen.scene_params.get("display_mode", "on_model")
@@ -110,7 +112,13 @@ def generate_images(generation_request_id: str) -> None:
             output_count = 1
         else:
             output_count = gen.output_count or 3
+            views_list = gen.scene_params.get("views", ["front"])
+            selected_quality = gen.scene_params.get("quality", "1k")
+            # Ensure output_count matches views
+            if len(views_list) > 0:
+                output_count = len(views_list)
 
+        adult_prompts = None  # Only set for adult module with multiple views
         try:
             if module == "accessories":
                 # Accessories module: rebuild accessory_params dict from stored JSON
@@ -215,11 +223,32 @@ def generate_images(generation_request_id: str) -> None:
                 )
 
             else:
-                prompt_text = assemble_prompt(
-                    model_params=gen.model_params,
-                    scene_params=gen.scene_params,
-                    template_version=gen.prompt_template_version,
-                )
+                # Adult module: generate per-view prompts if multiple views
+                if len(views_list) > 1:
+                    view_angle_instructions = {
+                        "front": "Camera angle: FRONT VIEW — facing directly toward the camera.",
+                        "side": "Camera angle: SIDE VIEW — model turned 90 degrees, profile view.",
+                        "back": "Camera angle: BACK VIEW — model turned away, showing the garment from behind.",
+                    }
+                    adult_prompts = []
+                    for view in views_list:
+                        base_prompt = assemble_prompt(
+                            model_params=gen.model_params,
+                            scene_params=gen.scene_params,
+                            template_version=gen.prompt_template_version,
+                        )
+                        angle_instruction = view_angle_instructions.get(view, "")
+                        if angle_instruction:
+                            base_prompt = angle_instruction + "\n\n" + base_prompt
+                        adult_prompts.append(base_prompt)
+                    prompt_text = adult_prompts[0]
+                else:
+                    adult_prompts = None
+                    prompt_text = assemble_prompt(
+                        model_params=gen.model_params,
+                        scene_params=gen.scene_params,
+                        template_version=gen.prompt_template_version,
+                    )
         except Exception as e:
             _fail_generation(db, gen, f"Prompt assembly failed: {e}")
             return
@@ -265,6 +294,9 @@ def generate_images(generation_request_id: str) -> None:
                 # gets the correct angle instruction embedded in its prompt text.
                 extra_kwargs["prompt_texts"] = accessory_prompts
                 extra_kwargs["display_mode"] = display_mode
+            elif module == "adult" and adult_prompts is not None:
+                # Multiple views: pass per-view prompts so each gets the right angle
+                extra_kwargs["prompt_texts"] = adult_prompts
 
             result = generate_garment_images(
                 garment_image_bytes=garment_image_bytes_list,
@@ -305,6 +337,8 @@ def generate_images(generation_request_id: str) -> None:
             db.add(output)
 
         # Step 9: Insert UsageCost row
+        # Cost scales with number of images generated
+        total_usd_cost = ESTIMATED_COST_PER_CALL_USD * len(result.images)
         usage = UsageCost(
             id=generate_ulid(),
             generation_request_id=generation_request_id,
@@ -312,7 +346,7 @@ def generate_images(generation_request_id: str) -> None:
             model_name=result.model_name,
             input_tokens=result.input_tokens,
             output_tokens=result.output_tokens,
-            estimated_cost_usd=ESTIMATED_COST_PER_CALL_USD,
+            estimated_cost_usd=total_usd_cost,
             duration_ms=result.duration_ms,
             recorded_at=datetime.utcnow(),
         )

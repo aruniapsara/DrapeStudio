@@ -125,29 +125,39 @@ def create_generation(
         model_params_dict = body.model_params.model_dump()  # type: ignore[union-attr]
         model_params_dict["product_type"] = body.product_type
         scene_params_dict = body.scene.model_dump()  # type: ignore[union-attr]
+        # Store views and quality so the worker can generate the right angles
+        scene_params_dict["views"] = selected_views
+        scene_params_dict["quality"] = selected_quality
 
-    # ── Credit / usage enforcement (JWT users only) ───────────────────────────
+    # ── Determine views and quality ────────────────────────────────────────────
+    # These come from the request body (new v2 fields) or default to legacy values
+    selected_views = getattr(body, "views", None) or ["front"]
+    selected_quality = getattr(body, "quality", None) or "1k"
+    image_count = len(selected_views) if body.module != "fiton" else 1
+
+    # ── Wallet / usage enforcement (JWT users only) ─────────────────────────
     request_user = get_request_user(request)
     generation_user_id: str | None = None
+    wallet_source: str = ""
     if request_user and request_user.get("auth_type") == "jwt":
         generation_user_id = request_user["user_id"]
-        from app.services.billing import BillingService
-        can_generate, reason = BillingService.check_can_generate(
-            generation_user_id, body.module or "adult", db
-        )
-        if not can_generate:
-            # Map internal reason codes to user-friendly messages
-            if reason.startswith("daily_limit"):
-                detail = "You've reached your daily generation limit. Please try again tomorrow or upgrade your plan."
-            elif reason.startswith("monthly_limit"):
-                detail = "You've used all your monthly credits. Please upgrade your plan for more."
-            elif reason == "fiton_not_enabled":
-                detail = "Virtual Fit-On is not available on your current plan. Please upgrade to access this feature."
-            elif reason.startswith("fiton_daily_limit"):
-                detail = "You've reached your daily Fit-On limit. Please try again tomorrow."
-            else:
-                detail = "Generation limit reached. Please try again later or upgrade your plan."
-            raise HTTPException(status_code=402, detail=detail)
+        from app.models.db import User as UserModel
+        user_obj = db.query(UserModel).filter(UserModel.id == generation_user_id).first()
+        if user_obj:
+            from app.services.wallet import WalletService
+            can_generate, wallet_source = WalletService.check_can_generate(
+                user_obj, body.module or "adult", selected_quality, image_count, db,
+            )
+            if not can_generate:
+                from app.config.wallet_pricing import format_currency
+                total_cost = WalletService.get_total_cost(
+                    body.module or "adult", selected_quality, image_count,
+                )
+                detail = (
+                    f"Insufficient wallet balance. This generation costs "
+                    f"{format_currency(total_cost)}. Please reload your wallet."
+                )
+                raise HTTPException(status_code=402, detail=detail)
 
     # ── Idempotency check ─────────────────────────────────────────────────────
     if body.idempotency_key:
@@ -188,7 +198,7 @@ def create_generation(
         garment_image_urls=body.garment_images,
         model_params=model_params_dict,
         scene_params=scene_params_dict,
-        output_count=body.output.count,
+        output_count=image_count,
         prompt_template_version="v0.1",
         idempotency_key=body.idempotency_key,
         created_at=datetime.utcnow(),
@@ -308,15 +318,21 @@ def create_generation(
         # If Redis is not available, the job stays queued
         pass
 
-    # ── Deduct credit (after successful enqueue) ──────────────────────────────
-    if generation_user_id:
+    # ── Deduct wallet balance (after successful enqueue) ──────────────────────
+    if generation_user_id and wallet_source:
         try:
-            from app.services.billing import BillingService
-            BillingService.deduct_credit(
-                generation_user_id, gen_id, body.module or "adult", db
+            from app.services.wallet import WalletService
+            WalletService.deduct(
+                user_id=generation_user_id,
+                generation_id=gen_id,
+                module=body.module or "adult",
+                quality=selected_quality,
+                image_count=image_count,
+                source=wallet_source,
+                db=db,
             )
         except Exception as exc:
-            logger.warning("Credit deduction failed for %s: %s", gen_id, exc)
+            logger.warning("Wallet deduction failed for %s: %s", gen_id, exc)
 
     return GenerationCreatedResponse(id=gen_id, status="queued")
 

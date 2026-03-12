@@ -78,6 +78,8 @@
         <input type="hidden" name="m_hips_cm"             x-bind:value="m_hips_cm">
         <input type="hidden" name="product_type"          x-bind:value="product_type">
         <input type="hidden" name="model_photo_url"       x-bind:value="model_photo_url">
+        <input type="hidden" name="selected_views"        x-bind:value="JSON.stringify(selected_views)">
+        <input type="hidden" name="selected_quality"      x-bind:value="selected_quality">
 
         <div class="space-y-3">
 
@@ -323,7 +325,109 @@
             </div>
 
             {# ════════════════════════════════════════════════════════════════ #}
-            {# PANEL 3 — Advanced Options (collapsed by default)               #}
+            {# PANEL 3 — Views & Quality                                       #}
+            {# ════════════════════════════════════════════════════════════════ #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
+
+                <button type="button" @click="showViewsQuality = !showViewsQuality"
+                        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-base flex-shrink-0">🖼️</div>
+                        <div class="text-left">
+                            <p class="text-sm font-semibold text-dark">Views & Quality</p>
+                            <p class="text-[11px] text-gray-400 truncate max-w-[200px]" x-text="viewsQualitySummary"></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <span class="hidden sm:block text-[10px] font-semibold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">Pricing</span>
+                        <svg class="w-4 h-4 text-gray-400 transition-transform" :class="showViewsQuality ? 'rotate-180' : ''"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </button>
+
+                <div x-show="showViewsQuality"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-1"
+                     class="border-t border-gray-100 px-5 pb-6 pt-5 space-y-6">
+
+                    {# Views — checkbox selection #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Image Views</p>
+                        <p class="text-[11px] text-gray-400 mb-3">Select which angles to generate. Each view is one image.</p>
+                        <div class="flex gap-2">
+                            <template x-for="view in viewOptions" :key="view.value">
+                                <label class="flex-1 cursor-pointer">
+                                    <input type="checkbox" :value="view.value"
+                                           x-model="selected_views"
+                                           :disabled="view.value === 'front'"
+                                           class="sr-only peer">
+                                    <div class="rounded-xl border-2 overflow-hidden transition-all text-center py-3 px-1
+                                                peer-checked:border-primary peer-checked:bg-primary/5
+                                                border-gray-200 hover:border-primary/30"
+                                         :class="selected_views.includes(view.value) ? 'border-primary bg-primary/5' : ''">
+                                        <p class="text-xl mb-0.5" x-text="view.icon"></p>
+                                        <p class="text-[10px] font-semibold text-dark" x-text="view.label"></p>
+                                        <p class="text-[9px] text-gray-400" x-show="view.value === 'front'">(required)</p>
+                                    </div>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+
+                    {# Quality — radio selection with pricing #}
+                    <div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Image Quality</p>
+                        <p class="text-[11px] text-gray-400 mb-3">Higher quality costs more per image.</p>
+                        <div class="space-y-2">
+                            <template x-for="tier in qualityTiers" :key="tier.value">
+                                <label @click="selected_quality = tier.value"
+                                       class="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all"
+                                       :class="selected_quality === tier.value
+                                           ? 'border-primary bg-primary/5'
+                                           : 'border-gray-200 hover:border-primary/30'">
+                                    <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                                         :class="selected_quality === tier.value ? 'border-primary' : 'border-gray-300'">
+                                        <div class="w-2 h-2 rounded-full bg-primary"
+                                             x-show="selected_quality === tier.value"></div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-semibold text-dark" x-text="tier.label"></span>
+                                            <span class="text-[10px] text-gray-400" x-text="tier.resolution"></span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-400" x-text="tier.description"></p>
+                                    </div>
+                                    <div class="flex-shrink-0 text-right">
+                                        <p class="text-sm font-bold text-dark" x-text="'Rs. ' + tier.price_lkr"></p>
+                                        <p class="text-[10px] text-gray-400">/image</p>
+                                    </div>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+
+                    {# Cost summary #}
+                    <div class="bg-blue-50 rounded-xl p-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-blue-800">Estimated Cost</p>
+                                <p class="text-[11px] text-blue-600" x-text="selected_views.length + ' image(s) × Rs. ' + currentPricePerImage"></p>
+                            </div>
+                            <p class="text-lg font-bold text-blue-800" x-text="'Rs. ' + totalCost"></p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {# ════════════════════════════════════════════════════════════════ #}
+            {# PANEL 4 — Advanced Options (collapsed by default)               #}
             {# ════════════════════════════════════════════════════════════════ #}
             <div class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
 

@@ -253,6 +253,14 @@ class CreateGenerationRequest(BaseModel):
         default=None,
         description="Required when module=fiton"
     )
+    views: list[str] = Field(
+        default=["front"],
+        description="Selected views: front (required), side, back"
+    )
+    quality: str = Field(
+        default="1k",
+        description="Image quality tier: 1k, 2k, 4k"
+    )
     output: OutputParams = OutputParams()
 
     @model_validator(mode="after")
@@ -272,6 +280,18 @@ class CreateGenerationRequest(BaseModel):
         elif self.module == "fiton":
             if self.fiton_params is None:
                 raise ValueError("fiton_params is required when module='fiton'")
+
+        # Validate views
+        valid_views = {"front", "side", "back"}
+        if not all(v in valid_views for v in self.views):
+            raise ValueError(f"Invalid views. Must be from: {valid_views}")
+        if "front" not in self.views:
+            raise ValueError("Front view is required")
+
+        # Validate quality
+        if self.quality not in ("1k", "2k", "4k"):
+            raise ValueError("Quality must be 1k, 2k, or 4k")
+
         return self
 
 

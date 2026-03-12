@@ -54,6 +54,9 @@ class User(Base):
     payments = relationship("Payment", back_populates="user")
     credit_transactions = relationship("CreditTransaction", back_populates="user")
     push_subscriptions = relationship("PushSubscription", back_populates="user")
+    wallet = relationship("Wallet", back_populates="user", uselist=False)
+    wallet_topups = relationship("WalletTopup", back_populates="user")
+    wallet_transactions = relationship("WalletTransaction", back_populates="user")
 
 
 class OTPRequest(Base):
@@ -287,6 +290,74 @@ class CreditTransaction(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     user = relationship("User", back_populates="credit_transactions")
+
+
+# ── Wallet models ─────────────────────────────────────────────────────────────
+
+class Wallet(Base):
+    """User's prepaid wallet — replaces the subscription credit model."""
+
+    __tablename__ = "wallet"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    user_id = Column(
+        String(26), ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False, unique=True, index=True,
+    )
+    balance_lkr = Column(Integer, nullable=False, default=0)
+    total_loaded = Column(Integer, nullable=False, default=0)
+    total_spent = Column(Integer, nullable=False, default=0)
+    trial_images_used = Column(Integer, nullable=False, default=0)
+    trial_fiton_used = Column(Integer, nullable=False, default=0)
+    trial_expires_at = Column(DateTime, nullable=True)
+    is_premium = Column(Boolean, nullable=False, default=False)
+    premium_balance_lkr = Column(Integer, nullable=False, default=0)
+    premium_expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow,
+    )
+
+    user = relationship("User", back_populates="wallet")
+
+
+class WalletTopup(Base):
+    """Record of a wallet reload purchase."""
+
+    __tablename__ = "wallet_topup"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    user_id = Column(
+        String(26), ForeignKey("user.id"), nullable=False, index=True,
+    )
+    package_key = Column(String(20), nullable=False)
+    amount_paid_lkr = Column(Integer, nullable=False)
+    amount_loaded_lkr = Column(Integer, nullable=False)
+    payhere_payment_id = Column(String(100), nullable=True)
+    status = Column(String(20), nullable=False, default="pending")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="wallet_topups")
+
+
+class WalletTransaction(Base):
+    """Wallet ledger — every deduction and top-up is recorded here."""
+
+    __tablename__ = "wallet_transaction"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    user_id = Column(
+        String(26), ForeignKey("user.id"), nullable=False, index=True,
+    )
+    amount_lkr = Column(Integer, nullable=False)    # +ve = topup, -ve = spend
+    balance_after = Column(Integer, nullable=False)
+    transaction_type = Column(String(30), nullable=False)
+    # topup | generation | trial | refund | admin_grant | premium_allocation
+    reference_id = Column(String(26), nullable=True)
+    description = Column(String(200), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="wallet_transactions")
 
 
 class SourceImage(Base):

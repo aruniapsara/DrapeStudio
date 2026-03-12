@@ -7,9 +7,10 @@ function configureState() {
     return {
 
         // ── Accordion open states ─────────────────────────────────────────────
-        showAppearance: true,
-        showScene:      true,
-        showAdvanced:   false,
+        showAppearance:    true,
+        showScene:         true,
+        showViewsQuality:  true,
+        showAdvanced:      false,
 
         // ── Model appearance ──────────────────────────────────────────────────
         gender:                 'feminine',
@@ -31,6 +32,10 @@ function configureState() {
         m_chest_bust_cm: '',
         m_waist_cm:      '',
         m_hips_cm:       '',
+
+        // ── Views & Quality ──────────────────────────────────────────────────
+        selected_views:   ['front'],
+        selected_quality: '1k',
 
         // ── From previous step ────────────────────────────────────────────────
         product_type:    'casual',
@@ -82,6 +87,18 @@ function configureState() {
             ],
         },
 
+        viewOptions: [
+            { value: 'front', label: 'Front',  icon: '👤' },
+            { value: 'side',  label: 'Side',   icon: '🔄' },
+            { value: 'back',  label: 'Back',   icon: '🔙' },
+        ],
+
+        qualityTiers: [
+            { value: '1k', label: 'Standard', resolution: '1024px', description: 'Best for social media',  price_lkr: 40  },
+            { value: '2k', label: 'HD',       resolution: '2048px', description: 'Best for online shops', price_lkr: 60  },
+            { value: '4k', label: 'Ultra',    resolution: '4096px', description: 'Best for print',        price_lkr: 100 },
+        ],
+
         // ── Computed getters ──────────────────────────────────────────────────
 
         get currentHairStyles() {
@@ -94,6 +111,23 @@ function configureState() {
                 gMap[this.gender]      || this.gender,
                 this.age_range,
             ].join(' · ');
+        },
+
+        get viewsQualitySummary() {
+            var viewNames = this.selected_views.map(function(v) {
+                return v.charAt(0).toUpperCase() + v.slice(1);
+            });
+            var tierMap = { '1k': 'Standard', '2k': 'HD', '4k': 'Ultra' };
+            return viewNames.join(', ') + ' · ' + (tierMap[this.selected_quality] || this.selected_quality) + ' · Rs. ' + this.totalCost;
+        },
+
+        get currentPricePerImage() {
+            var priceMap = { '1k': 40, '2k': 60, '4k': 100 };
+            return priceMap[this.selected_quality] || 40;
+        },
+
+        get totalCost() {
+            return this.selected_views.length * this.currentPricePerImage;
         },
 
         get sceneSummary() {
@@ -166,6 +200,10 @@ function configureState() {
         // ── Actions ───────────────────────────────────────────────────────────
 
         saveAndProceed() {
+            // Ensure 'front' is always included
+            if (!this.selected_views.includes('front')) {
+                this.selected_views.unshift('front');
+            }
             sessionStorage.setItem('configureState', JSON.stringify({
                 age_range:              this.age_range,
                 skin_tone:              this.skin_tone,
@@ -181,6 +219,8 @@ function configureState() {
                 m_chest_bust_cm:        this.m_chest_bust_cm,
                 m_waist_cm:             this.m_waist_cm,
                 m_hips_cm:              this.m_hips_cm,
+                selected_views:         this.selected_views,
+                selected_quality:       this.selected_quality,
             }));
             document.getElementById('configure-form').submit();
         },

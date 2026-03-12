@@ -72,18 +72,27 @@
         </div>
         {% endif %}
 
-        {# ── Credit indicator ─────────────────────────────────────────── #}
-        <div class="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span class="text-xl">✨</span>
+        {# ── Views & Quality (adult only) ─────────────────────────────── #}
+        {% if not is_children and not is_accessories %}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-3">Views & Quality</h3>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-views-quality"></dl>
+        </div>
+        {% endif %}
+
+        {# ── Cost indicator ─────────────────────────────────────────── #}
+        <div id="review-cost-card" class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <span class="text-xl">💰</span>
             </div>
-            <div>
-                {% if is_accessories %}
-                <p class="text-sm font-semibold text-dark">1 credit · 2 output images</p>
-                {% else %}
-                <p class="text-sm font-semibold text-dark">1 credit · 3 output images</p>
-                {% endif %}
-                <p class="text-xs text-gray-500">AI-generated catalogue quality photos</p>
+            <div class="flex-1">
+                <p class="text-sm font-semibold text-dark" id="review-cost-title">
+                    {% if is_accessories %}2 output images{% else %}3 output images{% endif %}
+                </p>
+                <p class="text-xs text-gray-500" id="review-cost-subtitle">AI-generated catalogue quality photos</p>
+            </div>
+            <div class="flex-shrink-0 text-right">
+                <p class="text-lg font-bold text-blue-800" id="review-cost-amount"></p>
             </div>
         </div>
 
@@ -101,7 +110,7 @@
                            disabled:opacity-40 disabled:cursor-not-allowed"
                     onclick="submitGeneration()">
                 <span class="text-lg leading-none">✨</span>
-                {% if is_accessories %}Generate 2 Images{% else %}Generate 3 Images{% endif %}
+                <span id="btn-generate-text">{% if is_accessories %}Generate 2 Images{% else %}Generate Images{% endif %}</span>
             </button>
         </div>
 
@@ -292,6 +301,22 @@
 
     const params = new URLSearchParams(window.location.search);
 
+    // ── Views & quality (parsed from URL params or defaults) ───────────────
+    var selectedViews = ['front'];
+    try {
+        var rawViews = params.get('selected_views');
+        if (rawViews) selectedViews = JSON.parse(rawViews);
+    } catch(e) {}
+    // Ensure front is always included
+    if (!selectedViews.includes('front')) selectedViews.unshift('front');
+
+    var selectedQuality = params.get('selected_quality') || '1k';
+    var qualityLabels = { '1k': 'Standard (1024px)', '2k': 'HD (2048px)', '4k': 'Ultra (4096px)' };
+    var qualityPrices = { '1k': 40, '2k': 60, '4k': 100 };
+    var pricePerImage = qualityPrices[selectedQuality] || 40;
+    var imageCount = IS_CHILDREN ? 3 : (IS_ACCESSORIES ? 2 : selectedViews.length);
+    var totalCost = imageCount * pricePerImage;
+
     // ── Garment images from sessionStorage ───────────────────────────────────
     var uploadedFiles = [];
     try { uploadedFiles = JSON.parse(sessionStorage.getItem('uploadedFiles') || '[]'); } catch(e) {}
@@ -375,6 +400,34 @@
         if (hasMeasurements) {
             document.getElementById('review-measurements-section').classList.remove('hidden');
         }
+
+        // ── Adult: views & quality ────────────────────────────────────────────
+        var vqDl = document.getElementById('review-views-quality');
+        if (vqDl) {
+            var viewLabels = selectedViews.map(function(v) { return v.charAt(0).toUpperCase() + v.slice(1); }).join(', ');
+            addRow(vqDl, 'Views', viewLabels);
+            addRow(vqDl, 'Quality', qualityLabels[selectedQuality] || selectedQuality);
+            addRow(vqDl, 'Price per image', 'Rs. ' + pricePerImage);
+        }
+    }
+
+    // ── Update cost card and button ────────────────────────────────────────────
+    var costTitle = document.getElementById('review-cost-title');
+    var costAmount = document.getElementById('review-cost-amount');
+    var costSubtitle = document.getElementById('review-cost-subtitle');
+    var btnText = document.getElementById('btn-generate-text');
+
+    if (!IS_CHILDREN && !IS_ACCESSORIES) {
+        costTitle.textContent = imageCount + ' image(s) · ' + (qualityLabels[selectedQuality] || selectedQuality);
+        costAmount.textContent = 'Rs. ' + totalCost;
+        costSubtitle.textContent = selectedViews.join(', ') + ' view(s) at Rs. ' + pricePerImage + '/image';
+        btnText.textContent = 'Generate ' + imageCount + ' Image' + (imageCount > 1 ? 's' : '');
+    } else if (IS_ACCESSORIES) {
+        costTitle.textContent = '2 output images';
+        costAmount.textContent = 'Rs. ' + totalCost;
+    } else {
+        costTitle.textContent = '3 output images';
+        costAmount.textContent = 'Rs. ' + totalCost;
     }
 
     // ── Measurements helper for adult API body ────────────────────────────────
@@ -443,6 +496,8 @@
                 idempotency_key: crypto.randomUUID(),
                 product_type: params.get('product_type') || 'casual',
                 garment_images: uploadedFiles,
+                views: selectedViews,
+                quality: selectedQuality,
                 model_params: {
                     age_range:              params.get('age_range'),
                     gender_presentation:    params.get('gender_presentation'),
@@ -461,7 +516,7 @@
                     pose_preset:  params.get('pose_preset'),
                     framing:      params.get('framing'),
                 },
-                output: { count: 3, resolution: 'high' },
+                output: { count: selectedViews.length, resolution: 'high' },
             };
         }
 
@@ -472,7 +527,7 @@
                 alert(msg);
             }
             btn.disabled = false;
-            btn.innerHTML = '<span class="text-lg leading-none">✨</span> ' + (IS_ACCESSORIES ? 'Generate 2 Images' : 'Generate 3 Images');
+            btn.innerHTML = '<span class="text-lg leading-none">✨</span> <span id="btn-generate-text">' + (IS_ACCESSORIES ? 'Generate 2 Images' : 'Generate ' + imageCount + ' Images') + '</span>';
         }
 
         try {
