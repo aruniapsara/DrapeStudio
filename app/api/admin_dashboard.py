@@ -230,8 +230,8 @@ def list_users(
             "role": u.role,
             "is_sponsored": u.is_sponsored,
             "sponsored_by": u.sponsored_by,
-            "balance_lkr": w.balance_lkr if w else 0,
-            "generations_count": gen_counts.get(u.id, 0),
+            "wallet_balance": w.balance_lkr if w else 0,
+            "total_generations": gen_counts.get(u.id, 0),
             "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
             "created_at": u.created_at.isoformat() if u.created_at else None,
         })
