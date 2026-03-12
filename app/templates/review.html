@@ -87,7 +87,7 @@
             </div>
             <div class="flex-1">
                 <p class="text-sm font-semibold text-dark" id="review-cost-title">
-                    {% if is_accessories %}2 output images{% else %}3 output images{% endif %}
+                    {% if is_accessories %}1 output image{% else %}3 output images{% endif %}
                 </p>
                 <p class="text-xs text-gray-500" id="review-cost-subtitle">AI-generated catalogue quality photos</p>
             </div>
@@ -110,7 +110,7 @@
                            disabled:opacity-40 disabled:cursor-not-allowed"
                     onclick="submitGeneration()">
                 <span class="text-lg leading-none">✨</span>
-                <span id="btn-generate-text">{% if is_accessories %}Generate 2 Images{% else %}Generate Images{% endif %}</span>
+                <span id="btn-generate-text">{% if is_accessories %}Generate Image{% else %}Generate Images{% endif %}</span>
             </button>
         </div>
 
@@ -314,7 +314,7 @@
     var qualityLabels = { '1k': 'Standard (1024px)', '2k': 'HD (2048px)', '4k': 'Ultra (4096px)' };
     var qualityPrices = { '1k': 40, '2k': 60, '4k': 100 };
     var pricePerImage = qualityPrices[selectedQuality] || 40;
-    var imageCount = IS_CHILDREN ? 3 : (IS_ACCESSORIES ? 2 : selectedViews.length);
+    var imageCount = IS_CHILDREN ? 3 : (IS_ACCESSORIES ? 1 : selectedViews.length);
     var totalCost = imageCount * pricePerImage;
 
     // ── Garment images from sessionStorage ───────────────────────────────────
@@ -425,7 +425,7 @@
         costSubtitle.textContent = selectedViews.join(', ') + ' view(s) at Rs. ' + pricePerImage + '/image';
         btnText.textContent = 'Generate ' + imageCount + ' Image' + (imageCount > 1 ? 's' : '');
     } else if (IS_ACCESSORIES) {
-        costTitle.textContent = '2 output images';
+        costTitle.textContent = '1 output image';
         costAmount.textContent = 'Rs. ' + totalCost;
     } else {
         costTitle.textContent = '3 output images';
@@ -530,7 +530,7 @@
                 alert(msg);
             }
             btn.disabled = false;
-            btn.innerHTML = '<span class="text-lg leading-none">✨</span> <span id="btn-generate-text">' + (IS_ACCESSORIES ? 'Generate 2 Images' : 'Generate ' + imageCount + ' Images') + '</span>';
+            btn.innerHTML = '<span class="text-lg leading-none">✨</span> <span id="btn-generate-text">' + (IS_ACCESSORIES ? 'Generate Image' : 'Generate ' + imageCount + ' Images') + '</span>';
         }
 
         try {
