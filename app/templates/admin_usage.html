@@ -62,7 +62,12 @@
             const data = await resp.json();
             const tbody = document.getElementById('usage-tbody');
 
-            if (data.length === 0) {
+            if (!resp.ok) {
+                tbody.innerHTML = `<tr><td colspan="7" class="error">Error: ${data.detail || data.error || 'Request failed'}</td></tr>`;
+                return;
+            }
+
+            if (!Array.isArray(data) || data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7">No records found.</td></tr>';
                 return;
             }
