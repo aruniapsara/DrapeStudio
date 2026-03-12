@@ -605,14 +605,8 @@ async def admin_usage_page(request: Request):
 
 @app.get("/admin/wallet")
 async def admin_wallet_page(request: Request):
-    admin = getattr(request.state, "admin_user", None)
-    user = get_request_user(request)
-    if not admin and (not user or user["role"] != "admin"):
-        return RedirectResponse(url="/admin/login", status_code=302)
-    return templates.TemplateResponse(
-        "admin_wallet.html",
-        _ctx(request),
-    )
+    """Wallet page removed — redirect to dashboard which has wallet management."""
+    return RedirectResponse(url="/admin/dashboard", status_code=302)
 
 
 @app.get("/profile")
