@@ -160,6 +160,10 @@ class FitonParamsCreate(BaseModel):
         default=None,
         description="Optional garment visual attributes: color, material, details",
     )
+    ai_provider: Literal["fashn", "gemini"] | None = Field(
+        default=None,
+        description="Override AI provider for this generation. Defaults to FITON_AI_PROVIDER env var.",
+    )
 
     model_config = {"extra": "forbid"}
 

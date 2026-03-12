@@ -16,6 +16,7 @@ from app.models.db import (
     generate_ulid,
 )
 from app.services.fashn import FashnError, FashnService
+from app.services.fiton_prompt import FitonPromptBuilder
 from app.services.gemini import GeminiError, generate_garment_images
 from app.services.prompt import (
     assemble_prompt,
@@ -172,13 +173,38 @@ def generate_images(generation_request_id: str) -> None:
                 )
 
             elif module == "fiton":
-                # Fiton module: handled by FASHN.ai (no prompt needed)
-                # Just set a placeholder — the actual API call is done below.
-                prompt_text = ""
-                logger.info(
-                    "Generation %s (fiton): will use FASHN.ai virtual try-on",
-                    generation_request_id,
+                # Determine AI provider: per-generation override or env default
+                fiton_provider = (
+                    gen.model_params.get("ai_provider", "").strip().lower()
+                    or settings.FITON_AI_PROVIDER.strip().lower()
                 )
+                if fiton_provider not in ("fashn", "gemini"):
+                    fiton_provider = "fashn"  # safe default
+
+                if fiton_provider == "gemini":
+                    # Build prompt using FitonPromptBuilder for Gemini path
+                    builder = FitonPromptBuilder()
+                    prompt_data = builder.build_prompt(
+                        garment_type=gen.model_params.get("garment_type", "dress"),
+                        customer_measurements=gen.model_params.get("customer_measurements", {}),
+                        fit_preference=gen.model_params.get("fit_preference", "regular"),
+                        garment_description=gen.model_params.get("garment_description"),
+                    )
+                    prompt_text = prompt_data["prompt"]
+                    fiton_system_instruction = prompt_data.get("system_context", "")
+                    logger.info(
+                        "Generation %s (fiton/gemini): prompt assembled (%d chars)",
+                        generation_request_id,
+                        len(prompt_text),
+                    )
+                else:
+                    # FASHN.ai path — no prompt needed
+                    prompt_text = ""
+                    fiton_system_instruction = ""
+                    logger.info(
+                        "Generation %s (fiton/fashn): will use FASHN.ai virtual try-on",
+                        generation_request_id,
+                    )
 
             else:
                 # Adult module: generate per-view prompts if multiple views
@@ -211,12 +237,10 @@ def generate_images(generation_request_id: str) -> None:
             _fail_generation(db, gen, f"Prompt assembly failed: {e}")
             return
 
-        # ── Step 6–9 branch: FASHN (fiton) vs Gemini (everything else) ──────
+        # ── Step 6–9 branch: fiton (FASHN or Gemini) vs Gemini-only modules ──
 
-        if module == "fiton":
+        if module == "fiton" and fiton_provider == "fashn":
             # ── FASHN.ai virtual try-on path ────────────────────────────────
-            # Load customer photo and garment image bytes from storage,
-            # then pass as base64 data URIs (FASHN can't access localhost).
             customer_photo_path = gen.model_params.get("customer_photo_url", "")
             if not customer_photo_path:
                 _fail_generation(db, gen, "Fiton: customer photo URL is missing.")
@@ -245,7 +269,6 @@ def generate_images(generation_request_id: str) -> None:
                 _fail_generation(db, gen, f"Fiton: customer photo not found: {customer_photo_path}")
                 return
 
-            # garment bytes already loaded above in garment_image_bytes_list
             garment_photo_bytes = garment_image_bytes_list[0]
 
             # Map garment_type to FASHN category
@@ -295,7 +318,7 @@ def generate_images(generation_request_id: str) -> None:
             )
             db.add(output)
 
-            # FASHN cost tracking — flat rate per call
+            # FASHN cost tracking
             FASHN_COST_PER_CALL_USD = Decimal("0.05")
             usage = UsageCost(
                 id=generate_ulid(),
@@ -315,10 +338,93 @@ def generate_images(generation_request_id: str) -> None:
             db.commit()
 
             logger.info(
-                "Generation %s (fiton/FASHN) succeeded: 1 image, %d bytes in %dms",
+                "Generation %s (fiton/fashn) succeeded: 1 image, %d bytes in %dms",
                 generation_request_id,
                 len(fashn_result.image_bytes),
                 fashn_result.duration_ms,
+            )
+
+        elif module == "fiton" and fiton_provider == "gemini":
+            # ── Gemini virtual try-on path ──────────────────────────────────
+            # Load customer photo as model reference photo for Gemini
+            customer_photo_path = gen.model_params.get("customer_photo_url", "")
+            if not customer_photo_path:
+                _fail_generation(db, gen, "Fiton: customer photo URL is missing.")
+                return
+
+            try:
+                model_photo_bytes = storage.load(customer_photo_path)
+            except FileNotFoundError:
+                _fail_generation(db, gen, f"Fiton: customer photo not found: {customer_photo_path}")
+                return
+
+            logger.info(
+                "Generation %s: calling Gemini for fiton — "
+                "customer_photo=%s (%d bytes), garment(s)=%d, prompt=%d chars",
+                generation_request_id,
+                customer_photo_path,
+                len(model_photo_bytes),
+                len(garment_image_bytes_list),
+                len(prompt_text),
+            )
+
+            try:
+                result = generate_garment_images(
+                    garment_image_bytes=garment_image_bytes_list,
+                    prompt_text=prompt_text,
+                    model_photo_bytes=model_photo_bytes,
+                    module="fiton",
+                    output_count=1,
+                    system_instruction=fiton_system_instruction or None,
+                )
+            except GeminiError as e:
+                _fail_generation(db, gen, f"Gemini API error: {e}")
+                return
+            except Exception as e:
+                _fail_generation(db, gen, f"Unexpected error during Gemini fiton: {e}")
+                return
+
+            # Save output image(s)
+            for i, img_bytes in enumerate(result.images):
+                output_path = f"outputs/{generation_request_id}/variation_{i}.jpg"
+                storage.save(img_bytes, output_path)
+
+                width, height = _get_image_dimensions(img_bytes)
+                output = GenerationOutput(
+                    id=generate_ulid(),
+                    generation_request_id=generation_request_id,
+                    image_url=f"local://{output_path}" if settings.STORAGE_BACKEND == "local" else output_path,
+                    variation_index=i,
+                    width=width,
+                    height=height,
+                    created_at=datetime.utcnow(),
+                )
+                db.add(output)
+
+            # Gemini cost tracking
+            total_usd_cost = ESTIMATED_COST_PER_CALL_USD * len(result.images)
+            usage = UsageCost(
+                id=generate_ulid(),
+                generation_request_id=generation_request_id,
+                provider="google_gemini",
+                model_name=result.model_name,
+                input_tokens=result.input_tokens,
+                output_tokens=result.output_tokens,
+                estimated_cost_usd=total_usd_cost,
+                duration_ms=result.duration_ms,
+                recorded_at=datetime.utcnow(),
+            )
+            db.add(usage)
+
+            gen.status = "succeeded"
+            gen.updated_at = datetime.utcnow()
+            db.commit()
+
+            logger.info(
+                "Generation %s (fiton/gemini) succeeded: %d image(s) in %dms",
+                generation_request_id,
+                len(result.images),
+                result.duration_ms,
             )
 
         else:

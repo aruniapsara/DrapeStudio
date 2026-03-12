@@ -118,7 +118,7 @@ def _call_gemini(
         model_name:          Gemini model name.
         variation_index:     Which camera angle variation (0, 1, 2).
         model_photo_bytes:   Optional model reference photo bytes.
-        module:              "adult", "children", or "accessories" (fiton uses FASHN.ai).
+        module:              "adult", "children", "accessories", or "fiton".
         display_mode:        For accessories — "on_model", "flat_lay", or "lifestyle".
         system_instruction:  Optional system-level instruction.
 
@@ -126,7 +126,8 @@ def _call_gemini(
         Tuple of (image_bytes, usage_dict).
     """
     # Determine camera angle instruction
-    if module == "accessories":
+    if module in ("accessories", "fiton"):
+        # Accessories: angles handled in prompt; Fiton: single front view only
         view_instruction = ""
     elif module == "children":
         views = CHILDREN_VARIATION_VIEWS
@@ -139,7 +140,6 @@ def _call_gemini(
     full_prompt = prompt_text + (f"\n\n{view_instruction}" if view_instruction else "")
 
     # Build the contents list: text + images (PIL Image objects)
-    # NOTE: Fiton module is now handled by FASHN.ai, not Gemini.
     contents: list = []
     contents.append(full_prompt)
     if model_photo_bytes:
@@ -240,7 +240,7 @@ def generate_garment_images(
         model_name: Gemini model name. Defaults to settings.GEMINI_IMAGE_MODEL.
         max_retries: Number of retries per call on transient errors.
         model_photo_bytes: Optional bytes of a real-person model reference photo.
-        module: "adult", "children", or "accessories" (fiton uses FASHN.ai).
+        module: "adult", "children", "accessories", or "fiton".
         output_count: Number of image variations to generate.
         display_mode: For module="accessories" — "on_model", "flat_lay", or "lifestyle".
         prompt_texts: Optional per-variation prompt list.

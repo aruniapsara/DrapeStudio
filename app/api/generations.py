@@ -74,6 +74,7 @@ def create_generation(
             "fit_preference": fp.fit_preference,
             "garment_type": fp.garment_type,
             "garment_description": fp.garment_description or {},
+            "ai_provider": fp.ai_provider or "",
         }
         scene_params_dict: dict = {
             "garment_measurements": fp.garment_measurements.model_dump() if fp.garment_measurements else None,
