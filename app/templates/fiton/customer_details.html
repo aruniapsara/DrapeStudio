@@ -242,6 +242,41 @@
                 </p>
             </div>
 
+            {# Customer photo upload (required for virtual try-on) #}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 mb-4">
+                <div class="flex items-start justify-between mb-1">
+                    <h3 class="text-sm font-bold text-dark">Customer Photo</h3>
+                    <span class="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Required</span>
+                </div>
+                <p class="text-xs text-gray-400 mb-3">Upload a full-body front-facing photo of the customer</p>
+
+                <div class="relative">
+                    {# Preview #}
+                    <div id="quick-customer-preview" class="hidden mb-3">
+                        <div class="relative inline-block">
+                            <img id="quick-customer-img" src="" alt="Customer photo"
+                                 class="rounded-xl max-h-48 object-contain border border-gray-100">
+                            <button onclick="clearQuickCustomerPhoto()"
+                                    class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 shadow">&times;</button>
+                        </div>
+                    </div>
+
+                    {# Dropzone #}
+                    <div id="quick-customer-dropzone"
+                         ondrop="handleQuickCustomerDrop(event)" ondragover="event.preventDefault()"
+                         class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-primary/40 transition-colors cursor-pointer"
+                         onclick="document.getElementById('quick-customer-files').click()">
+                        <svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+                        </svg>
+                        <p class="text-xs font-semibold text-gray-500 mb-1">Drop photo here or tap to upload</p>
+                        <p class="text-[10px] text-gray-400">Full-body, front-facing, good lighting</p>
+                    </div>
+                    <input type="file" id="quick-customer-files" accept="image/*" class="hidden"
+                           onchange="handleQuickCustomerDrop({dataTransfer: {files: this.files}})">
+                </div>
+            </div>
+
             <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 space-y-4">
 
                 {# Standard size #}
@@ -379,6 +414,37 @@
         if (desktop) desktop.style.display = '';
     }
 
+    // ── Quick-mode customer photo handling ─────────────────────────────────
+    var quickCustomerPhotoFile = null;
+
+    function handleQuickCustomerDrop(event) {
+        if (event.preventDefault) event.preventDefault();
+        var files = event.dataTransfer ? event.dataTransfer.files : [];
+        if (files.length > 0) handleQuickCustomerFile(files[0]);
+    }
+
+    function handleQuickCustomerFile(file) {
+        if (!file || !file.type.startsWith('image/')) {
+            showToast('Please select a valid image file.', 'error');
+            return;
+        }
+        quickCustomerPhotoFile = file;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('quick-customer-preview').classList.remove('hidden');
+            document.getElementById('quick-customer-img').src = e.target.result;
+            document.getElementById('quick-customer-dropzone').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearQuickCustomerPhoto() {
+        quickCustomerPhotoFile = null;
+        document.getElementById('quick-customer-preview').classList.add('hidden');
+        document.getElementById('quick-customer-dropzone').classList.remove('hidden');
+        document.getElementById('quick-customer-files').value = '';
+    }
+
     // ── Generate fit-on ───────────────────────────────────────────────────
     async function generateFiton() {
         var btn = document.getElementById('btn-generate');
@@ -392,12 +458,14 @@
         }
         var garmentData = JSON.parse(garmentDataStr);
 
-        // Validation
+        // Validation — customer photo is ALWAYS required (FASHN needs a real person photo)
+        var activePhotoFile = (alpineData.activeTab === 'full') ? customerPhotoFile : quickCustomerPhotoFile;
+        if (!activePhotoFile) {
+            showToast('Please upload a full-body customer photo.', 'error');
+            return;
+        }
+
         if (alpineData.activeTab === 'full') {
-            if (!customerPhotoFile) {
-                showToast('Please upload a customer photo.', 'error');
-                return;
-            }
             var bustVal  = parseFloat(document.getElementById('cust-bust').value);
             var waistVal = parseFloat(document.getElementById('cust-waist').value);
             var hipsVal  = parseFloat(document.getElementById('cust-hips').value);
@@ -422,29 +490,23 @@
             '</svg>Generating…';
 
         try {
-            var customerPhotoUrl = null;
-
-            // Upload customer photo (full mode only)
-            if (alpineData.activeTab === 'full' && customerPhotoFile) {
-                var signResp = await fetch('/v1/uploads/sign', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        files: [{ kind: 'model_photo', filename: customerPhotoFile.name, content_type: customerPhotoFile.type }],
-                    }),
-                });
-                if (!signResp.ok) throw new Error('Failed to get customer photo upload URL');
-                var signData = await signResp.json();
-                var upload = signData.uploads[0];
-                var fd = new FormData();
-                fd.append('file', customerPhotoFile);
-                var uploadResp = await fetch(upload.upload_url, { method: 'POST', body: fd });
-                if (!uploadResp.ok) throw new Error('Customer photo upload failed');
-                customerPhotoUrl = upload.file_url;
-            } else {
-                // Quick mode — no photo; use a placeholder
-                customerPhotoUrl = garmentData.garmentPhotoUrl;
-            }
+            // Upload customer photo (required for both modes — FASHN needs a real person photo)
+            var photoToUpload = (alpineData.activeTab === 'full') ? customerPhotoFile : quickCustomerPhotoFile;
+            var signResp = await fetch('/v1/uploads/sign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    files: [{ kind: 'model_photo', filename: photoToUpload.name, content_type: photoToUpload.type }],
+                }),
+            });
+            if (!signResp.ok) throw new Error('Failed to get customer photo upload URL');
+            var signData = await signResp.json();
+            var upload = signData.uploads[0];
+            var fd = new FormData();
+            fd.append('file', photoToUpload);
+            var uploadResp = await fetch(upload.upload_url, { method: 'POST', body: fd });
+            if (!uploadResp.ok) throw new Error('Customer photo upload failed');
+            var customerPhotoUrl = upload.file_url;
 
             // Build fiton_params
             var fitonParams;
