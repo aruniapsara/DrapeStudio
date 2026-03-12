@@ -108,6 +108,7 @@ def _call_gemini(
     model_photo_bytes: bytes | None = None,
     module: str = "adult",
     display_mode: str = "",
+    system_instruction: str | None = None,
 ) -> tuple[bytes, dict]:
     """Make a single Google Gemini API call that returns one image.
 
@@ -119,6 +120,7 @@ def _call_gemini(
         model_photo_bytes:   Optional model reference photo bytes.
         module:              "adult", "children", "accessories", or "fiton".
         display_mode:        For accessories — "on_model", "flat_lay", or "lifestyle".
+        system_instruction:  Optional system-level instruction (used for fiton identity preservation).
 
     Returns:
         Tuple of (image_bytes, usage_dict).
@@ -139,15 +141,31 @@ def _call_gemini(
     full_prompt = prompt_text + (f"\n\n{view_instruction}" if view_instruction else "")
 
     # Build the contents list: text + images (PIL Image objects)
-    contents: list = [full_prompt]
+    # For fiton module: add explicit image labels so Gemini knows which
+    # image is the customer reference and which is the garment
+    contents: list = []
 
-    # Model reference photo goes first (if provided)
-    if model_photo_bytes:
+    if module == "fiton" and model_photo_bytes:
+        # Fiton: customer photo FIRST with explicit label, then garment
+        contents.append(
+            "CUSTOMER REFERENCE PHOTO — This is the real person. "
+            "You MUST preserve this EXACT person's face, skin tone, hair, "
+            "and all physical features in the generated image:"
+        )
         contents.append(_bytes_to_pil(model_photo_bytes))
-
-    # Then garment images
-    for img_bytes in garment_image_bytes:
-        contents.append(_bytes_to_pil(img_bytes))
+        contents.append(
+            "GARMENT PHOTO — Put this garment on the customer shown above:"
+        )
+        for img_bytes in garment_image_bytes:
+            contents.append(_bytes_to_pil(img_bytes))
+        contents.append(full_prompt)
+    else:
+        # Non-fiton modules: original order (prompt first, then images)
+        contents.append(full_prompt)
+        if model_photo_bytes:
+            contents.append(_bytes_to_pil(model_photo_bytes))
+        for img_bytes in garment_image_bytes:
+            contents.append(_bytes_to_pil(img_bytes))
 
     # Create the Gemini client
     client = genai.Client(api_key=settings.GOOGLE_API_KEY)
@@ -160,17 +178,20 @@ def _call_gemini(
     else:
         aspect_ratio = "3:4"
 
+    # Build config — include system_instruction for fiton identity preservation
+    config_kwargs = {
+        "response_modalities": ["TEXT", "IMAGE"],
+        "image_config": types.ImageConfig(aspect_ratio=aspect_ratio),
+    }
+    if system_instruction:
+        config_kwargs["system_instruction"] = system_instruction
+
     # Call the API with image generation config
     try:
         response = client.models.generate_content(
             model=model_name,
             contents=contents,
-            config=types.GenerateContentConfig(
-                response_modalities=["TEXT", "IMAGE"],
-                image_config=types.ImageConfig(
-                    aspect_ratio=aspect_ratio,
-                ),
-            ),
+            config=types.GenerateContentConfig(**config_kwargs),
         )
     except Exception as exc:
         error_msg = str(exc)
@@ -225,6 +246,7 @@ def generate_garment_images(
     output_count: int = 3,
     display_mode: str = "",
     prompt_texts: list[str] | None = None,
+    system_instruction: str | None = None,
 ) -> GeminiResult:
     """Send garment images + text prompt to Google Gemini and return generated images.
 
@@ -242,6 +264,7 @@ def generate_garment_images(
         output_count: Number of image variations to generate.
         display_mode: For module="accessories" — "on_model", "flat_lay", or "lifestyle".
         prompt_texts: Optional per-variation prompt list.
+        system_instruction: Optional system-level instruction for identity preservation (fiton).
 
     Returns:
         GeminiResult with generated images and usage metadata.
@@ -281,6 +304,7 @@ def generate_garment_images(
                     model_photo_bytes=model_photo_bytes,
                     module=module,
                     display_mode=display_mode,
+                    system_instruction=system_instruction,
                 )
 
                 all_images.append(image_bytes)

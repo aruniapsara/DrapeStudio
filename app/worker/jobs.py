@@ -119,6 +119,7 @@ def generate_images(generation_request_id: str) -> None:
                 output_count = len(views_list)
 
         adult_prompts = None  # Only set for adult module with multiple views
+        fiton_system_instruction = ""  # Only set for fiton module
         try:
             if module == "accessories":
                 # Accessories module: rebuild accessory_params dict from stored JSON
@@ -197,11 +198,24 @@ def generate_images(generation_request_id: str) -> None:
                     garment_description=garment_description,
                 )
                 prompt_text = prompt_data["prompt"]
+                fiton_system_instruction = prompt_data.get("system_context", "")
+                fiton_negative_prompt = prompt_data.get("negative_prompt", "")
+
+                # Append negative prompt to the main prompt text so Gemini
+                # knows what to avoid (identity changes, beautification, etc.)
+                if fiton_negative_prompt:
+                    prompt_text += (
+                        "\n\nNEGATIVE — Do NOT include any of the following in "
+                        "the generated image: " + fiton_negative_prompt
+                    )
+
                 logger.info(
-                    "Generation %s (fiton/%s): prompt assembled (%d chars)",
+                    "Generation %s (fiton/%s): prompt assembled (%d chars, "
+                    "system_instruction %d chars)",
                     generation_request_id,
                     garment_type,
                     len(prompt_text),
+                    len(fiton_system_instruction),
                 )
 
             else:
@@ -276,6 +290,10 @@ def generate_images(generation_request_id: str) -> None:
                 # gets the correct angle instruction embedded in its prompt text.
                 extra_kwargs["prompt_texts"] = accessory_prompts
                 extra_kwargs["display_mode"] = display_mode
+            elif module == "fiton":
+                # Pass system instruction for identity preservation
+                if fiton_system_instruction:
+                    extra_kwargs["system_instruction"] = fiton_system_instruction
             elif module == "adult" and adult_prompts is not None:
                 # Multiple views: pass per-view prompts so each gets the right angle
                 extra_kwargs["prompt_texts"] = adult_prompts

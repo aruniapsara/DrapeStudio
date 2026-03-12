@@ -4,65 +4,81 @@ fiton:
 
   # CRITICAL: Identity preservation is the #1 priority for fit-on
   identity_preservation: >
-    CRITICAL INSTRUCTION: The person in the generated image MUST be identical
-    to the person in the customer reference photo. This means:
-    - EXACT same face: same facial features, same nose shape, same eye shape,
-      same lip shape, same jawline, same forehead
-    - EXACT same skin tone and complexion
-    - EXACT same hair: color, length, texture, style, parting
-    - EXACT same body proportions: height, build, shoulder width
-    - EXACT same distinguishing features: moles, dimples, facial hair, glasses
-    - The ONLY change should be the clothing/accessory
-    - Do NOT beautify, smooth, alter, or idealize the person's appearance
-    - Do NOT change the person's pose from the reference photo
-    - The output should look like the same person took a photo wearing different clothes
+    CRITICAL — IDENTITY PRESERVATION IS THE #1 PRIORITY.
+
+    The FIRST image you received is the CUSTOMER REFERENCE PHOTO.
+    The person in the generated output MUST be THIS EXACT SAME PERSON.
+
+    MANDATORY REQUIREMENTS:
+    - Copy the EXACT face from the customer reference photo: every facial feature,
+      nose shape, eye shape, lip shape, jawline, forehead, cheekbones, chin
+    - Copy the EXACT skin tone and complexion — no changes whatsoever
+    - Copy the EXACT hair: color, length, texture, style, parting, volume
+    - Copy the EXACT body proportions: height, build, shoulder width, body shape
+    - Copy ALL distinguishing features: moles, dimples, facial hair, glasses, scars
+    - The ONLY change is the clothing — everything else about the person stays identical
+    - Do NOT beautify, smooth, alter, slim, or idealize any part of the person
+    - Do NOT change the person's age, weight, skin shade, or facial structure
+    - The output must look like the SAME REAL PERSON photographed in different clothes
+    - If you cannot preserve the identity perfectly, try harder — this is non-negotiable
 
   system_context: >
-    You are a virtual try-on system. You will receive two images:
-    1. A reference photo of a SPECIFIC REAL PERSON (the customer)
-    2. A photo of a GARMENT
+    You are a photorealistic virtual try-on system. You will receive two images:
+    1. FIRST IMAGE: A reference photo of a SPECIFIC REAL PERSON (the customer).
+       This person's face and body MUST appear EXACTLY as-is in your output.
+    2. SECOND IMAGE: A photo of a GARMENT to place on the customer.
 
-    Your task: Generate an image of THIS EXACT PERSON wearing THIS EXACT GARMENT.
-    The person's identity must be perfectly preserved — face, skin, hair, body, everything.
-    Only the clothing changes. Think of it as a photorealistic clothing swap.
-    The customer sent their photo specifically to see how THEY would look in this garment.
-    Any deviation from their actual appearance defeats the purpose.
+    Your #1 priority: The person in the output MUST be the EXACT SAME PERSON
+    from image 1. Same face, same eyes, same nose, same lips, same skin,
+    same hair, same body — pixel-level identity preservation.
+
+    Your #2 priority: Show the garment from image 2 on this person realistically.
+
+    Think of yourself as performing a photorealistic clothing swap on a real photo.
+    The customer uploaded their own photo specifically to see how THEY would look.
+    A different face or altered appearance is a FAILURE — it defeats the entire purpose.
+    When in doubt, prioritize identity preservation over garment accuracy.
 
   garment_types:
     dress:
       prompt_template: >
-        Photo of {customer_description} wearing the exact dress shown in the reference image.
-        The dress fits {fit_description} on the body.
-        Customer's face, skin tone, hair, and body shape are preserved exactly.
+        Generate a photo of the EXACT person from the customer reference photo (first image)
+        wearing the dress from the garment photo (second image).
+        The person is {customer_description}. The dress fits {fit_description} on the body.
+        The person's face, skin, hair, and body MUST be identical to the customer photo.
         Professional catalogue photo, natural lighting, clean background.
         {garment_extra}
 
     top:
       prompt_template: >
-        Photo of {customer_description} wearing the exact top/blouse shown in the reference image.
-        The top fits {fit_description} on the body.
-        Customer wears their own bottoms. Face and body preserved exactly.
+        Generate a photo of the EXACT person from the customer reference photo (first image)
+        wearing the top/blouse from the garment photo (second image).
+        The person is {customer_description}. The top fits {fit_description}.
+        Customer wears their own bottoms. Face and body MUST match the customer photo exactly.
         Professional photo, natural lighting.
 
     saree:
       prompt_template: >
-        Photo of {customer_description} wearing the exact saree shown in the reference image.
-        The saree is draped in traditional Sri Lankan style.
-        Customer's face, skin tone, and body proportions preserved exactly.
+        Generate a photo of the EXACT person from the customer reference photo (first image)
+        wearing the saree from the garment photo (second image).
+        The person is {customer_description}. The saree is draped in traditional style.
+        The person's face, skin tone, and body MUST be identical to the customer photo.
         Elegant pose, professional studio lighting.
 
     bottom:
       prompt_template: >
-        Photo of {customer_description} wearing the exact pants/skirt shown in the reference image.
-        The bottom fits {fit_description}. Customer wears their own top.
-        Face and body preserved exactly.
+        Generate a photo of the EXACT person from the customer reference photo (first image)
+        wearing the pants/skirt from the garment photo (second image).
+        The person is {customer_description}. The bottom fits {fit_description}.
+        Customer wears their own top. Face and body MUST match the customer photo exactly.
         Professional photo, natural lighting.
 
     full_outfit:
       prompt_template: >
-        Photo of {customer_description} wearing the complete outfit shown in the reference image.
-        Both top and bottom garments transferred to customer.
-        Customer's face, skin tone, hair preserved exactly.
+        Generate a photo of the EXACT person from the customer reference photo (first image)
+        wearing the complete outfit from the garment photo (second image).
+        The person is {customer_description}. Both top and bottom transferred.
+        The person's face, skin, hair MUST be identical to the customer photo.
         Professional catalogue photo, clean background.
 
   fit_descriptions:
