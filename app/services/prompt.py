@@ -140,12 +140,12 @@ def assemble_prompt(
         gender = model_params.get("gender_presentation", "feminine")
         skin_tone = model_params.get("skin_tone", "4")
         body_type = model_params.get("body_type", "average")
-        ethnicity = model_params.get("ethnicity", "")
         hair_style = model_params.get("hair_style", "")
         hair_color = model_params.get("hair_color", "")
         additional_description = model_params.get("additional_description", "").strip()
 
-        ethnicity_desc = template.get("ethnicities", {}).get(ethnicity, "") if ethnicity else ""
+        # Mandatory Sri Lankan identity — replaces the old per-ethnicity lookup
+        sri_lankan_identity = template.get("sri_lankan_identity", "").strip()
         hair_style_desc = template.get("hair_styles", {}).get(hair_style, "") if hair_style else ""
         hair_color_desc = template.get("hair_colors", {}).get(hair_color, "") if hair_color else ""
 
@@ -155,8 +155,8 @@ def assemble_prompt(
             f"A {gender} model, age {age_range}, "
             f"Fitzpatrick skin tone {skin_tone}, {body_type} body type"
         )
-        if ethnicity_desc:
-            model_desc += f", {ethnicity_desc}"
+        if sri_lankan_identity:
+            model_desc += f". {sri_lankan_identity}"
         if hair_color_desc and hair_style_desc:
             model_desc += f", {hair_color_desc}, {hair_style_desc}"
         elif hair_style_desc:
@@ -257,6 +257,9 @@ def assemble_children_prompt(
         "unisex": "child",
     }.get(child_gender, "child")
 
+    # Mandatory Sri Lankan identity
+    sri_lankan_identity = template.get("sri_lankan_identity", "").strip()
+
     # Mandatory safety blocks (always injected — cannot be overridden)
     safety_positive = template.get("safety_positive", "").strip()
     safety_negative = template.get("safety_negative", "").strip()
@@ -278,6 +281,8 @@ def assemble_children_prompt(
     appearance_line = ", ".join(appearance_parts)
 
     prompt = f"""Generate a photorealistic children's clothing catalogue image.
+
+IDENTITY: {sri_lankan_identity}
 
 SUBJECT: A {age_group} {gender_label} with {appearance_line}.
 
@@ -370,8 +375,11 @@ def assemble_accessories_prompt(
         body_area = mode_config.get("body_area", "relevant body area")
         framing = mode_config.get("framing", "close-up")
         model_needs = mode_config.get("model_needs", "")
+        sri_lankan_identity = template.get("sri_lankan_identity", "").strip()
+        identity_line = f"\nIDENTITY: {sri_lankan_identity}" if sri_lankan_identity else ""
 
         prompt = f"""Professional product photography of a {category_label} worn by a model.
+{identity_line}
 
 SUBJECT: The {category_label} is the focal point. Show {body_area} — {framing}.
 

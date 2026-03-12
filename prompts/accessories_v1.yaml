@@ -2,6 +2,12 @@ version: accessories_v1
 module: accessories
 default_output_count: 2
 
+# MANDATORY — injected into on_model prompts. Not overridable by user input.
+sri_lankan_identity: >
+  The model is a Sri Lankan person with authentic Sri Lankan facial features,
+  bone structure, and appearance. The model looks naturally Sri Lankan.
+  Natural Sri Lankan hair texture and style.
+
 # ---------------------------------------------------------------------------
 # Camera angle variations per display mode
 # Two images per generation: variation_index 0 and 1

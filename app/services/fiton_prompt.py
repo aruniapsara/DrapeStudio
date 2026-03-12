@@ -106,6 +106,11 @@ class FitonPromptBuilder:
             garment_extra=garment_extra,
         )
 
+        # 6. Prepend identity preservation instructions (critical for fit-on)
+        identity_block = self.config.get("identity_preservation", "").strip()
+        if identity_block:
+            raw_prompt = f"{identity_block}\n\n{raw_prompt}"
+
         # Clean up formatting artefacts from optional placeholders
         prompt = self._clean_prompt(raw_prompt)
 

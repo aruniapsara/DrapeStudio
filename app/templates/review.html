@@ -116,7 +116,6 @@
         product_type:           'Product Type',
         age_range:              'Age Range',
         gender_presentation:    'Gender',
-        ethnicity:              'Ethnicity',
         skin_tone:              'Skin Tone',
         body_type:              'Body Type',
         hair_style:             'Hair Style',
@@ -334,7 +333,7 @@
     } else {
         // ── Adult: model appearance ───────────────────────────────────────────
         var modelDl = document.getElementById('review-model');
-        ['product_type', 'gender_presentation', 'age_range', 'ethnicity',
+        ['product_type', 'gender_presentation', 'age_range',
          'skin_tone', 'body_type', 'hair_style', 'hair_color'].forEach(function(f) {
             addRow(modelDl, LABELS[f] || f.replace(/_/g, ' '), params.get(f));
         });
@@ -447,7 +446,7 @@
                 model_params: {
                     age_range:              params.get('age_range'),
                     gender_presentation:    params.get('gender_presentation'),
-                    ethnicity:              params.get('ethnicity') || '',
+                    ethnicity:              '',  // deprecated — Sri Lankan identity hard-coded in prompts
                     skin_tone:              params.get('skin_tone'),
                     body_mode:              'simple',
                     body_type:              params.get('body_type'),

@@ -1,12 +1,32 @@
 fiton:
-  version: "1.0"
+  version: "1.1"
   description: "Virtual fit-on: show garment on customer's body"
 
+  # CRITICAL: Identity preservation is the #1 priority for fit-on
+  identity_preservation: >
+    CRITICAL INSTRUCTION: The person in the generated image MUST be identical
+    to the person in the customer reference photo. This means:
+    - EXACT same face: same facial features, same nose shape, same eye shape,
+      same lip shape, same jawline, same forehead
+    - EXACT same skin tone and complexion
+    - EXACT same hair: color, length, texture, style, parting
+    - EXACT same body proportions: height, build, shoulder width
+    - EXACT same distinguishing features: moles, dimples, facial hair, glasses
+    - The ONLY change should be the clothing/accessory
+    - Do NOT beautify, smooth, alter, or idealize the person's appearance
+    - Do NOT change the person's pose from the reference photo
+    - The output should look like the same person took a photo wearing different clothes
+
   system_context: >
-    You are a fashion visualization AI. Given a customer photo and a garment photo,
-    generate a realistic image of the customer wearing that garment. Preserve the
-    customer's face, skin tone, hair, and body proportions exactly. Only change
-    the clothing. Maintain the same pose as the customer photo.
+    You are a virtual try-on system. You will receive two images:
+    1. A reference photo of a SPECIFIC REAL PERSON (the customer)
+    2. A photo of a GARMENT
+
+    Your task: Generate an image of THIS EXACT PERSON wearing THIS EXACT GARMENT.
+    The person's identity must be perfectly preserved — face, skin, hair, body, everything.
+    Only the clothing changes. Think of it as a photorealistic clothing swap.
+    The customer sent their photo specifically to see how THEY would look in this garment.
+    Any deviation from their actual appearance defeats the purpose.
 
   garment_types:
     dress:
@@ -53,7 +73,12 @@ fiton:
   negative_prompt: >
     distorted face, different person, changed skin tone, warped body proportions,
     unrealistic anatomy, blurry, low quality, watermark, text overlay,
-    different hairstyle, changed facial features, nudity, revealing
+    different hairstyle, changed facial features, nudity, revealing,
+    different person, altered face, different facial features, changed skin tone,
+    different hairstyle, changed hair color, beautified face, smoothed skin,
+    idealized proportions, different body shape, missing moles, missing glasses,
+    different eye color, different nose shape, younger looking, older looking,
+    slimmer, heavier, taller, shorter
 
   customer_description_template: >
     a {gender} person with {skin_tone} skin, {build} build,

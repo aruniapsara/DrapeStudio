@@ -31,8 +31,9 @@ logger = logging.getLogger(__name__)
 # and the worker restarts, it's safe to retry from the beginning.
 STALE_THRESHOLD = timedelta(minutes=5)
 
-# Estimated cost per Gemini image generation call (rough estimate)
-ESTIMATED_COST_PER_CALL_USD = Decimal("0.02")
+# Estimated cost per Gemini image generation call
+# Based on Gemini 3.1 Flash Image: ~1,120 output tokens at 1K = $0.067/image
+ESTIMATED_COST_PER_CALL_USD = Decimal("0.07")
 
 
 def generate_images(generation_request_id: str) -> None:

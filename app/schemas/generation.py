@@ -32,7 +32,7 @@ class ModelMeasurements(BaseModel):
 class ModelParams(BaseModel):
     age_range: str = Field(..., description="e.g. 18-24, 25-34, 35-44, 45+")
     gender_presentation: str = Field(..., description="feminine | masculine | neutral")
-    ethnicity: str = Field(default="", description="sri_lankan | indian | middle_eastern | african | european")
+    ethnicity: str = Field(default="", description="DEPRECATED — Sri Lankan identity is now hard-coded in prompts")
     skin_tone: str = Field(..., description="Fitzpatrick 1-6")
     body_mode: str = Field(default="simple", description="simple (Phase 1)")
     body_type: str = Field(..., description="petite | average | athletic | curvy | plus")

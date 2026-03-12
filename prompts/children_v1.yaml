@@ -1,6 +1,12 @@
 version: children_v1
 module: children
 
+# MANDATORY — injected into every children's prompt. Not overridable by user input.
+sri_lankan_identity: >
+  The child is a Sri Lankan child with authentic Sri Lankan facial features
+  and appearance. The child looks naturally Sri Lankan. Natural Sri Lankan
+  hair texture and style.
+
 # ---------------------------------------------------------------------------
 # Age group specific body and clothing descriptions
 # ---------------------------------------------------------------------------

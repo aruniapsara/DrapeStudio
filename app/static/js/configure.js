@@ -14,7 +14,6 @@ function configureState() {
         // ── Model appearance ──────────────────────────────────────────────────
         gender:                 'feminine',
         age_range:              '25-34',
-        ethnicity:              'sri_lankan',
         skin_tone:              'medium',
         body_type:              'average',
         hair_style:             'long_straight',
@@ -91,17 +90,9 @@ function configureState() {
 
         get appearanceSummary() {
             var gMap = { feminine: 'Female', masculine: 'Male', neutral: 'Unisex' };
-            var eMap = {
-                sri_lankan:    'Sri Lankan',
-                south_indian:  'South Indian',
-                middle_eastern:'Mid Eastern',
-                african:       'African',
-                european:      'European',
-            };
             return [
                 gMap[this.gender]      || this.gender,
                 this.age_range,
-                eMap[this.ethnicity]   || this.ethnicity,
             ].join(' · ');
         },
 
@@ -177,7 +168,6 @@ function configureState() {
         saveAndProceed() {
             sessionStorage.setItem('configureState', JSON.stringify({
                 age_range:              this.age_range,
-                ethnicity:              this.ethnicity,
                 skin_tone:              this.skin_tone,
                 body_type:              this.body_type,
                 hair_style:             this.hair_style,
