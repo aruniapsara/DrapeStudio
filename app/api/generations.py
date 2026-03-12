@@ -332,8 +332,13 @@ def create_generation(
                 source=wallet_source,
                 db=db,
             )
+            db.commit()  # ensure wallet deduction is persisted
         except Exception as exc:
             logger.warning("Wallet deduction failed for %s: %s", gen_id, exc)
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
     return GenerationCreatedResponse(id=gen_id, status="queued")
 

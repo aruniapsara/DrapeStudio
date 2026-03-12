@@ -154,7 +154,7 @@ class WalletService:
                 description=f"{module} {quality} x{image_count} (admin/tester)",
             )
             db.add(tx)
-            db.flush()
+            db.commit()
             return tx
 
         if source == "sponsored":
@@ -168,7 +168,7 @@ class WalletService:
                 description=f"{module} {quality} x{image_count} (sponsored)",
             )
             db.add(tx)
-            db.flush()
+            db.commit()
             return tx
 
         if source == "trial":
@@ -185,7 +185,7 @@ class WalletService:
                 description=f"{module} {quality} x{image_count} (trial)",
             )
             db.add(tx)
-            db.flush()
+            db.commit()
             return tx
 
         if source == "premium_fiton":
@@ -199,7 +199,7 @@ class WalletService:
                 description=f"fiton (premium unlimited)",
             )
             db.add(tx)
-            db.flush()
+            db.commit()
             return tx
 
         if source == "premium":
@@ -221,7 +221,7 @@ class WalletService:
             description=f"{module} {quality} x{image_count}",
         )
         db.add(tx)
-        db.flush()
+        db.commit()
         return tx
 
     # ── Top-up ─────────────────────────────────────────────────────────────────
