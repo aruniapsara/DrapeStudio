@@ -172,6 +172,58 @@ BACKGROUND_SURFACES = {
     ],
 }
 
+# ---------------------------------------------------------------------------
+# Size / type options per accessory category
+# ---------------------------------------------------------------------------
+ACCESSORY_SIZES: dict[str, list[dict]] = {
+    "necklace": [
+        {"value": "choker", "label": "Choker (tight)"},
+        {"value": "short", "label": "Short (collar-bone)"},
+        {"value": "medium", "label": "Medium (chest)"},
+        {"value": "long", "label": "Long (below chest)"},
+    ],
+    "earrings": [
+        {"value": "stud", "label": "Stud (small)"},
+        {"value": "drop", "label": "Drop (medium)"},
+        {"value": "dangle", "label": "Dangle (long)"},
+        {"value": "hoop", "label": "Hoop"},
+    ],
+    "bracelet": [
+        {"value": "thin", "label": "Thin / Delicate"},
+        {"value": "medium", "label": "Medium"},
+        {"value": "wide", "label": "Wide / Cuff"},
+    ],
+    "ring": [
+        {"value": "thin_band", "label": "Thin Band"},
+        {"value": "statement", "label": "Statement (large)"},
+    ],
+    "handbag": [
+        {"value": "clutch", "label": "Clutch (small)"},
+        {"value": "small", "label": "Small"},
+        {"value": "medium", "label": "Medium"},
+        {"value": "large", "label": "Large / Tote"},
+    ],
+    "hat": [
+        {"value": "fitted", "label": "Fitted / Cap"},
+        {"value": "wide_brim", "label": "Wide Brim"},
+    ],
+    "scarf": [
+        {"value": "small", "label": "Small / Neck scarf"},
+        {"value": "medium", "label": "Medium"},
+        {"value": "large", "label": "Large / Shawl"},
+    ],
+    "crochet": [
+        {"value": "small", "label": "Small item"},
+        {"value": "medium", "label": "Medium item"},
+        {"value": "large", "label": "Large item"},
+    ],
+    "hair_accessory": [
+        {"value": "tiny", "label": "Tiny (pin/clip)"},
+        {"value": "small", "label": "Small (bow/band)"},
+        {"value": "large", "label": "Large (headpiece)"},
+    ],
+}
+
 # Convenience sets for validation
 VALID_ACCESSORY_CATEGORIES = set(ACCESSORY_CATEGORIES.keys())
 VALID_DISPLAY_MODES = set(DISPLAY_MODES)

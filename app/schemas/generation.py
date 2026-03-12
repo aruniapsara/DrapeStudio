@@ -202,6 +202,9 @@ class AccessoryParamsCreate(BaseModel):
     background_surface: Optional[str] = Field(
         default=None, description="Surface material; required when display_mode=flat_lay"
     )
+    accessory_size: Optional[str] = Field(
+        default=None, description="Size/type of the accessory (e.g. 'small', 'large', 'choker', 'stud')"
+    )
 
     model_config = {"extra": "forbid"}
 

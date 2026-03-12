@@ -89,6 +89,7 @@ def create_generation(
             "context_scene": ap.context_scene or "",
             "model_skin_tone": ap.model_skin_tone or "",
             "background_surface": ap.background_surface or "",
+            "accessory_size": ap.accessory_size or "",
             "product_type": body.product_type,
         }
         scene_params_dict: dict = {
@@ -235,6 +236,7 @@ def create_generation(
             context_scene=ap.context_scene,
             model_skin_tone=ap.model_skin_tone,
             background_surface=ap.background_surface,
+            accessory_size=ap.accessory_size,
         )
         db.add(accessory_record)
 

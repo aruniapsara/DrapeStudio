@@ -173,6 +173,7 @@ class AccessoryParams(Base):
     context_scene = Column(String(30), nullable=True)
     model_skin_tone = Column(String(20), nullable=True)        # only for on_model
     background_surface = Column(String(30), nullable=True)     # only for flat_lay
+    accessory_size = Column(String(30), nullable=True)         # size/type of accessory
     created_at = Column(DateTime, default=datetime.utcnow)
 
     generation_request = relationship(

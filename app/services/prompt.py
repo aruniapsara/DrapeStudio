@@ -347,6 +347,10 @@ def assemble_accessories_prompt(
     category_config = categories[category_key]
     category_label = category_config.get("label", category_key)
 
+    # Size clause (e.g. "choker size", "large size")
+    accessory_size = accessory_params.get("accessory_size", "")
+    size_clause = f" ({accessory_size.replace('_', ' ')} size)" if accessory_size else ""
+
     # Resolve mode-specific config
     if display_mode not in ("on_model", "flat_lay", "lifestyle"):
         raise ValueError(
@@ -378,10 +382,10 @@ def assemble_accessories_prompt(
         sri_lankan_identity = template.get("sri_lankan_identity", "").strip()
         identity_line = f"\nIDENTITY: {sri_lankan_identity}" if sri_lankan_identity else ""
 
-        prompt = f"""Professional product photography of a {category_label} worn by a model.
+        prompt = f"""Professional product photography of a {category_label}{size_clause} worn by a model.
 {identity_line}
 
-SUBJECT: The {category_label} is the focal point. Show {body_area} — {framing}.
+SUBJECT: The {category_label}{size_clause} is the focal point. Show {body_area} — {framing}.
 
 MODEL: A professional model with {skin_tone_desc}. {model_needs}
 
@@ -404,9 +408,9 @@ NEGATIVE (avoid these):
         surface_desc = template.get("surfaces", {}).get(surface_key, surface_key.replace("_", " "))
         arrangement = mode_config.get("arrangement", "arranged on a surface")
 
-        prompt = f"""Professional flat-lay product photography of a {category_label}.
+        prompt = f"""Professional flat-lay product photography of a {category_label}{size_clause}.
 
-SUBJECT: The {category_label} is the sole subject — {arrangement}.
+SUBJECT: The {category_label}{size_clause} is the sole subject — {arrangement}.
 
 SURFACE: {surface_desc}.
 
@@ -441,9 +445,9 @@ NEGATIVE (avoid these):
 
         lifestyle_context = mode_config.get("context", "lifestyle moment")
 
-        prompt = f"""Lifestyle product photography featuring a {category_label}.
+        prompt = f"""Lifestyle product photography featuring a {category_label}{size_clause}.
 
-SUBJECT: The {category_label} is the hero product in the scene.
+SUBJECT: The {category_label}{size_clause} is the hero product in the scene.
 
 SCENE: {scene_desc}. {lifestyle_context}.
 
