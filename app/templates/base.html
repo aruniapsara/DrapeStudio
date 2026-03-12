@@ -146,6 +146,15 @@
                 </div>
             </div>
             {% if user %}
+            <a href="/pricing"
+               class="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-xs font-semibold text-emerald-700"
+               x-data="{ b: '…' }"
+               x-init="fetch('/api/v1/wallet/balance').then(r=>r.ok?r.json():{}).then(d=>{b=d.balance_lkr!==undefined?'Rs.'+d.balance_lkr.toLocaleString():'—'}).catch(()=>b='—')">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+                </svg>
+                <span x-text="b">…</span>
+            </a>
             <a href="/profile" class="flex items-center gap-2 px-2 py-1 rounded-xl">
                 <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold">
                     {% set uname = user.get('display_name') or user.get('phone') or user.get('username', 'U') %}

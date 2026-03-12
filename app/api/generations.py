@@ -57,6 +57,13 @@ def create_generation(
     if len(body.garment_images) == 0:
         raise HTTPException(status_code=400, detail="At least one garment image is required.")
 
+    # ── Determine views and quality ────────────────────────────────────────────
+    # These come from the request body (new v2 fields) or default to legacy values
+    # Must be resolved BEFORE building params dicts (adult module stores them)
+    selected_views = getattr(body, "views", None) or ["front"]
+    selected_quality = getattr(body, "quality", None) or "1k"
+    image_count = len(selected_views) if body.module != "fiton" else 1
+
     # ── Build canonical params dicts (used for idempotency and DB storage) ────
     if body.module == "fiton":
         fp = body.fiton_params  # type: ignore[assignment]
@@ -128,12 +135,6 @@ def create_generation(
         # Store views and quality so the worker can generate the right angles
         scene_params_dict["views"] = selected_views
         scene_params_dict["quality"] = selected_quality
-
-    # ── Determine views and quality ────────────────────────────────────────────
-    # These come from the request body (new v2 fields) or default to legacy values
-    selected_views = getattr(body, "views", None) or ["front"]
-    selected_quality = getattr(body, "quality", None) or "1k"
-    image_count = len(selected_views) if body.module != "fiton" else 1
 
     # ── Wallet / usage enforcement (JWT users only) ─────────────────────────
     request_user = get_request_user(request)

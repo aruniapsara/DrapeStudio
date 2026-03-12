@@ -5,6 +5,18 @@
     <h1 class="text-base font-semibold text-[#1A1A2E]">{% block page_title %}DrapeStudio{% endblock %}</h1>
 
     {% if user %}
+    <div class="flex items-center gap-3">
+    {# Wallet balance pill #}
+    <a href="/pricing"
+       class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors text-sm"
+       x-data="{ bal: '…' }"
+       x-init="fetch('/api/v1/wallet/balance').then(r=>r.ok?r.json():{}).then(d=>{bal=d.balance_lkr!==undefined?'Rs. '+d.balance_lkr.toLocaleString():'—'}).catch(()=>bal='—')">
+        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+        </svg>
+        <span class="font-semibold text-emerald-700" x-text="bal">…</span>
+    </a>
+
     {# User avatar dropdown #}
     <div x-data="{ open: false }" class="relative">
         <button @click="open = !open"
@@ -61,6 +73,7 @@
                 Sign Out
             </a>
         </div>
+    </div>
     </div>
     {% endif %}
 </div>

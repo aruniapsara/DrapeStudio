@@ -396,12 +396,27 @@ def generate_images(generation_request_id: str) -> None:
 
 
 def _fail_generation(db: Session, gen: GenerationRequest, error_message: str) -> None:
-    """Mark a generation as failed with an error message."""
+    """Mark a generation as failed with an error message and refund wallet."""
     logger.error("Generation %s failed: %s", gen.id, error_message)
     gen.status = "failed"
     gen.error_message = error_message
     gen.updated_at = datetime.utcnow()
     db.commit()
+
+    # Refund wallet deduction if user was charged
+    if gen.user_id:
+        try:
+            from app.services.wallet import WalletService
+            refund_tx = WalletService.refund(gen.user_id, gen.id, db)
+            if refund_tx:
+                logger.info(
+                    "Generation %s: wallet refund of Rs. %d applied",
+                    gen.id, refund_tx.amount_lkr,
+                )
+        except Exception as exc:
+            logger.warning(
+                "Generation %s: wallet refund failed: %s", gen.id, exc
+            )
 
 
 def _get_image_dimensions(img_bytes: bytes) -> tuple[int | None, int | None]:
