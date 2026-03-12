@@ -114,6 +114,10 @@ app.add_middleware(
 from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
 app.add_middleware(SessionMiddleware, secret_key=settings.JWT_SECRET)
 
+# Admin middleware (separate admin auth for /admin/* routes)
+from app.middleware.admin import AdminAuthMiddleware  # noqa: E402
+app.add_middleware(AdminAuthMiddleware)
+
 # Auth middleware (JWT + legacy cookie fallback)
 app.add_middleware(AuthMiddleware)
 
@@ -383,6 +387,7 @@ from app.api.billing import router as billing_router  # noqa: E402
 from app.api.notifications import router as notifications_router  # noqa: E402
 from app.api.health import router as health_router  # noqa: E402
 from app.api.wallet import router as wallet_router  # noqa: E402
+from app.api.admin_dashboard import router as admin_dashboard_router  # noqa: E402
 
 app.include_router(auth_router)               # prefix is already /api/v1/auth
 app.include_router(billing_router)            # prefix is already /api/v1/billing
@@ -393,6 +398,7 @@ app.include_router(uploads_router, prefix="/v1")
 app.include_router(generations_router, prefix="/v1")
 app.include_router(history_router, prefix="/v1")
 app.include_router(admin_router, prefix="/v1")
+app.include_router(admin_dashboard_router)    # /admin/api/* (admin dashboard APIs)
 
 
 # ---------------------------------------------------------------------------
@@ -503,11 +509,94 @@ async def history_page(request: Request):
     return templates.TemplateResponse("history.html", _ctx(request))
 
 
+# ---------------------------------------------------------------------------
+# Admin dashboard routes (separate auth via admin_token cookie)
+# ---------------------------------------------------------------------------
+@app.get("/admin/login")
+async def admin_login_page(request: Request, error: str = ""):
+    """Admin login page — email + password (no Google OAuth)."""
+    from app.middleware.admin import get_admin_user
+    if get_admin_user(request):
+        return RedirectResponse(url="/admin/dashboard", status_code=302)
+    return templates.TemplateResponse(
+        "admin/login.html", {"request": request, "error": error}
+    )
+
+
+@app.post("/admin/login")
+async def admin_login_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Handle admin login form submission."""
+    from app.services.admin_auth import AdminAuthService
+    user = AdminAuthService.authenticate_admin(email, password, db)
+    if not user:
+        return templates.TemplateResponse(
+            "admin/login.html",
+            {"request": request, "error": "Invalid email or password."},
+            status_code=401,
+        )
+    token = AdminAuthService.create_admin_token(user.id, user.email)
+    response = RedirectResponse(url="/admin/dashboard", status_code=302)
+    response.set_cookie(
+        "admin_token", token,
+        httponly=True, samesite="lax", max_age=8 * 3600,
+    )
+    return response
+
+
+@app.get("/admin/logout")
+async def admin_logout():
+    """Admin logout — clear admin_token cookie."""
+    response = RedirectResponse(url="/admin/login", status_code=302)
+    response.delete_cookie("admin_token")
+    return response
+
+
+@app.get("/admin/dashboard")
+async def admin_dashboard_page(request: Request):
+    """Admin dashboard — stats, charts, overview."""
+    admin = getattr(request.state, "admin_user", None)
+    return templates.TemplateResponse(
+        "admin/dashboard.html",
+        {"request": request, "admin_email": admin["email"] if admin else ""},
+    )
+
+
+@app.get("/admin/users")
+async def admin_users_page(request: Request):
+    """Admin users list page."""
+    admin = getattr(request.state, "admin_user", None)
+    return templates.TemplateResponse(
+        "admin/users.html",
+        {"request": request, "admin_email": admin["email"] if admin else ""},
+    )
+
+
+@app.get("/admin/users/{user_id}")
+async def admin_user_detail_page(request: Request, user_id: str):
+    """Admin user detail page."""
+    admin = getattr(request.state, "admin_user", None)
+    return templates.TemplateResponse(
+        "admin/user_detail.html",
+        {
+            "request": request,
+            "user_id": user_id,
+            "admin_email": admin["email"] if admin else "",
+        },
+    )
+
+
 @app.get("/admin/usage")
 async def admin_usage_page(request: Request):
+    admin = getattr(request.state, "admin_user", None)
+    # Also allow legacy admin auth
     user = get_request_user(request)
-    if not user or user["role"] != "admin":
-        return RedirectResponse(url="/", status_code=302)
+    if not admin and (not user or user["role"] != "admin"):
+        return RedirectResponse(url="/admin/login", status_code=302)
     return templates.TemplateResponse(
         "admin_usage.html",
         _ctx(request),
@@ -516,9 +605,10 @@ async def admin_usage_page(request: Request):
 
 @app.get("/admin/wallet")
 async def admin_wallet_page(request: Request):
+    admin = getattr(request.state, "admin_user", None)
     user = get_request_user(request)
-    if not user or user["role"] != "admin":
-        return RedirectResponse(url="/", status_code=302)
+    if not admin and (not user or user["role"] != "admin"):
+        return RedirectResponse(url="/admin/login", status_code=302)
     return templates.TemplateResponse(
         "admin_wallet.html",
         _ctx(request),

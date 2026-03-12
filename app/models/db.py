@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     JSON,
     Numeric,
     String,
+    Text,
     func,
 )
 from sqlalchemy.orm import relationship
@@ -48,6 +50,13 @@ class User(Base):
     push_notifications_enabled = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     last_login_at = Column(DateTime, nullable=True)
+
+    # Admin fields (migration 013)
+    admin_password_hash = Column(String(128), nullable=True)
+    admin_notes = Column(Text, nullable=True)
+    is_sponsored = Column(Boolean, nullable=False, default=False)
+    sponsored_by = Column(String(200), nullable=True)
+    sponsored_until = Column(Date, nullable=True)
 
     generation_requests = relationship("GenerationRequest", back_populates="user")
     subscriptions = relationship("Subscription", back_populates="user")
@@ -390,3 +399,21 @@ class PushSubscription(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     user = relationship("User", back_populates="push_subscriptions")
+
+
+# ── Admin models ─────────────────────────────────────────────────────────────
+
+class AdminAuditLog(Base):
+    """Log of admin actions for accountability and auditing."""
+
+    __tablename__ = "admin_audit_log"
+
+    id = Column(String(26), primary_key=True, default=generate_ulid)
+    admin_user_id = Column(
+        String(26), ForeignKey("user.id"), nullable=False, index=True
+    )
+    action = Column(String(50), nullable=False)
+    # e.g. "grant_credits", "toggle_sponsor", "deactivate_user", "change_role"
+    target_user_id = Column(String(26), nullable=True, index=True)
+    details = Column(Text, nullable=True)  # JSON-encoded details
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)

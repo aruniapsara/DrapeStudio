@@ -5,7 +5,7 @@ like a Sri Lankan mobile phone reload (Dialog, Mobitel pattern).
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -81,6 +81,17 @@ class WalletService:
         if user.role in ("admin", "tester"):
             return True, "unrestricted"
 
+        # Sponsored account bypass
+        if user.is_sponsored:
+            if user.sponsored_until is None or user.sponsored_until >= date.today():
+                return True, "sponsored"
+            else:
+                # Sponsorship expired — auto-clear
+                user.is_sponsored = False
+                user.sponsored_by = None
+                user.sponsored_until = None
+                db.commit()
+
         wallet = WalletService.get_or_create_wallet(user.id, db)
         total_cost = WalletService.get_total_cost(module, quality, image_count)
         now = datetime.utcnow()
@@ -141,6 +152,20 @@ class WalletService:
                 transaction_type="generation",
                 reference_id=generation_id,
                 description=f"{module} {quality} x{image_count} (admin/tester)",
+            )
+            db.add(tx)
+            db.flush()
+            return tx
+
+        if source == "sponsored":
+            # Sponsored — no deduction, but log
+            tx = WalletTransaction(
+                user_id=user_id,
+                amount_lkr=0,
+                balance_after=wallet.balance_lkr,
+                transaction_type="generation",
+                reference_id=generation_id,
+                description=f"{module} {quality} x{image_count} (sponsored)",
             )
             db.add(tx)
             db.flush()

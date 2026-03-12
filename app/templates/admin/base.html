@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}Admin{% endblock %} — DrapeStudio Admin</title>
+
+    <link rel="icon" type="image/png" href="/static/icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        accent: {
+                            50:  '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        [x-cloak] { display: none !important; }
+        /* Scrollbar styling for sidebar */
+        .admin-sidebar::-webkit-scrollbar { width: 4px; }
+        .admin-sidebar::-webkit-scrollbar-track { background: transparent; }
+        .admin-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    </style>
+
+    {% block head %}{% endblock %}
+</head>
+<body class="h-full" x-data="{ sidebarOpen: false }">
+
+    {# ── Top Bar ─────────────────────────────────────────────────────────── #}
+    <header class="fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 h-14">
+        <div class="flex items-center justify-between h-full px-4 lg:px-6">
+
+            {# Left: hamburger (mobile) + logo #}
+            <div class="flex items-center gap-3">
+                <button
+                    @click="sidebarOpen = !sidebarOpen"
+                    class="lg:hidden p-1.5 -ml-1.5 text-gray-500 hover:text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                    </svg>
+                </button>
+                <a href="/admin/dashboard" class="flex items-center gap-2">
+                    <span class="text-base font-bold text-slate-800 tracking-tight">DrapeStudio</span>
+                    <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Admin</span>
+                </a>
+            </div>
+
+            {# Right: admin email + logout #}
+            <div class="flex items-center gap-3">
+                {% if admin_email %}
+                <span class="hidden sm:inline text-sm text-gray-500">{{ admin_email }}</span>
+                {% endif %}
+                <a
+                    href="/admin/logout"
+                    class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/>
+                    </svg>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </header>
+
+    {# ── Mobile sidebar overlay ──────────────────────────────────────────── #}
+    <div
+        x-show="sidebarOpen"
+        @click="sidebarOpen = false"
+        x-transition:enter="transition-opacity ease-linear duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-linear duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-30 bg-black/30 lg:hidden"
+        x-cloak
+    ></div>
+
+    {# ── Sidebar ─────────────────────────────────────────────────────────── #}
+    <aside
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="fixed top-14 left-0 bottom-0 z-40 w-56 bg-white border-r border-gray-200 overflow-y-auto admin-sidebar transition-transform duration-200 lg:translate-x-0"
+    >
+        <nav class="p-3 space-y-1">
+
+            {# ── Dashboard ─────────────────────────── #}
+            <a href="/admin/dashboard"
+               class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors
+                      {% if request.url.path == '/admin/dashboard' %}
+                      bg-indigo-50 text-indigo-700
+                      {% else %}
+                      text-gray-600 hover:bg-gray-100 hover:text-gray-900
+                      {% endif %}">
+                <svg class="w-4.5 h-4.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/>
+                </svg>
+                Dashboard
+            </a>
+
+            {# ── Users ─────────────────────────────── #}
+            <a href="/admin/users"
+               class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors
+                      {% if request.url.path.startswith('/admin/users') %}
+                      bg-indigo-50 text-indigo-700
+                      {% else %}
+                      text-gray-600 hover:bg-gray-100 hover:text-gray-900
+                      {% endif %}">
+                <svg class="w-4.5 h-4.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+                </svg>
+                Users
+            </a>
+
+            {# ── Divider ──────────────────────────── #}
+            <div class="pt-3 pb-1">
+                <div class="border-t border-gray-100"></div>
+                <p class="px-3 pt-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Reports</p>
+            </div>
+
+            {# ── Usage Report ──────────────────────── #}
+            <a href="/admin/usage"
+               class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors
+                      {% if request.url.path.startswith('/admin/usage') %}
+                      bg-indigo-50 text-indigo-700
+                      {% else %}
+                      text-gray-600 hover:bg-gray-100 hover:text-gray-900
+                      {% endif %}">
+                <svg class="w-4.5 h-4.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>
+                </svg>
+                Usage Report
+            </a>
+
+            {# ── Wallet ────────────────────────────── #}
+            <a href="/admin/wallet"
+               class="flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors
+                      {% if request.url.path.startswith('/admin/wallet') %}
+                      bg-indigo-50 text-indigo-700
+                      {% else %}
+                      text-gray-600 hover:bg-gray-100 hover:text-gray-900
+                      {% endif %}">
+                <svg class="w-4.5 h-4.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 110-6h5.25A2.25 2.25 0 0121 6v6zm0 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18V6a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 6m-6 6a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
+                </svg>
+                Wallet
+            </a>
+
+        </nav>
+
+        {# ── Sidebar footer ────────────────────────────────────────────────── #}
+        <div class="absolute bottom-0 left-0 right-0 p-3 border-t border-gray-100">
+            <a href="/"
+               class="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/>
+                </svg>
+                Back to App
+            </a>
+        </div>
+    </aside>
+
+    {# ── Main Content ────────────────────────────────────────────────────── #}
+    <main class="lg:ml-56 pt-14 min-h-screen">
+        <div class="p-4 lg:p-6 xl:p-8 max-w-screen-2xl mx-auto">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>

@@ -22,6 +22,7 @@ _PUBLIC_PREFIXES = (
     "/api/v1/auth/",  # auth endpoints
     "/v1/files/",     # file serving
     "/auth/",         # Google OAuth routes
+    "/admin/",        # Admin routes handled by AdminAuthMiddleware
 )
 _PUBLIC_EXACT = {
     "/login",
