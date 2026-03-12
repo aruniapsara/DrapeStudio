@@ -215,8 +215,8 @@ def generate_images(generation_request_id: str) -> None:
 
         if module == "fiton":
             # ── FASHN.ai virtual try-on path ────────────────────────────────
-            # FASHN needs publicly accessible URLs for customer + garment.
-            # Build full URLs from storage paths.
+            # Load customer photo and garment image bytes from storage,
+            # then pass as base64 data URIs (FASHN can't access localhost).
             customer_photo_path = gen.model_params.get("customer_photo_url", "")
             if not customer_photo_path:
                 _fail_generation(db, gen, "Fiton: customer photo URL is missing.")
@@ -227,28 +227,35 @@ def generate_images(generation_request_id: str) -> None:
                 _fail_generation(db, gen, "Fiton: garment image URL is missing.")
                 return
 
-            # Convert storage paths to publicly accessible URLs
-            base_url = settings.BASE_URL.rstrip("/")
-            customer_url = _to_public_url(customer_photo_path, base_url)
-            garment_url = _to_public_url(garment_photo_path, base_url)
+            # Load raw bytes from storage
+            try:
+                customer_photo_bytes = storage.load(customer_photo_path)
+            except FileNotFoundError:
+                _fail_generation(db, gen, f"Fiton: customer photo not found: {customer_photo_path}")
+                return
+
+            # garment bytes already loaded above in garment_image_bytes_list
+            garment_photo_bytes = garment_image_bytes_list[0]
 
             # Map garment_type to FASHN category
             garment_type = gen.model_params.get("garment_type", "dress")
             fashn_category = _garment_type_to_fashn_category(garment_type)
 
             logger.info(
-                "Generation %s: calling FASHN.ai — customer=%s, garment=%s, category=%s",
+                "Generation %s: calling FASHN.ai — customer=%d bytes, garment=%d bytes, category=%s",
                 generation_request_id,
-                customer_url[:80],
-                garment_url[:80],
+                len(customer_photo_bytes),
+                len(garment_photo_bytes),
                 fashn_category,
             )
 
             try:
                 fashn_svc = FashnService()
                 fashn_result = fashn_svc.generate_tryon(
-                    customer_photo_url=customer_url,
-                    garment_photo_url=garment_url,
+                    customer_photo_bytes=customer_photo_bytes,
+                    customer_photo_path=customer_photo_path,
+                    garment_photo_bytes=garment_photo_bytes,
+                    garment_photo_path=garment_photo_path,
                     category=fashn_category,
                 )
             except FashnError as e:
@@ -431,22 +438,6 @@ def generate_images(generation_request_id: str) -> None:
             pass
     finally:
         db.close()
-
-
-def _to_public_url(storage_path: str, base_url: str) -> str:
-    """Convert a storage path to a publicly accessible URL for FASHN.
-
-    For local storage: prepend BASE_URL to the /v1/files/ path.
-    For GCS storage: return a signed download URL (already public).
-    """
-    if settings.STORAGE_BACKEND == "gcs":
-        return storage.signed_download_url(
-            storage_path,
-            expiry_seconds=settings.OUTPUT_URL_EXPIRY_SECONDS,
-        )
-    # Local storage: build full URL from base_url + local path
-    clean_path = storage_path.replace("local://", "")
-    return f"{base_url}/v1/files/{clean_path}"
 
 
 GARMENT_TO_FASHN_CATEGORY = {

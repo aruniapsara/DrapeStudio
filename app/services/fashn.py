@@ -5,19 +5,25 @@ try-on and preserves customer identity natively — no prompt engineering needed
 
 API flow: submit → poll → download result.
 
+Images are sent as base64 data URIs so FASHN can process them without
+needing publicly accessible URLs (important for local dev / localhost).
+
 Usage (synchronous, for RQ worker)::
 
     from app.services.fashn import FashnService, FashnError
 
     svc = FashnService()
     result = svc.generate_tryon(
-        customer_photo_url="https://...",
-        garment_photo_url="https://...",
+        customer_photo_bytes=b"...",
+        customer_photo_path="uploads/xxx/photo.jpg",
+        garment_photo_bytes=b"...",
+        garment_photo_path="uploads/xxx/garment.jpg",
     )
     # result.image_bytes  → raw PNG bytes of the output
     # result.duration_ms  → total wall-clock time
 """
 
+import base64
 import logging
 import time
 
@@ -70,18 +76,47 @@ class FashnService:
             "Authorization": f"Bearer {self.api_key}",
         }
 
+    @staticmethod
+    def _bytes_to_data_uri(image_bytes: bytes, file_path: str) -> str:
+        """Convert raw image bytes to a base64 data URI.
+
+        Args:
+            image_bytes: Raw bytes of the image file.
+            file_path:   Original file path (used to detect MIME type from extension).
+
+        Returns:
+            Data URI string like ``data:image/jpeg;base64,/9j/4AAQ...``
+        """
+        ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else "jpeg"
+        mime_map = {
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "png": "image/png",
+            "webp": "image/webp",
+        }
+        mime = mime_map.get(ext, "image/jpeg")
+        b64 = base64.b64encode(image_bytes).decode("ascii")
+        return f"data:{mime};base64,{b64}"
+
     def generate_tryon(
         self,
-        customer_photo_url: str,
-        garment_photo_url: str,
+        customer_photo_bytes: bytes,
+        customer_photo_path: str,
+        garment_photo_bytes: bytes,
+        garment_photo_path: str,
         category: str = "auto",
     ) -> FashnResult:
         """Submit a try-on request, poll until complete, download the result.
 
+        Images are converted to base64 data URIs so FASHN can receive them
+        without needing publicly accessible URLs.
+
         Args:
-            customer_photo_url: Publicly accessible URL of the customer photo.
-            garment_photo_url:  Publicly accessible URL of the garment photo.
-            category:           "auto", "tops", "bottoms", or "one-piece".
+            customer_photo_bytes: Raw bytes of the customer photo.
+            customer_photo_path:  Storage path (for MIME type detection).
+            garment_photo_bytes:  Raw bytes of the garment photo.
+            garment_photo_path:   Storage path (for MIME type detection).
+            category:             "auto", "tops", "bottoms", or "one-pieces".
 
         Returns:
             FashnResult with downloaded image bytes and metadata.
@@ -91,8 +126,18 @@ class FashnService:
         """
         start = time.time()
 
+        # Convert image bytes to base64 data URIs
+        customer_data_uri = self._bytes_to_data_uri(customer_photo_bytes, customer_photo_path)
+        garment_data_uri = self._bytes_to_data_uri(garment_photo_bytes, garment_photo_path)
+
+        logger.info(
+            "FASHN: encoded customer photo (%d KB) and garment (%d KB) as base64",
+            len(customer_photo_bytes) // 1024,
+            len(garment_photo_bytes) // 1024,
+        )
+
         # ── Step 1: Submit prediction ─────────────────────────────────────
-        prediction_id = self._submit(customer_photo_url, garment_photo_url, category)
+        prediction_id = self._submit(customer_data_uri, garment_data_uri, category)
         logger.info("FASHN prediction submitted: %s", prediction_id)
 
         # ── Step 2: Poll until completed / failed ─────────────────────────
@@ -128,9 +173,12 @@ class FashnService:
         garment_photo_url: str,
         category: str,
     ) -> str:
-        """POST /run — submit a try-on prediction. Returns prediction ID."""
+        """POST /run — submit a try-on prediction. Returns prediction ID.
+
+        Args accept either public URLs or base64 data URIs.
+        """
         try:
-            with httpx.Client(timeout=30) as client:
+            with httpx.Client(timeout=60) as client:
                 resp = client.post(
                     f"{self.base_url}/run",
                     headers=self._headers,
