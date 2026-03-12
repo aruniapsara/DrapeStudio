@@ -80,6 +80,27 @@
             </div>
         </div>
 
+        {# ── Accessory Size / Type ─────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5"
+             x-show="sizeOptions.length > 0"
+             x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Size / Type</p>
+            <div class="grid grid-cols-2 gap-2">
+                <template x-for="sz in sizeOptions" :key="sz.value">
+                    <label @click="accessorySize = sz.value" class="cursor-pointer">
+                        <div class="rounded-xl border-2 py-2.5 px-3 text-center transition-all select-none"
+                             :class="accessorySize === sz.value
+                                 ? 'border-primary bg-primary/5'
+                                 : 'border-gray-200 hover:border-primary/30'">
+                            <p class="text-xs font-semibold text-dark" x-text="sz.label"></p>
+                        </div>
+                    </label>
+                </template>
+            </div>
+        </div>
+
         {# ── On Model: Skin Tone ────────────────────────────────────── #}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5"
              x-show="displayMode === 'on_model'"
@@ -151,11 +172,11 @@
                 <span class="text-lg">📷</span>
             </div>
             <div>
-                <p class="text-sm font-semibold text-dark">2 images generated</p>
+                <p class="text-sm font-semibold text-dark">1 image generated</p>
                 <p class="text-xs text-gray-500">
-                    <span x-show="displayMode === 'on_model'">Straight-on + angled view</span>
-                    <span x-show="displayMode === 'flat_lay'">Overhead + 45° angle</span>
-                    <span x-show="displayMode === 'lifestyle'">Wide scene + product-focused</span>
+                    <span x-show="displayMode === 'on_model'">Straight-on hero shot</span>
+                    <span x-show="displayMode === 'flat_lay'">Overhead product shot</span>
+                    <span x-show="displayMode === 'lifestyle'">Contextual scene</span>
                 </p>
             </div>
         </div>

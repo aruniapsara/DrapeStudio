@@ -106,7 +106,7 @@ def generate_images(generation_request_id: str) -> None:
         views_list = ["front"]  # default
         selected_quality = "1k"  # default
         if module == "accessories":
-            output_count = 2
+            output_count = 1
             display_mode = gen.scene_params.get("display_mode", "on_model")
         elif module == "fiton":
             output_count = 1
@@ -128,34 +128,16 @@ def generate_images(generation_request_id: str) -> None:
                     "model_skin_tone":    gen.model_params.get("model_skin_tone", ""),
                     "background_surface": gen.model_params.get("background_surface", ""),
                     "context_scene":      gen.model_params.get("context_scene", ""),
+                    "accessory_size":     gen.model_params.get("accessory_size", ""),
                 }
-                # Generate two prompts (variation 0 and 1) — they differ by camera angle
-                # For simplicity, assemble with variation_index=0 and let generate_garment_images
-                # iterate over both angles via variation_index inside _call_gemini.
-                # We pass variation_index=0 for the base prompt; the camera angle instructions
-                # are embedded per-variation by passing the right index to the assembler.
-                # We store prompt_text as a base; the gemini service calls assemble dynamically.
-                # Simplest approach: assemble a single prompt (angle is part of the per-call text)
+                # Assemble single prompt (1 image per accessories generation)
                 accessories_template = load_accessories_template()
-
-                # We produce one prompt per variation by pre-assembling both.
-                # However, the current gemini service takes a single prompt_text.
-                # Use variation_index=0 as the base; store template for later.
-                # The camera angle is already in the YAML and the service will use variation_index.
-                # To get the right camera angle per variation, we pass the template to generate_garment_images.
-                # For backward compatibility, we assemble with index=0 (angle 1) and let the service
-                # append camera instructions. Since accessories embed angle in prompt, we call the
-                # assembler here for each variation and store both in a list.
-                accessory_prompts = [
-                    assemble_accessories_prompt(
-                        template=accessories_template,
-                        accessory_params=accessory_params_for_prompt,
-                        variation_index=i,
-                    )
-                    for i in range(output_count)
-                ]
-                # Use variation 0 as the "base" prompt_text for the service call
-                prompt_text = accessory_prompts[0]
+                prompt_text = assemble_accessories_prompt(
+                    template=accessories_template,
+                    accessory_params=accessory_params_for_prompt,
+                    variation_index=0,
+                )
+                accessory_prompts = [prompt_text]
                 logger.info(
                     "Generation %s (accessories/%s/%s): prompt assembled (%d chars)",
                     generation_request_id,

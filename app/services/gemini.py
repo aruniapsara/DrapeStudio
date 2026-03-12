@@ -35,15 +35,12 @@ VARIATION_VIEWS = [
 ACCESSORIES_FALLBACK_VIEWS: dict[str, list[str]] = {
     "on_model": [
         "CAMERA ANGLE FOR THIS IMAGE: Straight-on close-up — product facing directly toward lens.",
-        "CAMERA ANGLE FOR THIS IMAGE: Angled view — 45 degrees to the side, showing product depth.",
     ],
     "flat_lay": [
         "CAMERA ANGLE FOR THIS IMAGE: Overhead (top-down) at 90 degrees.",
-        "CAMERA ANGLE FOR THIS IMAGE: 45-degree angle — showing product profile and depth.",
     ],
     "lifestyle": [
         "CAMERA ANGLE FOR THIS IMAGE: Wide contextual scene.",
-        "CAMERA ANGLE FOR THIS IMAGE: Tighter product-focused composition.",
     ],
 }
 

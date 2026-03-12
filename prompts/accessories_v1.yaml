@@ -1,6 +1,6 @@
 version: accessories_v1
 module: accessories
-default_output_count: 2
+default_output_count: 1
 
 # MANDATORY — injected into on_model prompts. Not overridable by user input.
 sri_lankan_identity: >
@@ -10,7 +10,7 @@ sri_lankan_identity: >
 
 # ---------------------------------------------------------------------------
 # Camera angle variations per display mode
-# Two images per generation: variation_index 0 and 1
+# One image per generation: variation_index 0 (hero shot)
 # ---------------------------------------------------------------------------
 camera_angles:
   on_model:
@@ -18,30 +18,18 @@ camera_angles:
       CAMERA ANGLE FOR THIS IMAGE: Straight-on close-up — camera is level with the focal
       body area, product facing directly toward the lens. Product sharp and in full focus,
       background softly blurred (bokeh). This is the primary hero shot.
-    - >
-      CAMERA ANGLE FOR THIS IMAGE: Angled view — camera elevated at 45 degrees and slightly
-      to the side, showing the product's three-dimensional depth and form. Complementary
-      angle to the straight-on shot, highlighting a different aspect of the product.
 
   flat_lay:
     - >
       CAMERA ANGLE FOR THIS IMAGE: Overhead (top-down) — camera positioned directly above
       the product at 90 degrees. Perfect symmetry, clean edges, minimal but elegant shadow.
       This is the primary product documentation shot.
-    - >
-      CAMERA ANGLE FOR THIS IMAGE: 45-degree angle — camera at a 45-degree angle from the
-      surface, showing the product's profile, depth, and three-dimensional form. Creates
-      dimension and a more editorial feel compared to the overhead shot.
 
   lifestyle:
     - >
       CAMERA ANGLE FOR THIS IMAGE: Wide contextual scene — camera pulled back to include
       the environment. The product is the hero but the lifestyle setting is clearly visible,
       creating aspirational context for the viewer.
-    - >
-      CAMERA ANGLE FOR THIS IMAGE: Tighter product-focused composition — camera moves closer
-      to emphasise the product within the lifestyle context. Background visible but softly
-      blurred (bokeh), product sharp and prominent.
 
 # ---------------------------------------------------------------------------
 # Category-specific configurations: 9 categories × 3 display modes

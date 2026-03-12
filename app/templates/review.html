@@ -350,6 +350,8 @@
         if (accessoryDl) {
             addRow(accessoryDl, 'Category',     params.get('accessory_category'));
             addRow(accessoryDl, 'Display Mode', params.get('display_mode'));
+            var accSize = params.get('accessory_size');
+            if (accSize) addRow(accessoryDl, 'Size / Type', accSize.replace(/_/g, ' '));
             var mode = params.get('display_mode');
             if (mode === 'on_model')   addRow(accessoryDl, 'Skin Tone', params.get('model_skin_tone'));
             if (mode === 'flat_lay')   addRow(accessoryDl, 'Surface',   params.get('background_surface'));
@@ -483,13 +485,14 @@
             if (mode === 'on_model')  accessoryParams.model_skin_tone    = params.get('model_skin_tone') || 'medium';
             if (mode === 'flat_lay')  accessoryParams.background_surface  = params.get('background_surface') || 'white_marble';
             if (mode === 'lifestyle') accessoryParams.context_scene        = params.get('context_scene') || 'garden';
+            if (params.get('accessory_size')) accessoryParams.accessory_size = params.get('accessory_size');
             body = {
                 idempotency_key: crypto.randomUUID(),
                 module: 'accessories',
                 product_type: 'accessory',
                 garment_images: uploadedFiles,
                 accessory_params: accessoryParams,
-                output: { count: 2, resolution: 'high' },
+                output: { count: 1, resolution: 'high' },
             };
         } else {
             body = {
