@@ -91,8 +91,9 @@ PACKAGE_ORDER: list[str] = ["starter", "popular", "value", "bulk"]
 # ---------------------------------------------------------------------------
 TRIAL: dict = {
     "duration_days": 7,
-    "free_images": 5,
+    "free_images": 3,
     "fiton_images": 1,
+    "max_quality": "1k",      # Trial users can only generate at 1k quality
     "watermark": True,
 }
 

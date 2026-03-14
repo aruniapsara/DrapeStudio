@@ -318,12 +318,21 @@
     // Ensure front is always included
     if (!selectedViews.includes('front')) selectedViews.unshift('front');
 
+    // ── Trial quality restriction ────────────────────────────────────────
+    var IS_TRIAL = {{ 'true' if is_trial_user else 'false' }};
+    var TRIAL_MAX_QUALITY = '{{ trial_max_quality|default("1k") }}';
+    var TRIAL_ENDED = {{ 'true' if trial_ended|default(false) else 'false' }};
+
     var selectedQuality = params.get('selected_quality') || '1k';
+    // Force trial users to 1k quality regardless of URL param
+    if (IS_TRIAL && selectedQuality !== TRIAL_MAX_QUALITY) {
+        selectedQuality = TRIAL_MAX_QUALITY;
+    }
     var qualityLabels = { '1k': 'Standard (1024px)', '2k': 'HD (2048px)', '4k': 'Ultra (4096px)' };
     var qualityPrices = { '1k': 40, '2k': 60, '4k': 100 };
     var pricePerImage = qualityPrices[selectedQuality] || 40;
     var imageCount = IS_CHILDREN ? 3 : (IS_ACCESSORIES ? 1 : selectedViews.length);
-    var totalCost = imageCount * pricePerImage;
+    var totalCost = IS_TRIAL ? 0 : imageCount * pricePerImage;
 
     // ── Garment images from sessionStorage ───────────────────────────────────
     var uploadedFiles = [];
@@ -416,8 +425,10 @@
         if (vqDl) {
             var viewLabels = selectedViews.map(function(v) { return v.charAt(0).toUpperCase() + v.slice(1); }).join(', ');
             addRow(vqDl, 'Views', viewLabels);
-            addRow(vqDl, 'Quality', qualityLabels[selectedQuality] || selectedQuality);
-            addRow(vqDl, 'Price per image', 'Rs. ' + pricePerImage);
+            var qualityDisplay = qualityLabels[selectedQuality] || selectedQuality;
+            if (IS_TRIAL) qualityDisplay += ' <span class="inline-block px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full ml-1">TRIAL</span>';
+            addRow(vqDl, 'Quality', qualityDisplay);
+            addRow(vqDl, 'Price per image', IS_TRIAL ? 'Free (Trial)' : 'Rs. ' + pricePerImage);
         }
     }
 
@@ -429,15 +440,24 @@
 
     if (!IS_CHILDREN && !IS_ACCESSORIES) {
         costTitle.textContent = imageCount + ' image(s) · ' + (qualityLabels[selectedQuality] || selectedQuality);
-        costAmount.textContent = 'Rs. ' + totalCost;
-        costSubtitle.textContent = selectedViews.join(', ') + ' view(s) at Rs. ' + pricePerImage + '/image';
+        costAmount.textContent = IS_TRIAL ? 'Free' : 'Rs. ' + totalCost;
+        costSubtitle.textContent = IS_TRIAL
+            ? 'Trial — ' + {{ trial_images_remaining|default(0) }} + ' free image(s) remaining'
+            : selectedViews.join(', ') + ' view(s) at Rs. ' + pricePerImage + '/image';
         btnText.textContent = 'Generate ' + imageCount + ' Image' + (imageCount > 1 ? 's' : '');
     } else if (IS_ACCESSORIES) {
         costTitle.textContent = '1 output image';
-        costAmount.textContent = 'Rs. ' + totalCost;
+        costAmount.textContent = IS_TRIAL ? 'Free' : 'Rs. ' + totalCost;
+        if (IS_TRIAL) costSubtitle.textContent = 'Trial — ' + {{ trial_images_remaining|default(0) }} + ' free image(s) remaining';
     } else {
         costTitle.textContent = '3 output images';
-        costAmount.textContent = 'Rs. ' + totalCost;
+        costAmount.textContent = IS_TRIAL ? 'Free' : 'Rs. ' + totalCost;
+        if (IS_TRIAL) costSubtitle.textContent = 'Trial — ' + {{ trial_images_remaining|default(0) }} + ' free image(s) remaining';
+    }
+
+    // ── If trial ended, show modal immediately ────────────────────────────
+    if (TRIAL_ENDED) {
+        showTrialEndedModal();
     }
 
     // ── Measurements helper for adult API body ────────────────────────────────
@@ -554,12 +574,57 @@
                 var genModule = IS_CHILDREN ? 'children' : (IS_ACCESSORIES ? 'accessories' : 'adult');
                 sessionStorage.setItem('generationModule', genModule);
                 window.location.href = '/generating/' + data.id;
+            } else if (resp.status === 402) {
+                var detail = data.detail || '';
+                if (detail.includes('trial has ended') || detail.includes('purchase a package')) {
+                    // Show trial-ended modal and redirect to pricing
+                    showTrialEndedModal();
+                } else if (detail.includes('Trial accounts can only')) {
+                    showErr(detail);
+                } else {
+                    showErr(detail || 'Insufficient balance. Please top up your wallet.');
+                }
             } else {
                 showErr(data.detail || 'Failed to create generation.');
             }
         } catch (err) {
             showErr('Network error: ' + err.message);
         }
+    }
+
+    // ── Trial-ended modal ─────────────────────────────────────────────────
+    function showTrialEndedModal() {
+        // Reset the generate button
+        var btn = document.getElementById('btn-generate');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="text-lg leading-none">✨</span> <span id="btn-generate-text">' +
+                (IS_ACCESSORIES ? 'Generate Image' : 'Generate Images') + '</span>';
+        }
+
+        // Create and show modal overlay
+        var overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+        overlay.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center">
+                <div class="text-4xl mb-3">🎁</div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Trial Period Ended</h3>
+                <p class="text-sm text-gray-600 mb-5">
+                    Your free trial images have been used up.
+                    Purchase a package to continue creating beautiful catalogue images.
+                </p>
+                <a href="/pricing"
+                   class="block w-full py-3 px-4 bg-brand text-white font-semibold rounded-xl
+                          hover:bg-brand/90 transition mb-3">
+                    View Packages & Pricing
+                </a>
+                <button onclick="this.closest('.fixed').remove()"
+                        class="text-sm text-gray-500 hover:text-gray-700">
+                    Close
+                </button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
     }
 </script>
 {% endblock %}

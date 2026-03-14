@@ -3,6 +3,10 @@
 Loads the YAML template (``app/config/prompts/fiton_v1.yaml``) and assembles
 the image generation prompt for a given garment type and customer description.
 
+Garment description fields (color, details) are sanitized at the Pydantic
+schema layer (``FitonParamsCreate``) before reaching this module, and are
+additionally boundary-quoted here as a defence-in-depth measure.
+
 Usage::
 
     from app.services.fiton_prompt import FitonPromptBuilder
@@ -27,6 +31,8 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
+
+from app.services.input_sanitizer import quote_user_text_for_prompt
 
 
 # ---------------------------------------------------------------------------
@@ -200,13 +206,22 @@ class FitonPromptBuilder:
         return "comfortably"
 
     def _build_garment_extra(self, garment_description: dict) -> str:
-        """Build an optional extra sentence describing the garment's visual attributes."""
+        """Build an optional extra sentence describing the garment's visual attributes.
+
+        User-supplied text (color, details) is boundary-quoted as a
+        defence-in-depth measure against prompt injection. Primary
+        sanitization happens at the Pydantic schema layer.
+        """
         if not garment_description:
             return ""
 
         color    = garment_description.get("color", "").strip()
         material = garment_description.get("material", "").strip()
         details  = garment_description.get("details", "").strip()
+
+        # Quote user-supplied free-text fields
+        color = quote_user_text_for_prompt(color) if color else ""
+        details = quote_user_text_for_prompt(details) if details else ""
 
         desc_parts = [p for p in [color, material] if p]
         desc_str = " ".join(desc_parts)

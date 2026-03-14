@@ -152,15 +152,34 @@ def create_generation(
                 user_obj, body.module or "adult", selected_quality, image_count, db,
             )
             if not can_generate:
-                from app.config.wallet_pricing import format_currency
-                total_cost = WalletService.get_total_cost(
-                    body.module or "adult", selected_quality, image_count,
-                )
-                detail = (
-                    f"Insufficient wallet balance. This generation costs "
-                    f"{format_currency(total_cost)}. Please reload your wallet."
-                )
-                raise HTTPException(status_code=402, detail=detail)
+                if wallet_source == "trial_ended":
+                    raise HTTPException(
+                        status_code=402,
+                        detail=(
+                            "Your free trial has ended. "
+                            "Please purchase a package to continue creating images."
+                        ),
+                    )
+                elif wallet_source == "trial_quality_restricted":
+                    from app.config.wallet_pricing import TRIAL
+                    max_q = TRIAL.get("max_quality", "1k")
+                    raise HTTPException(
+                        status_code=402,
+                        detail=(
+                            f"Trial accounts can only generate {max_q} quality images. "
+                            "Please purchase a package to unlock higher quality."
+                        ),
+                    )
+                else:
+                    from app.config.wallet_pricing import format_currency
+                    total_cost = WalletService.get_total_cost(
+                        body.module or "adult", selected_quality, image_count,
+                    )
+                    detail = (
+                        f"Insufficient wallet balance. This generation costs "
+                        f"{format_currency(total_cost)}. Please reload your wallet."
+                    )
+                    raise HTTPException(status_code=402, detail=detail)
 
     # ── Idempotency check ─────────────────────────────────────────────────────
     if body.idempotency_key:

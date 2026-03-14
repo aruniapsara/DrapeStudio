@@ -97,14 +97,32 @@ class WalletService:
         now = datetime.utcnow()
 
         # Trial period check
-        if wallet.trial_expires_at and wallet.trial_expires_at > now:
+        trial_active = bool(wallet.trial_expires_at and wallet.trial_expires_at > now)
+        trial_images_remaining = TRIAL["free_images"] - wallet.trial_images_used
+
+        if trial_active and trial_images_remaining > 0:
+            # Trial quality restriction — only 1k allowed
+            trial_max_quality = TRIAL.get("max_quality", "1k")
+            if quality != trial_max_quality and module != "fiton":
+                return False, "trial_quality_restricted"
+
             if module == "fiton":
                 if wallet.trial_fiton_used < TRIAL.get("fiton_images", 1):
                     return True, "trial"
             else:
-                remaining_trial = TRIAL["free_images"] - wallet.trial_images_used
-                if remaining_trial >= image_count:
+                if trial_images_remaining >= image_count:
                     return True, "trial"
+
+        # Trial exhausted (days expired or images used up) and no wallet balance
+        if (trial_active and trial_images_remaining <= 0) or (
+            not trial_active
+            and wallet.trial_expires_at is not None
+            and wallet.balance_lkr <= 0
+            and not (wallet.is_premium and wallet.premium_expires_at and wallet.premium_expires_at > now)
+        ):
+            # Only return trial_ended if user has never topped up
+            if wallet.total_loaded == 0:
+                return False, "trial_ended"
 
         # Premium check
         if wallet.is_premium and wallet.premium_expires_at and wallet.premium_expires_at > now:

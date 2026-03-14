@@ -434,6 +434,39 @@ def _ctx(request: Request, **extra) -> dict:
     }
 
 
+def _trial_ctx(request: Request) -> dict:
+    """Return trial-related context for review pages (quality restrictions, etc.)."""
+    user = get_request_user(request)
+    if not user or user.get("auth_type") != "jwt" or not user.get("user_id"):
+        return {"is_trial_user": False}
+
+    try:
+        from app.services.wallet import WalletService
+        from app.config.wallet_pricing import TRIAL
+        db_session = next(get_db())
+        wallet = WalletService.get_or_create_wallet(user["user_id"], db_session)
+        from datetime import datetime
+        now = datetime.utcnow()
+        trial_active = bool(
+            wallet.trial_expires_at
+            and wallet.trial_expires_at > now
+            and wallet.trial_images_used < TRIAL["free_images"]
+        )
+        trial_ended = bool(
+            wallet.trial_expires_at is not None
+            and (wallet.trial_expires_at <= now or wallet.trial_images_used >= TRIAL["free_images"])
+            and wallet.total_loaded == 0
+        )
+        return {
+            "is_trial_user": trial_active,
+            "trial_ended": trial_ended,
+            "trial_max_quality": TRIAL.get("max_quality", "1k"),
+            "trial_images_remaining": max(0, TRIAL["free_images"] - wallet.trial_images_used),
+        }
+    except Exception:
+        return {"is_trial_user": False}
+
+
 # ---------------------------------------------------------------------------
 # Sitemap
 # ---------------------------------------------------------------------------
@@ -488,7 +521,9 @@ async def configure_page(request: Request):
 
 @app.get("/review")
 async def review_page(request: Request):
-    return templates.TemplateResponse("review.html", _ctx(request, module="adult"))
+    ctx = _ctx(request, module="adult")
+    ctx.update(_trial_ctx(request))
+    return templates.TemplateResponse("review.html", ctx)
 
 
 @app.get("/generating/{gen_id}")
@@ -649,7 +684,9 @@ async def children_configure_page(request: Request, age_group: str = "kid"):
 
 @app.get("/children/review")
 async def children_review_page(request: Request):
-    return templates.TemplateResponse("review.html", _ctx(request, module="children"))
+    ctx = _ctx(request, module="children")
+    ctx.update(_trial_ctx(request))
+    return templates.TemplateResponse("review.html", ctx)
 
 
 @app.get("/accessories")
@@ -690,7 +727,9 @@ async def accessories_configure_page(request: Request, category: str = "necklace
 
 @app.get("/accessories/review")
 async def accessories_review_page(request: Request):
-    return templates.TemplateResponse("review.html", _ctx(request, module="accessories"))
+    ctx = _ctx(request, module="accessories")
+    ctx.update(_trial_ctx(request))
+    return templates.TemplateResponse("review.html", ctx)
 
 
 @app.get("/fiton")

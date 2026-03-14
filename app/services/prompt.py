@@ -4,6 +4,8 @@ from pathlib import Path
 
 import yaml
 
+from app.services.input_sanitizer import quote_user_text_for_prompt
+
 # Prompt templates directory (project root / prompts/)
 PROMPTS_DIR = Path(__file__).resolve().parent.parent.parent / "prompts"
 
@@ -178,7 +180,8 @@ def assemble_prompt(
         elif hair_color_desc:
             model_desc += f", {hair_color_desc}"
         if additional_description:
-            model_desc += f". Additional details: {additional_description}"
+            quoted = quote_user_text_for_prompt(additional_description)
+            model_desc += f". Additional physical details: {quoted}"
         if measure_text:
             model_desc += f". Measurements: {measure_text}"
 

@@ -3,7 +3,9 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.services.input_sanitizer import sanitize_prompt_input
 
 from app.children_config import (
     AGE_GROUPS,
@@ -38,8 +40,14 @@ class ModelParams(BaseModel):
     body_type: str = Field(..., description="petite | average | athletic | curvy | plus")
     hair_style: str = Field(default="", description="Hair style preset key")
     hair_color: str = Field(default="", description="Hair color preset key")
-    additional_description: str = Field(default="", description="Free-text extra model details")
+    additional_description: str = Field(default="", description="Free-text extra model details", max_length=300)
     model_photo_url: str | None = Field(default=None, description="Storage path of uploaded model reference photo")
+
+    @field_validator("additional_description")
+    @classmethod
+    def sanitize_additional_description(cls, v: str) -> str:
+        """Sanitize free-text description to prevent prompt injection."""
+        return sanitize_prompt_input(v, field_name="Additional description", max_length=300)
     measurements: ModelMeasurements | None = Field(default=None, description="Optional physical measurements")
 
 
@@ -160,6 +168,22 @@ class FitonParamsCreate(BaseModel):
         default=None,
         description="Optional garment visual attributes: color, material, details",
     )
+
+    @field_validator("garment_description")
+    @classmethod
+    def sanitize_garment_description(cls, v: dict | None) -> dict | None:
+        """Sanitize free-text fields in garment_description to prevent prompt injection."""
+        if v is None:
+            return v
+        for key in ("color", "details"):
+            if key in v and isinstance(v[key], str):
+                v[key] = sanitize_prompt_input(
+                    v[key],
+                    field_name=f"Garment {key}",
+                    max_length=200,
+                )
+        return v
+
     ai_provider: Literal["fashn", "gemini"] | None = Field(
         default=None,
         description="Override AI provider for this generation. Defaults to FITON_AI_PROVIDER env var.",
