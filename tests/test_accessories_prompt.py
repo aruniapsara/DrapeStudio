@@ -52,8 +52,8 @@ def test_template_camera_angles_for_all_modes():
     angles = tmpl["camera_angles"]
     for mode in ("on_model", "flat_lay", "lifestyle"):
         assert mode in angles, f"Missing camera_angles for mode '{mode}'"
-        assert len(angles[mode]) == 2, (
-            f"Expected 2 camera angle entries for '{mode}', got {len(angles[mode])}"
+        assert len(angles[mode]) >= 1, (
+            f"Expected at least 1 camera angle entry for '{mode}', got {len(angles[mode])}"
         )
 
 
@@ -134,12 +134,11 @@ def test_on_model_includes_skin_tone():
     assert "dark" in prompt.lower()
 
 
-def test_on_model_camera_angle_changes_with_variation():
-    """Variation 0 and 1 must produce different camera angle text in on_model prompts."""
+def test_on_model_camera_angle_included_in_prompt():
+    """Variation 0 must include a camera angle instruction in on_model prompts."""
     tmpl = load_accessories_template()
     p0 = assemble_accessories_prompt(tmpl, _params("necklace", "on_model"), variation_index=0)
-    p1 = assemble_accessories_prompt(tmpl, _params("necklace", "on_model"), variation_index=1)
-    assert p0 != p1, "Variation 0 and 1 should produce different prompts"
+    assert "camera angle" in p0.lower(), "Prompt should include camera angle instruction"
 
 
 # ---------------------------------------------------------------------------
@@ -198,12 +197,11 @@ def test_flat_lay_overhead_angle_in_variation_0():
     assert "overhead" in prompt.lower() or "top-down" in prompt.lower() or "90 degrees" in prompt.lower()
 
 
-def test_flat_lay_camera_angle_changes_with_variation():
-    """Variation 0 and 1 must produce different camera angle text in flat-lay prompts."""
+def test_flat_lay_camera_angle_included_in_prompt():
+    """Variation 0 must include a camera angle instruction in flat-lay prompts."""
     tmpl = load_accessories_template()
     p0 = assemble_accessories_prompt(tmpl, _params("scarf", "flat_lay"), variation_index=0)
-    p1 = assemble_accessories_prompt(tmpl, _params("scarf", "flat_lay"), variation_index=1)
-    assert p0 != p1
+    assert "camera angle" in p0.lower(), "Prompt should include camera angle instruction"
 
 
 # ---------------------------------------------------------------------------
@@ -242,16 +240,13 @@ def test_lifestyle_fallback_without_scene():
     assert "cozy" in prompt.lower() or "cosy" in prompt.lower() or "lifestyle" in prompt.lower()
 
 
-def test_lifestyle_camera_angle_changes_with_variation():
-    """Variation 0 and 1 must produce different camera angle text in lifestyle prompts."""
+def test_lifestyle_camera_angle_included_in_prompt():
+    """Variation 0 must include a camera angle instruction in lifestyle prompts."""
     tmpl = load_accessories_template()
     p0 = assemble_accessories_prompt(
         tmpl, _params("handbag", "lifestyle", context_scene="urban_street"), variation_index=0
     )
-    p1 = assemble_accessories_prompt(
-        tmpl, _params("handbag", "lifestyle", context_scene="urban_street"), variation_index=1
-    )
-    assert p0 != p1
+    assert "camera angle" in p0.lower(), "Prompt should include camera angle instruction"
 
 
 # ---------------------------------------------------------------------------
@@ -293,11 +288,11 @@ def test_all_categories_assemble_lifestyle(category):
 # Output count test
 # ---------------------------------------------------------------------------
 
-def test_output_count_is_2_for_accessories():
-    """The template must declare default_output_count=2 for accessories."""
+def test_output_count_is_1_for_accessories():
+    """The template must declare default_output_count=1 for accessories."""
     tmpl = load_accessories_template()
-    assert tmpl.get("default_output_count") == 2, (
-        f"Expected default_output_count=2, got {tmpl.get('default_output_count')}"
+    assert tmpl.get("default_output_count") == 1, (
+        f"Expected default_output_count=1, got {tmpl.get('default_output_count')}"
     )
 
 

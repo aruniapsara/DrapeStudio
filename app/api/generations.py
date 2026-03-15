@@ -61,6 +61,9 @@ def create_generation(
     # These come from the request body (new v2 fields) or default to legacy values
     # Must be resolved BEFORE building params dicts (adult module stores them)
     selected_views = getattr(body, "views", None) or ["front"]
+    # Children module always generates 3 views (front, side, back) — same as adult
+    if body.module == "children" and not getattr(body, "views", None):
+        selected_views = ["front", "side", "back"]
     selected_quality = getattr(body, "quality", None) or "1k"
     image_count = len(selected_views) if body.module != "fiton" else 1
 
@@ -129,6 +132,8 @@ def create_generation(
         scene_params_dict = {
             "pose_style": cp.pose_style,
             "background_preset": cp.background_preset,
+            "views": selected_views,
+            "quality": selected_quality,
         }
 
     else:

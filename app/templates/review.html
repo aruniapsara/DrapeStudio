@@ -72,8 +72,8 @@
         </div>
         {% endif %}
 
-        {# ── Views & Quality (adult only) ─────────────────────────────── #}
-        {% if not is_children and not is_accessories %}
+        {# ── Views & Quality (adult + children) ────────────────────────── #}
+        {% if not is_accessories %}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
             <h3 class="text-sm font-bold text-dark mb-3">Views & Quality</h3>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-2" id="review-views-quality"></dl>
@@ -311,12 +311,17 @@
 
     // ── Views & quality (parsed from URL params or defaults) ───────────────
     var selectedViews = ['front'];
-    try {
-        var rawViews = params.get('selected_views');
-        if (rawViews) selectedViews = JSON.parse(rawViews);
-    } catch(e) {}
-    // Ensure front is always included
-    if (!selectedViews.includes('front')) selectedViews.unshift('front');
+    if (IS_CHILDREN) {
+        // Children always generate 3 views (front, side, back)
+        selectedViews = ['front', 'side', 'back'];
+    } else {
+        try {
+            var rawViews = params.get('selected_views');
+            if (rawViews) selectedViews = JSON.parse(rawViews);
+        } catch(e) {}
+        // Ensure front is always included
+        if (!selectedViews.includes('front')) selectedViews.unshift('front');
+    }
 
     // ── Trial quality restriction ────────────────────────────────────────
     var IS_TRIAL = {{ 'true' if is_trial_user else 'false' }};
@@ -331,7 +336,7 @@
     var qualityLabels = { '1k': 'Standard (1024px)', '2k': 'HD (2048px)', '4k': 'Ultra (4096px)' };
     var qualityPrices = { '1k': 40, '2k': 60, '4k': 100 };
     var pricePerImage = qualityPrices[selectedQuality] || 40;
-    var imageCount = IS_CHILDREN ? 3 : (IS_ACCESSORIES ? 1 : selectedViews.length);
+    var imageCount = IS_ACCESSORIES ? 1 : selectedViews.length;
     var totalCost = IS_TRIAL ? 0 : imageCount * pricePerImage;
 
     // ── Garment images from sessionStorage ───────────────────────────────────
@@ -360,6 +365,16 @@
             addRow(childDl, 'Background',   params.get('background_preset'));
             addRow(childDl, 'Hair',         params.get('hair_style'));
             addRow(childDl, 'Expression',   params.get('expression'));
+        }
+
+        // ── Children: views & quality (same as adult) ────────────────────────
+        var vqDl = document.getElementById('review-views-quality');
+        if (vqDl) {
+            addRow(vqDl, 'Views', 'Front, Side, Back');
+            var qualityDisplay = qualityLabels[selectedQuality] || selectedQuality;
+            if (IS_TRIAL) qualityDisplay += ' <span class="inline-block px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full ml-1">TRIAL</span>';
+            addRow(vqDl, 'Quality', qualityDisplay);
+            addRow(vqDl, 'Price per image', IS_TRIAL ? 'Free (Trial)' : 'Rs. ' + pricePerImage);
         }
     } else if (IS_ACCESSORIES) {
         // ── Accessories configuration ──────────────────────────────────────────
@@ -438,21 +453,19 @@
     var costSubtitle = document.getElementById('review-cost-subtitle');
     var btnText = document.getElementById('btn-generate-text');
 
-    if (!IS_CHILDREN && !IS_ACCESSORIES) {
-        costTitle.textContent = imageCount + ' image(s) · ' + (qualityLabels[selectedQuality] || selectedQuality);
-        costAmount.textContent = IS_TRIAL ? 'Free' : 'Rs. ' + totalCost;
-        costSubtitle.textContent = IS_TRIAL
-            ? 'Trial — ' + {{ trial_images_remaining|default(0) }} + ' free image(s) remaining'
-            : selectedViews.join(', ') + ' view(s) at Rs. ' + pricePerImage + '/image';
-        btnText.textContent = 'Generate ' + imageCount + ' Image' + (imageCount > 1 ? 's' : '');
-    } else if (IS_ACCESSORIES) {
+    if (IS_ACCESSORIES) {
         costTitle.textContent = '1 output image';
         costAmount.textContent = IS_TRIAL ? 'Free' : 'Rs. ' + totalCost;
         if (IS_TRIAL) costSubtitle.textContent = 'Trial — ' + {{ trial_images_remaining|default(0) }} + ' free image(s) remaining';
     } else {
-        costTitle.textContent = '3 output images';
+        // Adult and Children share the same cost / quality display
+        var viewsLabel = IS_CHILDREN ? 'front, side, back' : selectedViews.join(', ');
+        costTitle.textContent = imageCount + ' image(s) · ' + (qualityLabels[selectedQuality] || selectedQuality);
         costAmount.textContent = IS_TRIAL ? 'Free' : 'Rs. ' + totalCost;
-        if (IS_TRIAL) costSubtitle.textContent = 'Trial — ' + {{ trial_images_remaining|default(0) }} + ' free image(s) remaining';
+        costSubtitle.textContent = IS_TRIAL
+            ? 'Trial — ' + {{ trial_images_remaining|default(0) }} + ' free image(s) remaining'
+            : viewsLabel + ' view(s) at Rs. ' + pricePerImage + '/image';
+        btnText.textContent = 'Generate ' + imageCount + ' Image' + (imageCount > 1 ? 's' : '');
     }
 
     // ── If trial ended, show modal immediately ────────────────────────────
@@ -493,6 +506,8 @@
                 module: 'children',
                 product_type: 'clothing',
                 garment_images: uploadedFiles,
+                views: selectedViews,
+                quality: selectedQuality,
                 child_params: {
                     age_group:         params.get('age_group'),
                     child_gender:      params.get('child_gender') || 'unisex',
@@ -502,7 +517,7 @@
                     hair_style:        params.get('hair_style') || null,
                     expression:        params.get('expression') || 'happy',
                 },
-                output: { count: 3, resolution: 'high' },
+                output: { count: imageCount, resolution: 'high' },
             };
         } else if (IS_ACCESSORIES) {
             var accessoryParams = {

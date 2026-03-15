@@ -120,7 +120,8 @@ def generate_images(generation_request_id: str) -> None:
             if len(views_list) > 0:
                 output_count = len(views_list)
 
-        adult_prompts = None  # Only set for adult module with multiple views
+        adult_prompts = None     # Only set for adult module with multiple views
+        children_prompts = None  # Only set for children module with multiple views
         try:
             if module == "accessories":
                 # Accessories module: rebuild accessory_params dict from stored JSON
@@ -161,14 +162,26 @@ def generate_images(generation_request_id: str) -> None:
                     "skin_tone":         gen.model_params.get("skin_tone", "medium"),
                 }
                 children_template = load_children_template()
-                prompt_text = assemble_children_prompt(
-                    template=children_template,
-                    child_params=child_params_for_prompt,
-                )
+
+                # Build one prompt per view (front, side, back) — same as adult
+                children_camera_angles = children_template.get("camera_angles", {})
+                children_prompts = []
+                for view in views_list:
+                    base_prompt = assemble_children_prompt(
+                        template=children_template,
+                        child_params=child_params_for_prompt,
+                    )
+                    angle_instruction = children_camera_angles.get(view, "")
+                    if angle_instruction:
+                        base_prompt = f"CAMERA ANGLE: {angle_instruction.strip()}\n\n{base_prompt}"
+                    children_prompts.append(base_prompt)
+                prompt_text = children_prompts[0]
+
                 logger.info(
-                    "Generation %s (children/%s): prompt assembled (%d chars)",
+                    "Generation %s (children/%s): %d prompts assembled (%d chars each)",
                     generation_request_id,
                     child_params_for_prompt.get("age_group"),
+                    len(children_prompts),
                     len(prompt_text),
                 )
 
@@ -467,6 +480,8 @@ def generate_images(generation_request_id: str) -> None:
                     extra_kwargs["display_mode"] = display_mode
                 elif module == "adult" and adult_prompts is not None:
                     extra_kwargs["prompt_texts"] = adult_prompts
+                elif module == "children" and children_prompts is not None:
+                    extra_kwargs["prompt_texts"] = children_prompts
 
                 result = generate_garment_images(
                     garment_image_bytes=garment_image_bytes_list,
