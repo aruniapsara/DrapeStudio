@@ -184,6 +184,22 @@ class FitonParamsCreate(BaseModel):
                 )
         return v
 
+    scene: str = Field(
+        default="studio_white",
+        description="Scene/environment for the generated image",
+    )
+    custom_text: str = Field(
+        default="",
+        description="Optional custom text to add to the generation prompt",
+        max_length=300,
+    )
+
+    @field_validator("custom_text")
+    @classmethod
+    def sanitize_custom_text(cls, v: str) -> str:
+        """Sanitize custom text to prevent prompt injection."""
+        return sanitize_prompt_input(v, field_name="Custom description", max_length=300)
+
     ai_provider: Literal["fashn", "gemini"] | None = Field(
         default=None,
         description="Override AI provider for this generation. Defaults to FITON_AI_PROVIDER env var.",

@@ -189,6 +189,8 @@ def generate_images(generation_request_id: str) -> None:
                         customer_measurements=gen.model_params.get("customer_measurements", {}),
                         fit_preference=gen.model_params.get("fit_preference", "regular"),
                         garment_description=gen.model_params.get("garment_description"),
+                        scene=gen.model_params.get("scene", "studio_white"),
+                        custom_text=gen.model_params.get("custom_text", ""),
                     )
                     prompt_text = prompt_data["prompt"]
                     fiton_system_instruction = prompt_data.get("system_context", "")

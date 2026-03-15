@@ -14,6 +14,8 @@
          customerBuild: 'medium',
          customerGender: 'female',
          customerSkinTone: 'medium',
+         selectedScene: 'studio_white',
+         customText: '',
          fitonBuildOptions: (window.FITON_BUILD_OPTIONS) || {},
          get currentBuildOptions() {
              var opts = this.fitonBuildOptions[this.customerGender] || this.fitonBuildOptions['female'] || [];
@@ -371,6 +373,53 @@
             </div>
         </div>
 
+        {# ── Scene / Environment ──────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-1">Scene / Environment</h3>
+            <p class="text-xs text-gray-400 mb-4">Where should the fit-on photo be taken?</p>
+
+            <div class="grid grid-cols-2 gap-2">
+                <template x-for="scene in [
+                    { key: 'studio_white',   emoji: '⬜', label: 'White Studio' },
+                    { key: 'studio_grey',    emoji: '🔲', label: 'Grey Studio' },
+                    { key: 'urban_street',   emoji: '🏙️', label: 'Urban Street' },
+                    { key: 'outdoor_garden', emoji: '🌿', label: 'Garden' },
+                    { key: 'beach',          emoji: '🏖️', label: 'Beach' },
+                    { key: 'coffee_shop',    emoji: '☕', label: 'Coffee Shop' },
+                    { key: 'office',         emoji: '💼', label: 'Office' },
+                    { key: 'living_room',    emoji: '🛋️', label: 'Living Room' },
+                    { key: 'traditional',    emoji: '🏛️', label: 'Traditional' },
+                    { key: 'runway',         emoji: '✨', label: 'Runway' },
+                ]" :key="scene.key">
+                    <label @click="selectedScene = scene.key" class="cursor-pointer">
+                        <div class="rounded-xl border-2 py-2.5 px-3 text-center transition-all select-none"
+                             :class="selectedScene === scene.key
+                                 ? 'border-primary bg-primary/5'
+                                 : 'border-gray-200 hover:border-primary/30'">
+                            <span class="text-lg" x-text="scene.emoji"></span>
+                            <p class="text-[11px] font-bold text-dark mt-0.5" x-text="scene.label"></p>
+                        </div>
+                    </label>
+                </template>
+            </div>
+        </div>
+
+        {# ── Custom Text ─────────────────────────────────────────── #}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+            <h3 class="text-sm font-bold text-dark mb-1">Custom Description <span class="text-gray-400 font-normal">(Optional)</span></h3>
+            <p class="text-xs text-gray-400 mb-3">Describe any additional styling details for the image.</p>
+
+            <textarea x-model="customText"
+                      rows="2" maxlength="300"
+                      class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-dark
+                             placeholder-gray-400 focus:border-primary focus:ring-1 focus:ring-primary/30
+                             transition-all resize-none"
+                      placeholder="e.g. with gold jewelry, professional pose, casual stance, holding a handbag..."></textarea>
+            <p class="text-[10px] text-gray-400 text-right mt-1">
+                <span x-text="(customText || '').length"></span>/300
+            </p>
+        </div>
+
         {# ── AI Provider selector (admin/tester only) ────────────── #}
         {% if user and user.role in ('admin', 'tester') %}
         <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
@@ -609,7 +658,11 @@
                     customer_measurements:  measurements,
                     fit_preference:         alpineData.fitPreference,
                     garment_type:           garmentData.garmentType || 'dress',
+                    scene:                  alpineData.selectedScene || 'studio_white',
                 };
+                if (alpineData.customText && alpineData.customText.trim()) {
+                    fitonParams.custom_text = alpineData.customText.trim();
+                }
                 if (gm)  fitonParams.garment_measurements = gm;
                 if (gsl) fitonParams.garment_size_label   = gsl;
 
@@ -651,7 +704,11 @@
                     garment_size_label: alpineData.customerSize || 'M',
                     fit_preference:     alpineData.fitPreference,
                     garment_type:       garmentData.garmentType || 'dress',
+                    scene:              alpineData.selectedScene || 'studio_white',
                 };
+                if (alpineData.customText && alpineData.customText.trim()) {
+                    fitonParams.custom_text = alpineData.customText.trim();
+                }
             }
 
             // Inject AI provider override if admin/tester selected one

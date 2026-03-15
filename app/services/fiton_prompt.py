@@ -60,6 +60,20 @@ class FitonPromptBuilder:
     # Public API
     # ------------------------------------------------------------------
 
+    # Scene descriptions for fiton — maps scene keys to natural-language phrases.
+    SCENE_DESCRIPTIONS: dict[str, str] = {
+        "studio_white":   "in a professional white studio with soft, even lighting",
+        "studio_grey":    "in a neutral grey studio backdrop with professional lighting",
+        "urban_street":   "on an urban street with modern architecture in the background",
+        "outdoor_garden": "in a lush green garden with natural sunlight",
+        "beach":          "on a sandy beach with ocean waves in the background",
+        "coffee_shop":    "in a cozy modern coffee shop with warm ambient lighting",
+        "office":         "in a bright, modern office space with clean interiors",
+        "living_room":    "in a stylish contemporary living room with natural light",
+        "traditional":    "in a traditional Sri Lankan interior with cultural decor",
+        "runway":         "on a fashion runway with dramatic spotlight lighting",
+    }
+
     def build_prompt(
         self,
         garment_type: str,
@@ -67,6 +81,8 @@ class FitonPromptBuilder:
         fit_preference: str = "regular",
         fit_details: Optional[dict] = None,
         garment_description: Optional[dict] = None,
+        scene: str = "studio_white",
+        custom_text: str = "",
     ) -> dict:
         """Build the prompt payload for fit-on image generation.
 
@@ -79,6 +95,8 @@ class FitonPromptBuilder:
             fit_details:           Per-measurement fit labels from the sizing service.
                                    When provided, overrides fit_preference description.
             garment_description:   Optional dict with "color", "material", "details".
+            scene:                 Scene/environment key (e.g. "studio_white", "urban_street").
+            custom_text:           Optional custom text to append to the prompt.
 
         Returns:
             Dict with keys: prompt, negative_prompt, system_context, num_images.
@@ -105,14 +123,30 @@ class FitonPromptBuilder:
         # 4. Build optional garment extra details line
         garment_extra = self._build_garment_extra(garment_description)
 
-        # 5. Format the prompt template
+        # 5. Build scene description
+        scene_desc = self.SCENE_DESCRIPTIONS.get(
+            scene, self.SCENE_DESCRIPTIONS["studio_white"]
+        )
+
+        # 6. Build custom text line (sanitized at schema layer, quoted here)
+        custom_line = ""
+        if custom_text and custom_text.strip():
+            quoted = quote_user_text_for_prompt(custom_text.strip())
+            custom_line = f"Additional styling notes: {quoted}."
+
+        # 7. Format the prompt template
         raw_prompt = template["prompt_template"].format(
             customer_description=customer_desc,
             fit_description=fit_desc,
             garment_extra=garment_extra,
         )
 
-        # 6. Prepend identity preservation instructions (critical for fit-on)
+        # 8. Append scene and custom text after the main prompt
+        raw_prompt += f"\nSCENE: The photo is taken {scene_desc}."
+        if custom_line:
+            raw_prompt += f"\n{custom_line}"
+
+        # 9. Prepend identity preservation instructions (critical for fit-on)
         identity_block = self.config.get("identity_preservation", "").strip()
         if identity_block:
             raw_prompt = f"{identity_block}\n\n{raw_prompt}"
