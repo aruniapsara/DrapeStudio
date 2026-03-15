@@ -196,11 +196,11 @@ async def login_submit(
 @app.get("/logout")
 async def logout():
     response = RedirectResponse(url="/login", status_code=302)
-    # Clear both JWT and legacy cookies
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
-    response.delete_cookie("username")
-    response.delete_cookie("role")
+    # Clear both JWT and legacy cookies — must match attributes used at set_cookie
+    response.delete_cookie("access_token", path="/", httponly=True, samesite="lax", secure=False)
+    response.delete_cookie("refresh_token", path="/", httponly=True, samesite="lax", secure=False)
+    response.delete_cookie("username", path="/", httponly=True, samesite="lax")
+    response.delete_cookie("role", path="/", httponly=True, samesite="lax")
     return response
 
 
@@ -590,7 +590,7 @@ async def admin_login_submit(
 async def admin_logout():
     """Admin logout — clear admin_token cookie."""
     response = RedirectResponse(url="/admin/login", status_code=302)
-    response.delete_cookie("admin_token")
+    response.delete_cookie("admin_token", path="/", httponly=True, samesite="lax")
     return response
 
 

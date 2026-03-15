@@ -167,8 +167,8 @@ async def refresh_token(
 @router.post("/logout")
 async def logout(response: Response):
     """Clear JWT cookies and end the session."""
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie("access_token", path="/", httponly=True, samesite="lax", secure=False)
+    response.delete_cookie("refresh_token", path="/", httponly=True, samesite="lax", secure=False)
     return {"message": "Logged out successfully."}
 
 
