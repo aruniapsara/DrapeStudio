@@ -151,12 +151,19 @@ class FitonPromptBuilder:
         if identity_block:
             raw_prompt = f"{identity_block}\n\n{raw_prompt}"
 
+        # 10. Append negative prompt directly into the prompt text
+        #     (Gemini doesn't have a separate negative_prompt field — it must
+        #     be embedded in the prompt text like the other modules do)
+        negative = self.config["negative_prompt"].strip()
+        if negative:
+            raw_prompt += f"\n\nNEGATIVE (avoid ALL of these):\n{negative}"
+
         # Clean up formatting artefacts from optional placeholders
         prompt = self._clean_prompt(raw_prompt)
 
         return {
             "prompt":          prompt,
-            "negative_prompt": self.config["negative_prompt"].strip(),
+            "negative_prompt": negative,
             "system_context":  self.config["system_context"].strip(),
             "num_images":      1,  # fit-on always generates exactly 1 image
         }

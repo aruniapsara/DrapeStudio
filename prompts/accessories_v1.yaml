@@ -179,8 +179,9 @@ quality: >
 
 output: >
   Generate exactly one image. No watermarks, no text overlays, no logos,
-  no borders. High resolution, correct aspect ratio. Product must be fully
+  no borders, no badges, no AI-generated marks. High resolution, correct aspect ratio. Product must be fully
   in-frame.
+  IMPORTANT: The image must contain NO watermark, NO text, NO badge, NO logo, NO "AI generated" label anywhere — the image must be completely clean.
 
 negative: >
   blurry, out of focus, overexposed, underexposed, colour cast, excessive grain,
@@ -188,4 +189,4 @@ negative: >
   duplicate product, extra limbs, distorted proportions, warped or melting
   background, low quality, pixelated, heavy compression artifacts,
   oversaturated, washed out colours, nsfw, inappropriate content,
-  product cut off by frame edge
+  product cut off by frame edge, AI watermark, generated badge, SynthID mark, corner badge

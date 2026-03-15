@@ -47,6 +47,7 @@ fiton:
         The person is {customer_description}. The dress fits {fit_description} on the body.
         The person's face, skin, hair, and body MUST be identical to the customer photo.
         Professional catalogue photo, natural lighting, clean background.
+        The image must be completely clean — NO watermark, NO text, NO badge, NO logo, NO "AI generated" label anywhere in the image.
         {garment_extra}
 
     top:
@@ -56,6 +57,7 @@ fiton:
         The person is {customer_description}. The top fits {fit_description}.
         Customer wears their own bottoms. Face and body MUST match the customer photo exactly.
         Professional photo, natural lighting.
+        The image must be completely clean — NO watermark, NO text, NO badge, NO logo anywhere.
 
     saree:
       prompt_template: >
@@ -64,6 +66,7 @@ fiton:
         The person is {customer_description}. The saree is draped in traditional style.
         The person's face, skin tone, and body MUST be identical to the customer photo.
         Elegant pose, professional studio lighting.
+        The image must be completely clean — NO watermark, NO text, NO badge, NO logo anywhere.
 
     bottom:
       prompt_template: >
@@ -72,6 +75,7 @@ fiton:
         The person is {customer_description}. The bottom fits {fit_description}.
         Customer wears their own top. Face and body MUST match the customer photo exactly.
         Professional photo, natural lighting.
+        The image must be completely clean — NO watermark, NO text, NO badge, NO logo anywhere.
 
     full_outfit:
       prompt_template: >
@@ -80,6 +84,7 @@ fiton:
         The person is {customer_description}. Both top and bottom transferred.
         The person's face, skin, hair MUST be identical to the customer photo.
         Professional catalogue photo, clean background.
+        The image must be completely clean — NO watermark, NO text, NO badge, NO logo anywhere.
 
   fit_descriptions:
     tight: "snugly, close to the body"
@@ -88,7 +93,8 @@ fiton:
 
   negative_prompt: >
     distorted face, different person, changed skin tone, warped body proportions,
-    unrealistic anatomy, blurry, low quality, watermark, text overlay,
+    unrealistic anatomy, blurry, low quality, watermark, text overlay, AI watermark,
+    generated badge, SynthID mark, corner badge, any text on image,
     different hairstyle, changed facial features, nudity, revealing,
     different person, altered face, different facial features, changed skin tone,
     different hairstyle, changed hair color, beautified face, smoothed skin,

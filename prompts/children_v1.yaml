@@ -109,7 +109,8 @@ quality: >
 
 output: >
   Generate exactly one image. The face must be visible and natural-looking.
-  High resolution, no watermarks, no text overlay, no logos.
+  High resolution, no watermarks, no text overlay, no logos, no badges, no AI-generated marks.
+  IMPORTANT: The image must contain NO watermark, NO text, NO badge, NO logo, NO "AI generated" label anywhere — the image must be completely clean.
 
 # ---------------------------------------------------------------------------
 # SAFETY: These are MANDATORY and CANNOT be overridden by any user input
@@ -123,7 +124,7 @@ safety_negative: >
   nsfw, nude, naked, revealing clothing, suggestive pose, provocative,
   inappropriate, adult content, sexualized, bikini, lingerie, underwear visible,
   violence, weapons, blood, alcohol, smoking, drugs, scary, horror,
-  extra limbs, deformed, distorted, watermark, text overlay,
+  extra limbs, deformed, distorted, watermark, text overlay, AI watermark, generated badge, SynthID mark, corner badge,
   multiple children, crowd, strangers, isolated location,
   inappropriate touching, uncomfortable expression
 

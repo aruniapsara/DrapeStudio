@@ -23,11 +23,12 @@ quality: |
 output: |
   generate one image per call at the camera angle specified at the end of this prompt
   model face must always be visible regardless of camera angle
-  high resolution output; no text overlays; no watermarks; no borders
+  high resolution output; no text overlays; no watermarks; no borders; no badges; no AI-generated marks
+  IMPORTANT: The image must contain NO watermark, NO text, NO badge, NO logo, NO "AI generated" label anywhere — the image must be completely clean
 
 negative: |
   extra limbs, extra fingers, fused fingers, distorted hands, distorted face
-  background text, watermarks, logos, lens flare, motion blur
+  background text, watermarks, logos, lens flare, motion blur, AI watermark, generated badge, SynthID mark, text badge, corner badge
   NSFW content, revealing clothing added, garment colour changes
   price tags, swing tags, care labels, brand tags, garment labels, hang tags
   multiple people, two people, group of people, crowd, extra person
