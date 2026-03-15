@@ -27,14 +27,18 @@ services:
     build: .
     restart: always
     command: >
-      sh -c "alembic upgrade head &&
+      sh -c "mkdir -p /app/data/storage/uploads /app/data/storage/outputs /app/data/db &&
+             alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
     env_file: .env
     environment:
       APP_ENV: production
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: "sqlite:////app/data/db/drapestudio.db"
+      STORAGE_ROOT: "/app/data/storage"
     volumes:
       - storage_data:/app/data/storage
+      - db_data:/app/data/db
     depends_on:
       redis:
         condition: service_healthy
@@ -49,13 +53,18 @@ services:
   worker:
     build: .
     restart: always
-    command: rq worker drapestudio --url redis://redis:6379
+    command: >
+      sh -c "mkdir -p /app/data/storage/uploads /app/data/storage/outputs /app/data/db &&
+             rq worker drapestudio --url redis://redis:6379"
     env_file: .env
     environment:
       APP_ENV: production
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: "sqlite:////app/data/db/drapestudio.db"
+      STORAGE_ROOT: "/app/data/storage"
     volumes:
       - storage_data:/app/data/storage
+      - db_data:/app/data/db
     depends_on:
       redis:
         condition: service_healthy
@@ -79,3 +88,4 @@ services:
 volumes:
   redis_data:
   storage_data:
+  db_data:
